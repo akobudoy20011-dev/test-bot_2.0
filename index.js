@@ -18,7 +18,6 @@ const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeAc
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
 const GLOBAL_SEND_LIMIT = Math.max(1, Number(process.env.BANAT_GLOBAL_SEND_LIMIT || 2));
-const THREAD_SEND_LIMIT = Math.max(1, Number(process.env.BANAT_THREAD_SEND_LIMIT || 1));
 const THREAD_COOLDOWN_MS = Math.max(0, Number(process.env.BANAT_THREAD_COOLDOWN_MS || 12000));
 const RETRY_DELAYS = [1500, 4000, 8000];
 
@@ -28,7 +27,6 @@ const threadLastSent = new Map();
 const threadCooldown = new Map();
 let globalActive = 0;
 let botUserID = "";
-let apiRef = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -137,14 +135,12 @@ function handleBanatCommand(api, event, body) {
     trafficSendMessage(api, "banat is on. say whatever u want 😭", threadID, () => {});
     return true;
   }
-
   if (sub === "off" || sub === "disable" || sub === "stop") {
     setBanatConversationMode(threadID, false);
     activeThreads.delete(threadID);
     trafficSendMessage(api, "banat off. peace 😭", threadID, () => {});
     return true;
   }
-
   if (sub === "toggle") {
     const next = !isBanatConversationModeActive(threadID);
     setBanatConversationMode(threadID, next, event.senderID);
@@ -152,32 +148,23 @@ function handleBanatCommand(api, event, body) {
     trafficSendMessage(api, next ? "banat is on 😭" : "banat is off", threadID, () => {});
     return true;
   }
-
   if (sub === "status") {
     const on = isBanatConversationModeActive(threadID) || activeThreads.has(threadID);
     trafficSendMessage(api, on ? "banat: ON 🟢" : "banat: OFF 🔴", threadID, () => {});
     return true;
   }
-
   if (sub === "help") {
     trafficSendMessage(api, "!banat on · !banat off · !banat toggle · !banat status", threadID, () => {});
     return true;
   }
-
   return false;
 }
 
 async function sendBanat(api, event, text) {
-  const threadID = String(event.threadID);
-  return sendBanatReplyWithTyping(api, text, threadID, event.messageID || null, {
+  return sendBanatReplyWithTyping(api, text, String(event.threadID), event.messageID || null, {
     trafficSendMessage,
-    incomingText: event.body || "",
-    replyDelayMs: undefined
+    incomingText: event.body || ""
   });
-}
-
-function shouldUseTrigger(body) {
-  return Boolean(getTriggerReply(body, "__probe__"));
 }
 
 function onMessage(api, event) {
@@ -186,25 +173,20 @@ function onMessage(api, event) {
 
   const body = String(event.body || "").trim();
   if (!body) return;
-
-  if (isBanatCommand(body)) {
-    handleBanatCommand(api, event, body);
-    return;
-  }
+  if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
   const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
   const target = classifyBanatTarget({ event, body, botID: botUserID });
 
-  // When active, every normal incoming message is eligible. This intentionally
-  // includes the person who turned Banat on, so there is no "first person" hole.
+  // Active mode intentionally includes the person who activated it.
   if (active) {
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
     if (reply) sendBanat(api, event, reply).catch(error => console.error("[BANAT]", error));
     return;
   }
 
-  // When off, only explicit replies/mentions/direct addresses trigger Banat.
+  // Off mode only answers direct replies, mentions, or explicit bot/banat addresses.
   if (target.shouldRespond) {
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
     if (reply) sendBanat(api, event, reply).catch(error => console.error("[BANAT]", error));
@@ -212,14 +194,11 @@ function onMessage(api, event) {
 }
 
 function start(api) {
-  apiRef = api;
   try { botUserID = String(api.getCurrentUserID?.() || ""); } catch (_) {}
 
-  if (DEFAULT_ON) {
-    console.log("[BANAT] Default-on mode enabled. Each thread activates after its first handled message.");
-  }
+  if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
 
-  api.listen((error, event) => {
+  api.listenMqtt((error, event) => {
     if (error) {
       console.error("[BANAT] listener error:", error);
       return;
@@ -254,7 +233,6 @@ function loginBot() {
   });
 }
 
-// Optional tiny health endpoint for hosts that require a listening port.
 try {
   const http = require("http");
   http.createServer((req, res) => {
