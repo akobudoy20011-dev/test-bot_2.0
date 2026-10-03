@@ -42,19 +42,65 @@ function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function readSession() {
   const raw = process.env.FB_COOKIES || process.env.FB_APPSTATE;
-  if (raw) return JSON.parse(raw);
+
+  if (raw) {
+    const trimmed = String(raw).trim();
+
+    // ws3-fca 2.0.1 accepts a cookie/header string.
+    // If Render contains JSON appstate, parse it first and convert it below.
+    try {
+      return JSON.parse(trimmed);
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
   for (const file of ["appstate.json", "cookies.json"]) {
     const filePath = path.join(process.cwd(), file);
     if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, "utf8"));
   }
-  throw new Error("No Facebook session found. Set FB_COOKIES/FB_APPSTATE or provide appstate.json locally.");
+
+  throw new Error(
+    "No Facebook session found. Set FB_COOKIES/FB_APPSTATE or provide appstate.json locally."
+  );
 }
 
 function normalizeSession(value) {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.appState)) return value.appState;
-  if (Array.isArray(value?.cookies)) return value.cookies;
-  throw new Error("Facebook session must be a JSON array of cookies/appState entries.");
+  // ws3-fca 2.0.1 expects the saved Facebook session as a cookie string,
+  // not { appState: [...] }. Convert exported cookie/appstate JSON into
+  // the header format that version accepts.
+  if (typeof value === "string") {
+    const cookie = value.trim();
+    if (!cookie) throw new Error("Facebook cookie session is empty.");
+    return cookie;
+  }
+
+  const entries =
+    Array.isArray(value) ? value :
+    Array.isArray(value?.appState) ? value.appState :
+    Array.isArray(value?.cookies) ? value.cookies :
+    null;
+
+  if (!entries) {
+    throw new Error(
+      "Facebook session must be a cookie string or a JSON array of cookie/appState entries."
+    );
+  }
+
+  const parts = entries
+    .map(cookie => {
+      const key = cookie?.key ?? cookie?.name;
+      const val = cookie?.value;
+      if (key == null || val == null) return null;
+      return String(key).trim() + "=" + String(val);
+    })
+    .filter(Boolean);
+
+  if (!parts.length) {
+    throw new Error("Facebook session contains no valid cookie entries.");
+  }
+
+  return parts.join("; ");
 }
 
 function enqueue(threadID, job) {
@@ -276,9 +322,10 @@ function start(api) {
 }
 
 function loginBot() {
-  const appState = normalizeSession(readSession());
+  const cookie = normalizeSession(readSession());
   console.log("[BANAT] logging in with saved Facebook session...");
-  login({ appState }, (error, api) => {
+  console.log(`[BANAT] session format: cookie string (${cookie.length} chars)`);
+  login(cookie, (error, api) => {
     if (error) {
       console.error("[BANAT] login failed:", error);
       process.exitCode = 1;
