@@ -3,9 +3,19 @@
 /*
  * BANAT-ONLY MESSENGER BOT
  * ------------------------
- * Deliberately standalone.
- * No AI, no Gemini/OpenAI, no database, no games, no economy, no music,
- * no RPG, no moderation system, no ECLIPSE project files.
+ * No AI. No games. No economy. No RPG. No music. No database.
+ *
+ * ACTIVATION:
+ *   Send: !banat on
+ *
+ * OTHER COMMANDS:
+ *   !banat off
+ *   !banat toggle
+ *   !banat status
+ *   !banat help
+ *
+ * After "!banat on", Banat stays active for that thread until "!banat off".
+ * BANAT_DEFAULT_ON=true can be used to start every thread in active mode.
  */
 
 const fs = require("fs");
@@ -179,14 +189,12 @@ function onMessage(api, event) {
   const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
   const target = classifyBanatTarget({ event, body, botID: botUserID });
 
-  // Active mode intentionally includes the person who activated it.
   if (active) {
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
     if (reply) sendBanat(api, event, reply).catch(error => console.error("[BANAT]", error));
     return;
   }
 
-  // Off mode only answers direct replies, mentions, or explicit bot/banat addresses.
   if (target.shouldRespond) {
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
     if (reply) sendBanat(api, event, reply).catch(error => console.error("[BANAT]", error));
