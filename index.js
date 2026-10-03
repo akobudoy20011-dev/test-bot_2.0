@@ -134,6 +134,37 @@ function isBanatCommand(body) {
   return /^!banat(?:\s|$)/i.test(String(body || "").trim());
 }
 
+function commandSendMessage(api, message, threadID, replyToMessageID = null) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (err, info) => {
+      if (settled) return;
+      settled = true;
+      if (err) reject(err);
+      else resolve(info);
+    };
+
+    try {
+      const returned = replyToMessageID
+        ? api.sendMessage(message, threadID, done, replyToMessageID)
+        : api.sendMessage(message, threadID, done);
+
+      if (returned && typeof returned.then === "function") {
+        returned.then(info => done(null, info)).catch(done);
+      }
+    } catch (error) {
+      done(error);
+    }
+  });
+}
+
+function sendCommandReply(api, event, message) {
+  const threadID = String(event.threadID);
+  commandSendMessage(api, message, threadID, event.messageID || null)
+    .then(() => console.log(`[BANAT] command reply sent: ${message}`))
+    .catch(error => console.error("[BANAT] command reply failed:", error?.message || error));
+}
+
 function handleBanatCommand(api, event, body) {
   const threadID = String(event.threadID);
   const parts = String(body).trim().split(/\s+/);
@@ -142,32 +173,42 @@ function handleBanatCommand(api, event, body) {
   if (sub === "on" || sub === "enable" || sub === "start") {
     setBanatConversationMode(threadID, true, event.senderID);
     activeThreads.add(threadID);
-    trafficSendMessage(api, "banat is on. say whatever u want 😭", threadID, () => {});
+    console.log(`[BANAT] activated thread ${threadID} by ${event.senderID || "unknown"}`);
+    sendCommandReply(api, event, "banat is on. say whatever u want 😭");
     return true;
   }
+
   if (sub === "off" || sub === "disable" || sub === "stop") {
     setBanatConversationMode(threadID, false);
     activeThreads.delete(threadID);
-    trafficSendMessage(api, "banat off. peace 😭", threadID, () => {});
+    console.log(`[BANAT] deactivated thread ${threadID}`);
+    sendCommandReply(api, event, "banat off. peace 😭");
     return true;
   }
+
   if (sub === "toggle") {
     const next = !isBanatConversationModeActive(threadID);
     setBanatConversationMode(threadID, next, event.senderID);
-    if (next) activeThreads.add(threadID); else activeThreads.delete(threadID);
-    trafficSendMessage(api, next ? "banat is on 😭" : "banat is off", threadID, () => {});
+    if (next) activeThreads.add(threadID);
+    else activeThreads.delete(threadID);
+    console.log(`[BANAT] toggled thread ${threadID}: ${next ? "ON" : "OFF"}`);
+    sendCommandReply(api, event, next ? "banat is on 😭" : "banat is off");
     return true;
   }
+
   if (sub === "status") {
-    const on = isBanatConversationModeActive(threadID) || activeThreads.has(threadID);
-    trafficSendMessage(api, on ? "banat: ON 🟢" : "banat: OFF 🔴", threadID, () => {});
+    const on = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
+    sendCommandReply(api, event, on ? "banat: ON 🟢" : "banat: OFF 🔴");
     return true;
   }
+
   if (sub === "help") {
-    trafficSendMessage(api, "!banat on · !banat off · !banat toggle · !banat status", threadID, () => {});
+    sendCommandReply(api, event, "!banat on · !banat off · !banat toggle · !banat status");
     return true;
   }
-  return false;
+
+  sendCommandReply(api, event, "unknown banat command. use !banat help");
+  return true;
 }
 
 async function sendBanat(api, event, text) {
@@ -178,7 +219,8 @@ async function sendBanat(api, event, text) {
 }
 
 function onMessage(api, event) {
-  if (!event || event.type !== "message") return;
+  if (!event) return;
+  if (event.type && event.type !== "message") return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
@@ -190,8 +232,13 @@ function onMessage(api, event) {
   const target = classifyBanatTarget({ event, body, botID: botUserID });
 
   if (active) {
+    console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}`);
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
-    if (reply) sendBanat(api, event, reply).catch(error => console.error("[BANAT]", error));
+    if (reply) {
+      sendBanat(api, event, reply).catch(error => console.error("[BANAT] reply error:", error));
+    } else {
+      console.warn(`[BANAT] no reply generated for active message in ${threadID}`);
+    }
     return;
   }
 
