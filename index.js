@@ -347,13 +347,23 @@ function loginBot() {
 }
 
 try {
-  const http = require("http");
-  http.createServer((req, res) => {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true, service: "banat-only", ai: false, games: false }));
-  }).listen(PORT, () => console.log(`[BANAT] health server :${PORT}`));
+  require("./dashboard-api")(PORT, () => ({
+    ok: true,
+    facebook_connected: messengerConnected,
+    facebook_user_name: null,
+    session_active: messengerConnected,
+    bot_running: messengerConnected && !botPaused,
+    login_in_progress: false,
+    login_error: loginError,
+    last_connected_at: lastConnectedAt,
+    last_disconnected_at: lastDisconnectedAt,
+    updated_at: new Date().toISOString()
+  }), {
+    setPaused: (paused) => { botPaused = paused; },
+    getPaused: () => botPaused
+  });
 } catch (error) {
-  console.error("[BANAT] health server failed:", error);
+  console.error("[BANAT] dashboard API failed:", error);
 }
 
 loginBot();
