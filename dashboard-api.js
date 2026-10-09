@@ -1,6 +1,6 @@
 "use strict";
 const http = require("http");
-module.exports = function startDashboardApi(port, getStatus, setPaused) {
+module.exports = function startDashboardApi(port, getStatus) {
   const key = String(process.env.ECLIPSE_DASHBOARD_API_KEY || "").trim();
   const origin = process.env.ECLIPSE_DASHBOARD_ORIGIN || "*";
   const events = [];
@@ -22,10 +22,6 @@ module.exports = function startDashboardApi(port, getStatus, setPaused) {
     if (req.method === "GET" && url.pathname === "/api/dashboard/events") return send(res,200,{ok:true,events:events.slice(0,80)});
     if (req.method === "GET" && url.pathname === "/api/dashboard/analytics") return send(res,200,{ok:true,analytics:{generated_at:new Date().toISOString(),hours:24,economy:[],rpg:[],battles:[],moderation:[]}});
     if (req.method === "GET" && url.pathname === "/api/dashboard/user") return send(res,200,{ok:true,inspector:{generated_at:new Date().toISOString(),user:null,rpg:null,inventory:[],equipment:[],skills:[],spells:[],pets:[],transactions:[],moderation:[]}});
-    if (req.method === "POST" && /\\/api\\/dashboard\\/bot\\/(start|stop)$/.test(url.pathname)) { const paused=url.pathname.endsWith("/stop"); setPaused(paused); events.unshift({id:String(Date.now()),type:"bot",message:paused?"Bot paused from dashboard":"Bot resumed from dashboard",meta:{},created_at:new Date().toISOString()}); return send(res,200,{ok:true,action:paused?"bot_paused":"bot_start_requested"}); }
-    if (req.method === "POST" && url.pathname === "/api/dashboard/disconnect") { setPaused(true); return send(res,200,{ok:true,action:"bot_paused",note:"Replies paused; session not revoked"}); }
-    if (req.method === "POST" && url.pathname === "/api/dashboard/reconnect") return send(res,409,{ok:false,error:"Configure the Facebook session in service environment and restart"});
-    if (req.method === "POST" && url.pathname === "/api/dashboard/connect-session") return send(res,501,{ok:false,error:"Session upload is not supported; configure the Facebook session in service environment and restart"});
     return send(res,404,{ok:false,error:"Unsupported dashboard endpoint"});
   });
   server.listen(port,()=>console.log("[BANAT] health + dashboard API server :"+port));
