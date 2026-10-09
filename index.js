@@ -38,6 +38,10 @@ const threadCooldown = new Map();
 let globalActive = 0;
 let botUserID = "";
 let botPaused = false;
+let messengerConnected = false;
+let loginError = null;
+let lastConnectedAt = null;
+let lastDisconnectedAt = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -268,6 +272,7 @@ async function sendBanat(api, event, text) {
 function onMessage(api, event) {
   if (!event) return;
   if (event.type && event.type !== "message") return;
+  if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
@@ -296,6 +301,9 @@ function onMessage(api, event) {
 }
 
 function start(api) {
+  messengerConnected = true;
+  loginError = null;
+  lastConnectedAt = new Date().toISOString();
   try { botUserID = String(api.getCurrentUserID?.() || ""); } catch (_) {}
 
   if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
@@ -328,6 +336,8 @@ function loginBot() {
   console.log(`[BANAT] session format: cookie string (${cookie.length} chars)`);
   login(cookie, (error, api) => {
     if (error) {
+      messengerConnected = false;
+      loginError = String(error?.message || error);
       console.error("[BANAT] login failed:", error);
       process.exitCode = 1;
       return;
