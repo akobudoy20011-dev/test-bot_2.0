@@ -37,6 +37,7 @@ const threadLastSent = new Map();
 const threadCooldown = new Map();
 let globalActive = 0;
 let botUserID = "";
+let botPaused = false;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
