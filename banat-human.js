@@ -4,7 +4,7 @@ const { BANAT_SHORTHANDS } = require("./banat-abbreviations");
 const { chooseSocialResponse, socialTimingMultiplier } = require("./banat-social");
 const { humanize } = require("./human-mimic");
 const { calculateHumanDelay } = require("./human-delay");
-const { startTyping, stopTyping } = require("./human-typing");
+const { typeBeforeSend } = require("./typingIndicator");
 
 const REPLY_DELAY_MS = Math.max(0, Number(process.env.BANAT_REPLY_DELAY_MS || 900));
 const MAX_DELAY_MS = Math.max(2500, Number(process.env.BANAT_MAX_HUMAN_DELAY_MS || 6500));
@@ -23,7 +23,7 @@ function createHumanContext(threadID, incomingText = "") {
 
 function prepareBanatReply(threadID, message, incomingText = "") {
   const context = createHumanContext(threadID, incomingText);
-  let text = humanize(message, {
+  const text = humanize(message, {
     abbreviations: BANAT_SHORTHANDS,
     abbreviationRate: Number(process.env.BANAT_SHORTHAND_RATE || 0.035),
     typoRate: Number(process.env.BANAT_TYPO_RATE || 0.085),
@@ -33,7 +33,11 @@ function prepareBanatReply(threadID, message, incomingText = "") {
   });
 
   const social = chooseSocialResponse(incomingText, text, context);
-  const timing = calculateHumanDelay(text, { ...context, social }, { max: MAX_DELAY_MS, maxTypingMs: MAX_DELAY_MS, hesitationRate: Number(process.env.BANAT_HESITATION_RATE || 0.11) });
+  const timing = calculateHumanDelay(text, { ...context, social }, {
+    max: MAX_DELAY_MS,
+    maxTypingMs: MAX_DELAY_MS,
+    hesitationRate: Number(process.env.BANAT_HESITATION_RATE || 0.11)
+  });
   const multiplier = socialTimingMultiplier(social);
 
   return {
@@ -50,28 +54,58 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
   if (typeof send !== "function") return Promise.resolve(false);
 
   const prepared = prepareBanatReply(threadID, message, dependencies.incomingText || "");
-  const delay = Math.max(120, Number(dependencies.replyDelayMs || prepared.reactionMs));
+  const replyDelay = Math.max(120, Number(dependencies.replyDelayMs || prepared.reactionMs));
 
   return new Promise(resolve => {
     setTimeout(() => {
-      startTyping(api, threadID);
-      setTimeout(() => {
-        let done = false;
-        const finish = ok => { if (done) return; done = true; stopTyping(api, threadID); resolve(ok); };
+      let settled = false;
+      const finish = ok => {
+        if (settled) return;
+        settled = true;
+        resolve(ok);
+      };
+
+      typeBeforeSend(api, threadID, prepared.text, {
+        ms: prepared.typingMs,
+        skip: Boolean(dependencies.skipTyping)
+      }, () => new Promise(sendResolve => {
+        let sendSettled = false;
+        const complete = ok => {
+          if (sendSettled) return;
+          sendSettled = true;
+          sendResolve(ok);
+        };
+
         try {
           send(api, prepared.text, threadID, (err, info) => {
-            if (err) { console.error("[BANAT] send failed:", err?.message || err); finish(false); return; }
+            if (err) {
+              console.error("[BANAT] send failed:", err?.message || err);
+              complete(false);
+              return;
+            }
+
             const id = typeof info === "string" ? info : info?.messageID || info?.messageId || info?.id;
             try {
               if (id && typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt("😆", String(id), String(threadID), () => {});
               else if (id && typeof api?.setMessageReaction === "function") api.setMessageReaction("😆", String(id), () => {}, true);
             } catch (_) {}
-            finish(true);
+            complete(true);
           }, replyToMessageID || null);
-        } catch (e) { console.error("[BANAT] reply error:", e); finish(false); }
-      }, prepared.typingMs);
-    }, delay);
+        } catch (error) {
+          console.error("[BANAT] reply error:", error?.message || error);
+          complete(false);
+        }
+      })).then(finish).catch(error => {
+        console.error("[BANAT] typing/send wrapper error:", error?.message || error);
+        finish(false);
+      });
+    }, replyDelay);
   });
 }
 
-module.exports = { BANAT_REPLY_DELAY_MS: REPLY_DELAY_MS, BANAT_MAX_HUMAN_DELAY_MS: MAX_DELAY_MS, prepareBanatReply, sendBanatReplyWithTyping };
+module.exports = {
+  BANAT_REPLY_DELAY_MS: REPLY_DELAY_MS,
+  BANAT_MAX_HUMAN_DELAY_MS: MAX_DELAY_MS,
+  prepareBanatReply,
+  sendBanatReplyWithTyping
+};
