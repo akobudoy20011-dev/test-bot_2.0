@@ -2,10 +2,8 @@
 
 /**
  * Typing-indicator lifecycle for the Banat human-delay pipeline.
- *
- * The caller supplies the duration calculated by human-delay.js, so the
- * indicator timing matches the same humanization profile as the reply.
- * Typing API failures are cosmetic and must never block the actual message.
+ * The duration comes from human-delay.js, so visual typing and simulated
+ * typing cadence stay in sync. Indicator failures never block sending.
  */
 
 const ENABLED = !/^(false|0|no|off)$/i.test(String(process.env.TYPING_ENABLED || "true"));
@@ -47,35 +45,32 @@ function stopTyping(api, threadID) {
 }
 
 /**
- * Wait for the delay engine's typingMs while the indicator is active, then
- * send. The indicator remains active until the send callback/promise settles.
- *
- * opts.skip = true bypasses the indicator and wait (for rapid replies).
+ * opts.skip = true bypasses both the indicator and typing wait for rapid replies.
+ * TYPING_ENABLED=false disables only the visual indicator; the human delay remains.
  * opts.ms should be prepared.typingMs from human-delay.js.
  */
 async function typeBeforeSend(api, threadID, message, opts = {}, send) {
   if (typeof send !== "function") return false;
-  if (!ENABLED || opts.skip) return send();
+  if (opts.skip) return send();
 
   const duration = Math.max(0, Number(opts.ms) || 0);
   if (!duration) return send();
 
-  startTyping(api, threadID);
+  if (ENABLED) startTyping(api, threadID);
   try {
-    // Refresh long typing bubbles without changing the calculated total delay.
     let remaining = duration;
     while (remaining > 0) {
       const slice = Math.min(4000, remaining);
       await sleep(slice);
       remaining -= slice;
-      if (remaining > 0) {
+      if (ENABLED && remaining > 0) {
         stopTyping(api, threadID);
         startTyping(api, threadID);
       }
     }
     return await send();
   } finally {
-    stopTyping(api, threadID);
+    if (ENABLED) stopTyping(api, threadID);
   }
 }
 
