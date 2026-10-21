@@ -281,7 +281,7 @@ function onMessage(api, event) {
 
   const threadID = String(event.threadID);
   const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
-  const target = classifyBanatTarget({ event, body, botID: botUserID });
+  const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
   if (active) {
     console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}`);
