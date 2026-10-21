@@ -2,44 +2,53 @@
 
 const http = require("http");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = function startDashboardApi(port, getStatus, controls = {}) {
   const key = String(process.env.ECLIPSE_DASHBOARD_API_KEY || "").trim();
-  const origin = String(process.env.ECLIPSE_DASHBOARD_ORIGIN || "*");
+  const origin = String(process.env.ECLIPSE_DASHBOARD_ORIGIN || "*").trim();
   const events = [];
+  const dashboardPath = path.join(__dirname, "dashboard.html");
 
   const send = (res, status, body) => {
     res.writeHead(status, {
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
     });
     res.end(JSON.stringify(body));
+  };
+
+  const record = (type, details = {}) => {
+    events.unshift({ at: new Date().toISOString(), type, ...details });
+    if (events.length > 80) events.length = 80;
   };
 
   const authorized = (req) => {
     if (!key) return false;
     const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
-    const supplied = String(req.headers["x-eclipse-dashboard-key"] || bearer);
+    const supplied = String(req.headers["x-eclipse-dashboard-key"] || bearer).trim();
     const a = Buffer.from(supplied);
     const b = Buffer.from(key);
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   };
 
   const runtime = () => ({
-    watchdog: { ok: true },
-    traffic: {},
-    music: {},
-    database: null,
     uptime_seconds: Math.floor(process.uptime()),
     node_version: process.version,
     memory: process.memoryUsage()
   });
 
   const server = http.createServer((req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    const requestOrigin = String(req.headers.origin || "");
+    if (origin === "*" || !requestOrigin || requestOrigin === origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : origin);
+    }
     res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-ECLIPSE-DASHBOARD-KEY");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Eclipse-Dashboard-Key");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Cache-Control", "no-store");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
@@ -47,8 +56,19 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     }
 
     const url = new URL(req.url || "/", "http://localhost");
-    if (url.pathname === "/" || url.pathname === "/health") {
-      return send(res, 200, { ok: true, service: "banat-only", dashboard_api: Boolean(key) });
+
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/dashboard" || url.pathname === "/dashboard.html")) {
+      if (!fs.existsSync(dashboardPath)) return send(res, 500, { ok: false, error: "Dashboard file is missing" });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Content-Type-Options": "nosniff"
+      });
+      return fs.createReadStream(dashboardPath).pipe(res);
+    }
+
+    if (req.method === "GET" && url.pathname === "/health") {
+      return send(res, 200, { ok: true, service: "banat-test-bot", dashboard_api: Boolean(key) });
     }
 
     if (!url.pathname.startsWith("/api/dashboard/")) {
@@ -63,48 +83,47 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     }
 
     if (req.method === "GET" && url.pathname === "/api/dashboard/status") {
-      return send(res, 200, getStatus());
+      const status = typeof getStatus === "function" ? getStatus() : {};
+      return send(res, 200, {
+        ...status,
+        ...runtime(),
+        bot_paused: typeof controls.getPaused === "function" ? Boolean(controls.getPaused()) : false
+      });
     }
-    if (req.method === "GET" && url.pathname === "/api/dashboard/snapshot") {
-      return send(res, 200, { ok: true, snapshot: null, degraded: true });
-    }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/health") {
       return send(res, 200, { ok: true, runtime: runtime() });
     }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/events") {
       return send(res, 200, { ok: true, events: events.slice(0, 80) });
-    }
-    if (req.method === "GET" && url.pathname === "/api/dashboard/analytics") {
-      return send(res, 200, { ok: true, analytics: { generated_at: new Date().toISOString(), hours: 24, economy: [], rpg: [], battles: [], moderation: [] } });
-    }
-    if (req.method === "GET" && url.pathname === "/api/dashboard/user") {
-      return send(res, 200, { ok: true, inspector: { generated_at: new Date().toISOString(), user: null, rpg: null, inventory: [], equipment: [], skills: [], spells: [], pets: [], transactions: [], moderation: [] } });
     }
 
     if (req.method === "POST" && url.pathname === "/api/dashboard/bot/start") {
       if (typeof controls.setPaused !== "function") return send(res, 501, { ok: false, error: "Bot start control is unavailable" });
       controls.setPaused(false);
-      return send(res, 200, { ok: true, bot_running: Boolean(getStatus().facebook_connected) });
+      record("bot-resumed");
+      return send(res, 200, { ok: true, bot_paused: false });
     }
+
     if (req.method === "POST" && url.pathname === "/api/dashboard/bot/stop") {
-      if (typeof controls.setPaused !== "function") return send(res, 501, { ok: false, error: "Bot stop control is unavailable" });
+      if (typeof controls.setPaused !== "function") return send(res, 501, { ok: false, error: "Bot pause control is unavailable" });
       controls.setPaused(true);
-      return send(res, 200, { ok: true, bot_running: false });
+      record("bot-paused");
+      return send(res, 200, { ok: true, bot_paused: true });
     }
 
     if (req.method === "POST" && [
       "/api/dashboard/connect-session",
       "/api/dashboard/reconnect",
-      "/api/dashboard/disconnect",
-      "/api/dashboard/music/pause",
-      "/api/dashboard/music/resume"
+      "/api/dashboard/disconnect"
     ].includes(url.pathname)) {
-      return send(res, 501, { ok: false, error: "This action is not supported by the standalone Banat test bot." });
+      return send(res, 501, { ok: false, error: "Session management is environment-based in this test edition. Update the host environment and restart the service." });
     }
 
     return send(res, 404, { ok: false, error: "Unsupported dashboard endpoint" });
   });
 
-  server.listen(port, () => console.log("[BANAT] health + dashboard API server :" + port));
+  server.listen(port, () => console.log("[BANAT] dashboard + API listening on :" + port));
   return server;
 };
