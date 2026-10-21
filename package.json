@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "check": "node --check index.js && node --check dashboard-api.js && node --check triggers.js && node --check banat-human.js && node --check human-mimic.js && node --check english-vocabulary.js && node --check human-delay.js && node --check human-typing.js"
+    "check": "node --check index.js && node --check dashboard-api.js && node --check triggers.js && node --check banat-human.js && node --check human-mimic.js && node --check english-vocabulary.js && node --check human-delay.js && node --check human-typing.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"
