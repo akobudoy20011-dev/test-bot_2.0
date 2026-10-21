@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Banat Test Bot · Dashboard</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2c;--line:#293244;--text:#edf1f8;--muted:#9ba7ba;--accent:#a78bfa;--good:#55d6a3;--bad:#ff7d91;--warn:#f4c875}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#19152d 0,var(--bg) 48%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--panel2);color:var(--text);font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--accent);color:#160d2c;border-color:transparent}.danger{border-color:#663544;color:#ffb2bf}.wrap{max-width:1080px;margin:auto;padding:24px 16px 60px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#282044;color:#c7b7ff;font-size:24px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.sub{color:var(--muted);margin:2px 0 0}.status-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:3px 0}h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#171c29,#11151e);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}.span12{grid-column:span 12}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:21px;margin-top:4px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #252c39}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.hint{font-size:13px;color:var(--muted)}.setup{padding-left:20px;margin:0}.setup li{padding:5px 0}.tag{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:3px 7px;color:var(--muted)}code{background:#0b0e15;border:1px solid var(--line);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}.log{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;background:#0a0d13;padding:12px;border:1px solid var(--line);border-radius:10px}.field{display:flex;gap:8px;flex-wrap:wrap}.field input{flex:1;min-width:180px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.notice{padding:10px 12px;border-radius:10px;background:#241e13;border:1px solid #51412a;color:#f4d79b;font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:700px){.span8,.span4,.span6{grid-column:span 12}.metrics{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}.card{padding:15px}}
+</style>
+</head>
+<body><main class="wrap">
+<header class="top"><div class="brand"><div class="logo">B</div><div><div class="eyebrow">Standalone edition</div><h1>Banat Test Bot</h1><p class="sub">Essentials dashboard · no RPG, economy, music, or PM mode</p></div></div><div class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></div></header>
+<div class="grid">
+<section class="card span8"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
+<section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
+<section class="card span6"><h2>Session setup</h2><div class="notice">Session values are configured in the bot host environment. This page never asks for or stores Facebook cookies.</div><ol class="setup"><li>Set <code>FB_COOKIES</code> to the supported cookie string, or <code>FB_APPSTATE</code> to the exported session format.</li><li>Set <code>ECLIPSE_DASHBOARD_API_KEY</code> to a long, random secret.</li><li>Set <code>ECLIPSE_DASHBOARD_ORIGIN</code> to the exact dashboard origin.</li><li>Restart the service and confirm Messenger session shows Connected.</li></ol><p class="hint">Do not put Facebook cookies, API keys, or owner tokens in frontend code.</p></section>
+<section class="card span6"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div><p class="hint">Activation commands are sent in the Messenger group itself. This dashboard only exposes controls supported by the test bot API.</p></section>
+<section class="card span12"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
+<section class="card span12"><h2>Dashboard connection</h2><p class="hint">Use this only if the dashboard API key is configured in your deployment. The key is kept in this browser tab's memory only and is not persisted.</p><div class="field"><input id="apiKey" type="password" autocomplete="off" placeholder="Dashboard API key (optional)"><button id="saveKey">Use key for this tab</button><button id="clearKey">Clear</button></div><p class="hint" id="keyMessage">If your host injects authorization separately, you can leave this blank.</p></section>
+</div><p class="footer">Banat Test Bot dashboard · read-only status unless an explicit bot control is available. No automatic deployment is performed by this page.</p>
+</main>
+<script>
+(() => {
+  let apiKey = "";
+  const $ = id => document.getElementById(id);
+  const fmtDuration = seconds => { seconds=Math.max(0,Number(seconds)||0); const d=Math.floor(seconds/86400),h=Math.floor(seconds%86400/3600),m=Math.floor(seconds%3600/60); return d?d+"d "+h+"h":h?h+"h "+m+"m":m+"m"; };
+  const fmtBytes = n => { n=Number(n)||0; return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"; };
+  async function request(path, options={}) {
+    const headers=Object.assign({"Accept":"application/json"},options.headers||{});
+    if(apiKey) headers["X-Eclipse-Dashboard-Key"]=apiKey;
+    if(options.body) headers["Content-Type"]="application/json";
+    const response=await fetch(path,Object.assign({},options,{headers,cache:"no-store"}));
+    let data={}; try{data=await response.json()}catch(_){}
+    if(!response.ok) throw new Error(data.error||("HTTP "+response.status));
+    return data;
+  }
+  function setStatus(ok,text){$("statusDot").className="dot "+(ok?"good":"bad");$("statusText").textContent=text;}
+  async function refresh(){
+    $("refreshBtn").disabled=true;
+    try {
+      const data=await request("/api/dashboard/status");
+      $("apiState").textContent="Online"; $("connection").textContent=data.facebook_connected?"Connected":"Disconnected";
+      $("process").textContent=data.bot_paused?"Paused":"Running";
+      $("uptime").textContent=fmtDuration(data.uptime_seconds);
+      $("node").textContent=data.node_version||"—";
+      $("memory").textContent=data.memory?fmtBytes(data.memory.rss):"—";
+      $("startBtn").disabled=!data.bot_paused; $("stopBtn").disabled=!!data.bot_paused;
+      setStatus(true,data.facebook_connected?"Messenger connected":"API online · session offline");
+      $("lastUpdated").textContent="Updated "+new Date().toLocaleTimeString();
+    } catch(e) {
+      $("apiState").textContent="Unavailable"; setStatus(false,"Dashboard API unavailable");
+      $("lastUpdated").textContent=e.message+" · Check API key, origin, and service logs.";
+      $("connection").textContent="Unknown"; $("process").textContent="Unknown";
+    } finally {$("refreshBtn").disabled=false;}
+  }
+  async function control(action){
+    const button=action==="start"?"startBtn":"stopBtn"; $(button).disabled=true;
+    try { await request("/api/dashboard/bot/"+action,{method:"POST",body:"{}"}); await refresh(); }
+    catch(e){$("lastUpdated").textContent="Control failed: "+e.message; $(button).disabled=false;}
+  }
+  async function loadEvents(){
+    try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
+    catch(e){$("events").textContent="Could not load events: "+e.message;}
+  }
+  $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
+  $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();});
+  $("clearKey").addEventListener("click",()=>{apiKey="";$("apiKey").value="";$("keyMessage").textContent="Dashboard key cleared.";refresh();loadEvents();});
+  refresh(); loadEvents(); setInterval(refresh,15000);
+})();
+</script></body></html>
