@@ -14,7 +14,9 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
   const server = startDashboardApi(0, () => ({
     ok: true,
     facebook_connected: true,
-    bot_running: !paused
+    bot_running: !paused,
+    last_listener_error: null,
+    last_message_at: "2026-10-26T00:00:00.000Z"
   }), {
     setPaused(value) { paused = Boolean(value); },
     getPaused() { return paused; }
@@ -47,6 +49,8 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
   assert.equal(data.facebook_connected, true);
   assert.equal(data.bot_paused, false);
   assert.equal(typeof data.uptime_seconds, "number");
+  assert.equal(data.last_listener_error, null);
+  assert.equal(data.last_message_at, "2026-10-26T00:00:00.000Z");
 
   const pause = await fetch(base + "/api/dashboard/bot/stop", {
     method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: "{}"
