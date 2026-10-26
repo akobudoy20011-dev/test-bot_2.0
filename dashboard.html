@@ -12,7 +12,7 @@
 <body><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">B</div><div><div class="eyebrow">Standalone edition</div><h1>Banat Test Bot</h1><p class="sub">Essentials dashboard · no RPG, economy, music, or PM mode</p></div></div><div class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></div></header>
 <div class="grid">
-<section class="card span8"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
+<section class="card span8"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
 <section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
 <section class="card span6"><h2>Session setup</h2><div class="notice">Session values are configured in the bot host environment. This page never asks for or stores Facebook cookies.</div><ol class="setup"><li>Set <code>FB_COOKIES</code> to the supported cookie string, or <code>FB_APPSTATE</code> to the exported session format.</li><li>Set <code>ECLIPSE_DASHBOARD_API_KEY</code> to a long, random secret.</li><li>Set <code>ECLIPSE_DASHBOARD_ORIGIN</code> to the exact dashboard origin.</li><li>Restart the service and confirm Messenger session shows Connected.</li></ol><p class="hint">Do not put Facebook cookies, API keys, or owner tokens in frontend code.</p></section>
 <section class="card span6"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div><p class="hint">Activation commands are sent in the Messenger group itself. This dashboard only exposes controls supported by the test bot API.</p></section>
@@ -46,8 +46,10 @@
       $("node").textContent=data.node_version||"—";
       $("memory").textContent=data.memory?fmtBytes(data.memory.rss):"—";
       $("startBtn").disabled=!data.bot_paused; $("stopBtn").disabled=!!data.bot_paused;
-      setStatus(true,data.facebook_connected?"Messenger connected":"API online · session offline");
-      $("lastUpdated").textContent="Updated "+new Date().toLocaleTimeString();
+      setStatus(!!data.facebook_connected,data.facebook_connected?"Messenger connected":"API online · session offline");
+      const detail=data.last_listener_error?"Last listener error: "+data.last_listener_error:
+        (data.last_message_at?"Last Messenger event: "+new Date(data.last_message_at).toLocaleString():"No Messenger event received yet");
+      $("lastUpdated").textContent=detail+" · Updated "+new Date().toLocaleTimeString();
     } catch(e) {
       $("apiState").textContent="Unavailable"; setStatus(false,"Dashboard API unavailable");
       $("lastUpdated").textContent=e.message+" · Check API key, origin, and service logs.";
