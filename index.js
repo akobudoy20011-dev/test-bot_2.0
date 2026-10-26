@@ -42,6 +42,8 @@ let messengerConnected = false;
 let loginError = null;
 let lastConnectedAt = null;
 let lastDisconnectedAt = null;
+let lastListenerError = null;
+let lastMessageAt = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -310,8 +312,17 @@ function start(api) {
 
   api.listenMqtt((error, event) => {
     if (error) {
+      messengerConnected = false;
+      lastDisconnectedAt = new Date().toISOString();
+      lastListenerError = String(error?.message || error);
       console.error("[BANAT] listener error:", error);
       return;
+    }
+    if (event) {
+      if (!messengerConnected) lastConnectedAt = new Date().toISOString();
+      messengerConnected = true;
+      lastListenerError = null;
+      lastMessageAt = new Date().toISOString();
     }
     try {
       if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
@@ -357,6 +368,8 @@ try {
     login_error: loginError,
     last_connected_at: lastConnectedAt,
     last_disconnected_at: lastDisconnectedAt,
+    last_listener_error: lastListenerError,
+    last_message_at: lastMessageAt,
     updated_at: new Date().toISOString()
   }), {
     setPaused: (paused) => { botPaused = paused; },
