@@ -1,7 +1,5 @@
 # Banat Test Bot
 
-A deliberately limited, standalone Messenger Banat edition. It excludes RPG/game systems, economy, music, PM mode, and the full private Banat reply library.
-
 ## Runtime
 
 - Node.js 18 or newer (Node 22 recommended).
