@@ -94,7 +94,7 @@ Send these in the target Messenger group:
 
 ## Dashboard behavior
 
-The dashboard displays session connection state, process state, uptime, Node version, memory, and recent dashboard control events. Start/pause buttons only resume or pause message processing; they do not log in, log out, or replace the Facebook session. The event list is in-memory and resets when the process restarts.
+The dashboard displays session connection state, process state, uptime, Node version, memory, watchdog diagnostics, send failures, and recent dashboard control events. It also provides reaction settings and per-group controls for Banat mode, typing indicators, reply delay, cooldown, and quiet hours (Philippines time). Group settings are stored in a local `bot-settings.json` file; on hosts with ephemeral filesystems, those settings may not survive a redeploy unless `BOT_SETTINGS_PATH` points to durable storage. The watchdog reports stale listener callbacks but does not automatically create a second Messenger session. Start/pause buttons only resume or pause message processing; they do not log in, log out, or replace the Facebook session. The event list is in-memory and resets when the process restarts.
 
 The dashboard API is protected by `ECLIPSE_DASHBOARD_API_KEY`. Enter that key in the dashboard for the current browser tab; it is kept in memory only. If the API key is missing, API endpoints intentionally return 503.
 
