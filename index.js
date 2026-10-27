@@ -318,7 +318,6 @@ function onMessage(api, event) {
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
-  maybeReactToIncoming(api, event);
 
   const body = String(event.body || "").trim();
   if (!body) return;
@@ -327,6 +326,7 @@ function onMessage(api, event) {
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
   if (isQuietNow(groupSettings)) return;
+  maybeReactToIncoming(api, event);
   if (groupSettings.banatMode === "off") return;
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
@@ -424,7 +424,7 @@ try {
     last_send_failure_at: lastSendFailureAt,
     send_failure_count: sendFailureCount,
     watchdog: {
-      state: !lastListenerCallbackAt ? "waiting_for_first_callback" : (Date.now() - Date.parse(lastListenerCallbackAt) > WATCHDOG_STALE_CALLBACK_MS ? "no_recent_callback" : "healthy"),
+      state: !messengerConnected ? "disconnected" : (!lastListenerCallbackAt ? "waiting_for_first_callback" : (Date.now() - Date.parse(lastListenerCallbackAt) > WATCHDOG_STALE_CALLBACK_MS ? "no_recent_callback" : "healthy")),
       stale_after_ms: WATCHDOG_STALE_CALLBACK_MS,
       listener_callback_age_seconds: lastListenerCallbackAt ? Math.floor((Date.now() - Date.parse(lastListenerCallbackAt)) / 1000) : null,
       event_loop_lag_ms: eventLoopLagMs,
