@@ -6,7 +6,7 @@
 <title>Banat Test Bot · Dashboard</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2c;--line:#293244;--text:#edf1f8;--muted:#9ba7ba;--accent:#a78bfa;--good:#55d6a3;--bad:#ff7d91;--warn:#f4c875}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#19152d 0,var(--bg) 48%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--panel2);color:var(--text);font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--accent);color:#160d2c;border-color:transparent}.danger{border-color:#663544;color:#ffb2bf}.wrap{max-width:1080px;margin:auto;padding:24px 16px 60px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#282044;color:#c7b7ff;font-size:24px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.sub{color:var(--muted);margin:2px 0 0}.status-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:3px 0}h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#171c29,#11151e);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}.span12{grid-column:span 12}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:21px;margin-top:4px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #252c39}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.hint{font-size:13px;color:var(--muted)}.setup{padding-left:20px;margin:0}.setup li{padding:5px 0}.tag{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:3px 7px;color:var(--muted)}code{background:#0b0e15;border:1px solid var(--line);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}.log{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;background:#0a0d13;padding:12px;border:1px solid var(--line);border-radius:10px}.field{display:flex;gap:8px;flex-wrap:wrap}.field input,.field select{flex:1;min-width:140px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.field label{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}.field input[type=checkbox]{flex:0;min-width:0;width:18px;height:18px}.field input[type=time]{min-width:120px}.field input[type=number]{min-width:110px}.notice{padding:10px 12px;border-radius:10px;background:#241e13;border:1px solid #51412a;color:#f4d79b;font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:700px){.span8,.span4,.span6{grid-column:span 12}.metrics{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}.card{padding:15px}}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#19152d 0,var(--bg) 48%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--panel2);color:var(--text);font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--accent);color:#160d2c;border-color:transparent}.danger{border-color:#663544;color:#ffb2bf}.wrap{max-width:1080px;margin:auto;padding:24px 16px 60px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#282044;color:#c7b7ff;font-size:24px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.sub{color:var(--muted);margin:2px 0 0}.status-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:3px 0}h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#171c29,#11151e);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}.span12{grid-column:span 12}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:21px;margin-top:4px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #252c39}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.hint{font-size:13px;color:var(--muted)}.setup{padding-left:20px;margin:0}.setup li{padding:5px 0}.tag{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:3px 7px;color:var(--muted)}code{background:#0b0e15;border:1px solid var(--line);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}.log{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;background:#0a0d13;padding:12px;border:1px solid var(--line);border-radius:10px}.field{display:flex;gap:8px;flex-wrap:wrap}.field input{flex:1;min-width:180px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.notice{padding:10px 12px;border-radius:10px;background:#241e13;border:1px solid #51412a;color:#f4d79b;font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:700px){.span8,.span4,.span6{grid-column:span 12}.metrics{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}.card{padding:15px}}
 </style>
 </head>
 <body><main class="wrap">
@@ -16,10 +16,6 @@
 <section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
 <section class="card span6"><h2>Session setup</h2><div class="notice">Session values are configured in the bot host environment. This page never asks for or stores Facebook cookies.</div><ol class="setup"><li>Set <code>FB_COOKIES</code> to the supported cookie string, or <code>FB_APPSTATE</code> to the exported session format.</li><li>Set <code>ECLIPSE_DASHBOARD_API_KEY</code> to a long, random secret.</li><li>Set <code>ECLIPSE_DASHBOARD_ORIGIN</code> to the exact dashboard origin.</li><li>Restart the service and confirm Messenger session shows Connected.</li></ol><p class="hint">Do not put Facebook cookies, API keys, or owner tokens in frontend code.</p></section>
 <section class="card span6"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div><p class="hint">Activation commands are sent in the Messenger group itself. This dashboard only exposes controls supported by the test bot API.</p></section>
-<section class="card span12"><h2>Connection watchdog</h2><div class="metrics"><div class="metric"><label>Listener status</label><strong id="watchdogState">—</strong></div><div class="metric"><label>Event-loop lag</label><strong id="eventLoopLag">—</strong></div><div class="metric"><label>Send failures</label><strong id="sendFailures">0</strong></div></div><div class="row"><span>Last listener callback</span><strong id="lastListenerCallback">—</strong></div><div class="row"><span>Last successful send</span><strong id="lastSendSuccess">—</strong></div><div class="row"><span>Last failed send</span><strong id="lastSendFailure">—</strong></div><p class="hint">A quiet group may produce no listener callbacks. The watchdog reports stale activity but deliberately does not start duplicate Messenger sessions automatically. Test with an incoming message before diagnosing a stall.</p></section>
-<section class="card span6"><h2>Reaction customizer</h2><p class="hint">Choose the emoji, which messages to react to, probability, and per-group reaction cooldown.</p><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming user messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div><div class="actions"><button class="primary" id="saveReaction">Save reaction settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Defaults preserve reactions on bot replies with 😆.</p></section>
-<section class="card span6"><h2>Per-group settings</h2><p class="hint">Load your Messenger groups, then select one to configure it. Blank delay/cooldown values inherit defaults. Quiet hours use Philippines time (Asia/Manila).</p><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Banat: use existing behavior</option><option value="on">Banat: always on in this group</option><option value="off">Banat: off in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay ms <input id="groupReplyDelay" type="number" min="0" max="30000" placeholder="Default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start <input id="quietStart" type="time"></label><label>Quiet end <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">No group selected.</p></section>
-<section class="card span6"><h2>Simple Auto Target</h2><p class="hint">Choose a group and member. When enabled, the bot replies with its existing Banat lines only when that selected person messages in that group.</p><div class="field"><label><input id="autoTargetEnabled" type="checkbox"> Auto Target enabled</label><button id="loadMembers">Load group members</button></div><div class="field"><select id="autoTargetMember" aria-label="Choose target member"><option value="">Choose a member…</option></select></div><div class="actions"><button class="primary" id="saveAutoTarget">Save Auto Target</button></div><p class="hint" id="autoTargetMessage">Choose a group above, load settings, then load members.</p></section>
 <section class="card span12"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
 <section class="card span12"><h2>Dashboard connection</h2><p class="hint">Use this only if the dashboard API key is configured in your deployment. The key is kept in this browser tab's memory only and is not persisted.</p><div class="field"><input id="apiKey" type="password" autocomplete="off" placeholder="Dashboard API key (optional)"><button id="saveKey">Use key for this tab</button><button id="clearKey">Clear</button></div><p class="hint" id="keyMessage">If your host injects authorization separately, you can leave this blank.</p></section>
 </div><p class="footer">Banat Test Bot dashboard · read-only status unless an explicit bot control is available. No automatic deployment is performed by this page.</p>
@@ -53,9 +49,6 @@
       setStatus(!!data.facebook_connected,data.facebook_connected?"Messenger connected":"API online · session offline");
       const detail=data.last_listener_error?"Last listener error: "+data.last_listener_error:
         (data.last_message_at?"Last Messenger event: "+new Date(data.last_message_at).toLocaleString():"No Messenger event received yet");
-      const wd=data.watchdog||{}; $("watchdogState").textContent=wd.state||"Unknown"; $("eventLoopLag").textContent=(Number(wd.event_loop_lag_ms)||0)+" ms"; $("sendFailures").textContent=String(data.send_failure_count||0);
-      $("lastListenerCallback").textContent=data.last_listener_callback_at?new Date(data.last_listener_callback_at).toLocaleString():"No callback yet";
-      $("lastSendSuccess").textContent=data.last_send_success_at?new Date(data.last_send_success_at).toLocaleString():"—"; $("lastSendFailure").textContent=data.last_send_failure_at?new Date(data.last_send_failure_at).toLocaleString():"—";
       $("lastUpdated").textContent=detail+" · Updated "+new Date().toLocaleTimeString();
     } catch(e) {
       $("apiState").textContent="Unavailable"; setStatus(false,"Dashboard API unavailable");
@@ -72,85 +65,8 @@
     try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
     catch(e){$("events").textContent="Could not load events: "+e.message;}
   }
-  async function loadSettings(){
-    try {
-      const data=await request("/api/dashboard/settings"), s=data.settings||{}, r=s.reaction||{};
-      $("reactionEnabled").checked=r.enabled!==false; $("reactionEmoji").value=r.emoji||"😆"; $("reactionTarget").value=r.target||"bot_replies";
-      $("reactionProbability").value=Number.isFinite(Number(r.probability))?r.probability:100; $("reactionCooldown").value=Number(r.cooldownSeconds)||0;
-      const id=$("groupThreadID").value.trim(), g=(s.groups||{})[id];
-      if(id&&g) fillGroup(g);
-      $("reactionMessage").textContent="Settings loaded.";
-    } catch(e) { $("reactionMessage").textContent="Could not load settings: "+e.message; }
-  }
-  function fillGroup(g){
-    $("groupBanatMode").value=g.banatMode||"inherit"; $("groupTyping").checked=g.typingEnabled!==false;
-    $("groupReplyDelay").value=g.replyDelayMs==null?"":g.replyDelayMs; $("groupCooldown").value=g.cooldownMs==null?"":g.cooldownMs;
-    $("quietStart").value=g.quietStart||""; $("quietEnd").value=g.quietEnd||"";
-  }
-  async function refreshGroups(){
-    const button=$("refreshGroups"); button.disabled=true;
-    try {
-      const data=await request("/api/dashboard/groups");
-      const select=$("groupThreadID"), previous=select.value;
-      select.replaceChildren(new Option("Choose a group…",""));
-      for(const group of (data.groups||[])){
-        const label=group.name+(group.participantCount?" ("+group.participantCount+")":"");
-        select.add(new Option(label,group.threadID));
-      }
-      if(previous && [...select.options].some(option=>option.value===previous)) select.value=previous;
-      $("groupMessage").textContent=(data.groups||[]).length+" Messenger group(s) loaded. Select one to edit.";
-    } catch(e) { $("groupMessage").textContent="Could not load Messenger groups: "+e.message; }
-    finally {button.disabled=false;}
-  }
-  function fillAutoTarget(g={}) {
-    $("autoTargetEnabled").checked=!!g.autoTargetEnabled;
-    $("autoTargetMember").value=String(g.autoTargetID||"");
-  }
-  async function loadMembers(){
-    const threadID=$("groupThreadID").value.trim();
-    if(!threadID){$("autoTargetMessage").textContent="Choose a group first.";return;}
-    try {
-      const data=await request("/api/dashboard/members?threadID="+encodeURIComponent(threadID));
-      const select=$("autoTargetMember"), saved=select.value;
-      select.replaceChildren(new Option("Choose a member…",""));
-      for(const member of data.members||[]) select.add(new Option(member.name+" · "+member.userID,member.userID));
-      if(saved && [...select.options].some(option=>option.value===saved)) select.value=saved;
-      $("autoTargetMessage").textContent=(data.members||[]).length+" members loaded.";
-    } catch(e){$("autoTargetMessage").textContent="Could not load members: "+e.message;}
-  }
-  async function saveAutoTarget(){
-    const threadID=$("groupThreadID").value.trim();
-    if(!threadID){$("autoTargetMessage").textContent="Choose a group first.";return;}
-    const select=$("autoTargetMember"), targetID=select.value, targetName=select.selectedOptions[0]?.textContent.split(" · ")[0]||"";
-    if($("autoTargetEnabled").checked && !targetID){$("autoTargetMessage").textContent="Choose a target member first.";return;}
-    const body={threadID,autoTargetEnabled:$("autoTargetEnabled").checked,autoTargetID:targetID,autoTargetName:targetName};
-    try {
-      const data=await request("/api/dashboard/settings/group",{method:"POST",body:JSON.stringify(body)});
-      fillAutoTarget(data.group);
-      $("autoTargetMessage").textContent=data.group.autoTargetEnabled?"Auto Target enabled for "+(data.group.autoTargetName||data.group.autoTargetID)+".":"Auto Target disabled.";
-      loadEvents();
-    } catch(e){$("autoTargetMessage").textContent="Save failed: "+e.message;}
-  }
-  async function loadGroup(){
-    const id=$("groupThreadID").value.trim(); if(!id){$("groupMessage").textContent="Load Messenger groups and choose one first.";return;}
-    try {const data=await request("/api/dashboard/settings"); const g=(data.settings.groups||{})[id]; if(g){fillGroup(g);fillAutoTarget(g);$("groupMessage").textContent="Loaded saved settings for "+id;}else{fillGroup({});fillAutoTarget({});$("groupMessage").textContent="No saved settings for "+id+"; showing defaults.";} }
-    catch(e){$("groupMessage").textContent="Could not load group settings: "+e.message;}
-  }
-  async function saveReaction(){
-    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim(),target:$("reactionTarget").value,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
-    try {await request("/api/dashboard/settings/reaction",{method:"POST",body:JSON.stringify(body)});$("reactionMessage").textContent="Reaction settings saved.";loadEvents();}
-    catch(e){$("reactionMessage").textContent="Save failed: "+e.message;}
-  }
-  async function saveGroup(){
-    const threadID=$("groupThreadID").value.trim(); if(!threadID){$("groupMessage").textContent="Enter a group thread ID first.";return;}
-    const delay=$("groupReplyDelay").value.trim(), cooldown=$("groupCooldown").value.trim();
-    const body={threadID,banatMode:$("groupBanatMode").value,typingEnabled:$("groupTyping").checked,replyDelayMs:delay===""?null:Number(delay),cooldownMs:cooldown===""?null:Number(cooldown),quietStart:$("quietStart").value,quietEnd:$("quietEnd").value};
-    try {const data=await request("/api/dashboard/settings/group",{method:"POST",body:JSON.stringify(body)});fillGroup(data.group);$("groupMessage").textContent="Saved settings for group "+threadID+".";loadEvents();}
-    catch(e){$("groupMessage").textContent="Save failed: "+e.message;}
-  }
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
-  $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings); $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("loadMembers").addEventListener("click",loadMembers); $("saveAutoTarget").addEventListener("click",saveAutoTarget);
-  $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();loadSettings();});
+  $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();});
   $("clearKey").addEventListener("click",()=>{apiKey="";$("apiKey").value="";$("keyMessage").textContent="Dashboard key cleared.";refresh();loadEvents();});
   refresh(); loadEvents(); setInterval(refresh,15000);
 })();

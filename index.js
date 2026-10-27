@@ -24,20 +24,14 @@ const { login } = require("ws3-fca");
 const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
-const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
-const { isOwner } = require("./owner-access");
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
-const BOT_OWNER_ID = String(process.env.BOT_OWNER_ID || "").trim();
 const GLOBAL_SEND_LIMIT = Math.max(1, Number(process.env.BANAT_GLOBAL_SEND_LIMIT || 2));
 const THREAD_COOLDOWN_MS = Math.max(0, Number(process.env.BANAT_THREAD_COOLDOWN_MS || 12000));
 const RETRY_DELAYS = [1500, 4000, 8000];
 
 const activeThreads = new Set();
-const processedMessageIDs = new Map();
-const MAX_PROCESSED_MESSAGE_IDS = 5000;
-let messengerApi = null;
 const threadQueues = new Map();
 const threadLastSent = new Map();
 const threadCooldown = new Map();
@@ -50,24 +44,6 @@ let lastConnectedAt = null;
 let lastDisconnectedAt = null;
 let lastListenerError = null;
 let lastMessageAt = null;
-let lastListenerCallbackAt = null;
-let lastSendSuccessAt = null;
-let lastSendFailureAt = null;
-let sendFailureCount = 0;
-let eventLoopLagMs = 0;
-let lastWatchdogWarningAt = 0;
-const WATCHDOG_STALE_CALLBACK_MS = Math.max(60000, Number(process.env.WATCHDOG_STALE_CALLBACK_MS || 600000));
-let lastWatchdogCheckAt = Date.now();
-const watchdogTimer = setInterval(() => {
-  const now = Date.now();
-  eventLoopLagMs = Math.max(0, now - lastWatchdogCheckAt - 10000);
-  lastWatchdogCheckAt = now;
-  if (lastListenerCallbackAt && now - lastListenerCallbackAt > WATCHDOG_STALE_CALLBACK_MS && now - lastWatchdogWarningAt > 300000) {
-    lastWatchdogWarningAt = now;
-    console.warn("[WATCHDOG] No listenMqtt callback recently. An idle group can be normal; send a test message before treating this as a stalled listener.");
-  }
-}, 10000);
-if (typeof watchdogTimer.unref === "function") watchdogTimer.unref();
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -166,10 +142,8 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
       return;
     }
 
-    const groupSettings = getGroupSettings(key);
-    const effectiveCooldown = groupSettings.cooldownMs === null ? THREAD_COOLDOWN_MS : groupSettings.cooldownMs;
     const sinceLast = now - Number(threadLastSent.get(key) || 0);
-    if (sinceLast < effectiveCooldown) await sleep(effectiveCooldown - sinceLast);
+    if (sinceLast < THREAD_COOLDOWN_MS) await sleep(THREAD_COOLDOWN_MS - sinceLast);
 
     await acquireGlobalSlot();
     try {
@@ -191,7 +165,6 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
             } catch (e) { reject(e); }
           });
           threadLastSent.set(key, Date.now());
-          lastSendSuccessAt = new Date().toISOString();
           callback(null, result);
           return;
         } catch (error) {
@@ -202,10 +175,6 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
           threadCooldown.delete(key);
         }
       }
-      sendFailureCount++;
-      lastSendFailureAt = new Date().toISOString();
-      console.error("[WATCHDOG] Send failure #" + sendFailureCount + " in thread " + key + ":", lastError?.message || lastError);
-      if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("send-failed", { thread_id: key, error: String(lastError?.message || lastError).slice(0, 300), failures: sendFailureCount });
       if (is1545012(lastError)) threadCooldown.set(key, Date.now() + 5 * 60 * 1000);
       callback(lastError);
     } finally {
@@ -224,15 +193,8 @@ function commandSendMessage(api, message, threadID, replyToMessageID = null) {
     const done = (err, info) => {
       if (settled) return;
       settled = true;
-      if (err) {
-        sendFailureCount++;
-        lastSendFailureAt = new Date().toISOString();
-        if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("command-send-failed", { thread_id: String(threadID), error: String(err?.message || err).slice(0, 300), failures: sendFailureCount });
-        reject(err);
-      } else {
-        lastSendSuccessAt = new Date().toISOString();
-        resolve(info);
-      }
+      if (err) reject(err);
+      else resolve(info);
     };
 
     try {
@@ -303,68 +265,25 @@ function handleBanatCommand(api, event, body) {
 }
 
 async function sendBanat(api, event, text) {
-  const groupSettings = getGroupSettings(String(event.threadID));
   return sendBanatReplyWithTyping(api, text, String(event.threadID), event.messageID || null, {
     trafficSendMessage,
-    incomingText: event.body || "",
-    typingEnabled: groupSettings.typingEnabled,
-    replyDelayMs: groupSettings.replyDelayMs === null ? undefined : groupSettings.replyDelayMs
+    incomingText: event.body || ""
   });
-}
-
-function maybeReactToIncoming(api, event) {
-  const threadID = String(event?.threadID || "");
-  const messageID = String(event?.messageID || "");
-  if (!threadID || !messageID || !shouldReact(threadID, "incoming_messages")) return;
-  const emoji = getReactionSettings().emoji;
-  try {
-    if (typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt(emoji, messageID, threadID, () => {});
-    else if (typeof api?.setMessageReaction === "function") api.setMessageReaction(emoji, messageID, () => {}, true);
-  } catch (error) {
-    console.warn("[REACTION] Incoming-message reaction failed:", error?.message || error);
-  }
 }
 
 function onMessage(api, event) {
   if (!event) return;
-  // Deduplicate MQTT redeliveries: one incoming message ID may trigger at most one reply.
-  const incomingID = String(event.messageID || event.messageId || "").trim();
-  if (incomingID) {
-    if (processedMessageIDs.has(incomingID)) return;
-    processedMessageIDs.set(incomingID, Date.now());
-    if (processedMessageIDs.size > MAX_PROCESSED_MESSAGE_IDS) {
-      const oldest = processedMessageIDs.keys().next().value;
-      processedMessageIDs.delete(oldest);
-    }
-  }
-  // Owner controls are restricted, but explicitly selected Auto Target members may trigger only that feature.
-  const senderIsOwner = isOwner(event.senderID, BOT_OWNER_ID);
-  if (!senderIsOwner) {
-    const targetSettings = getGroupSettings(String(event.threadID || ""));
-    if (!(targetSettings.autoTargetEnabled && String(targetSettings.autoTargetID || "") === String(event.senderID || ""))) return;
-  }
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
   if (!body) return;
-  if (isBanatCommand(body)) { if (senderIsOwner) handleBanatCommand(api, event, body); return; }
+  if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
-  const groupSettings = getGroupSettings(threadID);
-  if (isQuietNow(groupSettings)) return;
-  maybeReactToIncoming(api, event);
-  if (groupSettings.banatMode === "off" && !groupSettings.autoTargetEnabled) return;
-  const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
-  const isAutoTarget = groupSettings.autoTargetEnabled && String(groupSettings.autoTargetID || "") === String(event.senderID || "");
+  const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
-
-  if (isAutoTarget) {
-    const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
-    if (reply) sendBanat(api, event, reply).catch(error => console.error("[AUTO TARGET] reply error:", error));
-    return;
-  }
 
   if (active) {
     console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}`);
@@ -384,7 +303,6 @@ function onMessage(api, event) {
 }
 
 function start(api) {
-  messengerApi = api;
   messengerConnected = true;
   loginError = null;
   lastConnectedAt = new Date().toISOString();
@@ -393,13 +311,11 @@ function start(api) {
   if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
 
   api.listenMqtt((error, event) => {
-    lastListenerCallbackAt = new Date().toISOString();
     if (error) {
       messengerConnected = false;
       lastDisconnectedAt = new Date().toISOString();
       lastListenerError = String(error?.message || error);
       console.error("[BANAT] listener error:", error);
-      if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("listener-error", { error: lastListenerError.slice(0, 300) });
       return;
     }
     if (event) {
@@ -409,7 +325,7 @@ function start(api) {
       lastMessageAt = new Date().toISOString();
     }
     try {
-      if (DEFAULT_ON && isOwner(event?.senderID, BOT_OWNER_ID) && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
+      if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
           activeThreads.add(key);
@@ -423,63 +339,6 @@ function start(api) {
   });
 
   console.log(`[BANAT] online${botUserID ? ` as ${botUserID}` : ""}`);
-}
-
-function fetchMessengerMembers(api, threadID) {
-  if (!api || typeof api.getThreadInfo !== "function") {
-    return Promise.reject(new Error("Messenger group member list is unavailable from this session"));
-  }
-  const id = String(threadID || "").trim();
-  if (!id) return Promise.reject(new Error("Choose a Messenger group first"));
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const done = (err, info) => {
-      if (settled) return;
-      settled = true;
-      if (err) return reject(err);
-      const ids = info?.participantIDs || info?.participantIds || [];
-      const names = info?.userInfo || info?.participantInfo || [];
-      const byID = new Map((Array.isArray(names) ? names : []).map(person => [String(person.id || person.userID || person.userId || ""), person]));
-      const members = (Array.isArray(ids) ? ids : []).map(rawID => {
-        const memberID = String(rawID);
-        const person = byID.get(memberID);
-        return { userID: memberID, name: String(person?.name || person?.fullName || memberID) };
-      });
-      resolve(members);
-    };
-    try {
-      const returned = api.getThreadInfo(id, done);
-      if (returned && typeof returned.then === "function") returned.then(info => done(null, info)).catch(done);
-    } catch (error) { done(error); }
-  });
-}
-
-function fetchMessengerGroups(api) {
-  if (!api || typeof api.getThreadList !== "function") {
-    return Promise.reject(new Error("Messenger group list is unavailable from this session"));
-  }
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const done = (err, list) => {
-      if (settled) return;
-      settled = true;
-      if (err) return reject(err);
-      const groups = (Array.isArray(list) ? list : [])
-        .filter(item => item && (item.threadID || item.threadId))
-        .map(item => ({
-          threadID: String(item.threadID || item.threadId),
-          name: String(item.name || item.threadName || item.snippet || "Unnamed group"),
-          isGroup: item.isGroup !== false,
-          participantCount: Number(item.participantIDs?.length || item.participants?.length || 0)
-        }))
-        .filter(item => item.isGroup);
-      resolve(groups);
-    };
-    try {
-      const returned = api.getThreadList(100, null, [], done);
-      if (returned && typeof returned.then === "function") returned.then(list => done(null, list)).catch(done);
-    } catch (error) { done(error); }
-  });
 }
 
 function loginBot() {
@@ -498,7 +357,6 @@ function loginBot() {
   });
 }
 
-let dashboardRecordEvent = null;
 try {
   require("./dashboard-api")(PORT, () => ({
     ok: true,
@@ -512,29 +370,10 @@ try {
     last_disconnected_at: lastDisconnectedAt,
     last_listener_error: lastListenerError,
     last_message_at: lastMessageAt,
-    last_listener_callback_at: lastListenerCallbackAt,
-    last_send_success_at: lastSendSuccessAt,
-    last_send_failure_at: lastSendFailureAt,
-    send_failure_count: sendFailureCount,
-    owner_restriction_enabled: Boolean(BOT_OWNER_ID),
-    watchdog: {
-      state: !messengerConnected ? "disconnected" : (!lastListenerCallbackAt ? "waiting_for_first_callback" : (Date.now() - Date.parse(lastListenerCallbackAt) > WATCHDOG_STALE_CALLBACK_MS ? "no_recent_callback" : "healthy")),
-      stale_after_ms: WATCHDOG_STALE_CALLBACK_MS,
-      listener_callback_age_seconds: lastListenerCallbackAt ? Math.floor((Date.now() - Date.parse(lastListenerCallbackAt)) / 1000) : null,
-      event_loop_lag_ms: eventLoopLagMs,
-      automatic_reconnect: false,
-      note: "Quiet chats may produce no callbacks. Verify with a test message before diagnosing a stalled listener."
-    },
     updated_at: new Date().toISOString()
   }), {
     setPaused: (paused) => { botPaused = paused; },
-    getPaused: () => botPaused,
-    setRecordEvent: (record) => { dashboardRecordEvent = typeof record === "function" ? record : null; },
-    getSettings: () => require("./bot-settings").getSettings(),
-    getGroups: () => fetchMessengerGroups(messengerApi),
-    getMembers: threadID => fetchMessengerMembers(messengerApi, threadID),
-    updateReaction: (input) => require("./bot-settings").updateReaction(input),
-    updateGroup: (threadID, input) => require("./bot-settings").updateGroup(threadID, input)
+    getPaused: () => botPaused
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
