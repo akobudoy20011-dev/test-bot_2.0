@@ -435,7 +435,10 @@ try {
   }), {
     setPaused: (paused) => { botPaused = paused; },
     getPaused: () => botPaused,
-    recordEvent: (type, details) => { if (dashboardRecordEvent) dashboardRecordEvent(type, details); }
+    setRecordEvent: (record) => { dashboardRecordEvent = typeof record === "function" ? record : null; },
+    getSettings: () => require("./bot-settings").getSettings(),
+    updateReaction: (input) => require("./bot-settings").updateReaction(input),
+    updateGroup: (threadID, input) => require("./bot-settings").updateGroup(threadID, input)
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
