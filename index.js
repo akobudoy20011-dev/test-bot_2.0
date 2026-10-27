@@ -337,15 +337,19 @@ function onMessage(api, event) {
       processedMessageIDs.delete(oldest);
     }
   }
-  // Fail closed until the owner ID is explicitly configured.
-  if (!isOwner(event.senderID, BOT_OWNER_ID)) return;
+  // Owner controls are restricted, but explicitly selected Auto Target members may trigger only that feature.
+  const senderIsOwner = isOwner(event.senderID, BOT_OWNER_ID);
+  if (!senderIsOwner) {
+    const targetSettings = getGroupSettings(String(event.threadID || ""));
+    if (!(targetSettings.autoTargetEnabled && String(targetSettings.autoTargetID || "") === String(event.senderID || ""))) return;
+  }
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
   if (!body) return;
-  if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
+  if (isBanatCommand(body)) { if (senderIsOwner) handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
