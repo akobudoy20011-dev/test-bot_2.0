@@ -16,6 +16,8 @@
 <section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
 <section class="card span6"><h2>Session setup</h2><div class="notice">Session values are configured in the bot host environment. This page never asks for or stores Facebook cookies.</div><ol class="setup"><li>Set <code>FB_COOKIES</code> to the supported cookie string, or <code>FB_APPSTATE</code> to the exported session format.</li><li>Set <code>ECLIPSE_DASHBOARD_API_KEY</code> to a long, random secret.</li><li>Set <code>ECLIPSE_DASHBOARD_ORIGIN</code> to the exact dashboard origin.</li><li>Restart the service and confirm Messenger session shows Connected.</li></ol><p class="hint">Do not put Facebook cookies, API keys, or owner tokens in frontend code.</p></section>
 <section class="card span6"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div><p class="hint">Activation commands are sent in the Messenger group itself. This dashboard only exposes controls supported by the test bot API.</p></section>
+<section class="card span6"><h2>Banat group picker</h2><p class="hint">Load your Messenger group chats, then choose which chats can run Banat. This does not add Auto Target.</p><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Use !banat on/off in this group</option><option value="on">Banat always enabled in this group</option><option value="off">Banat disabled in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay ms <input id="groupReplyDelay" type="number" min="0" max="30000" placeholder="Default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start (PH time) <input id="quietStart" type="time"></label><label>Quiet end (PH time) <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">Load Messenger groups to begin.</p></section>
+<section class="card span6"><h2>Custom reaction emoji</h2><p class="hint">Choose the emoji used when Banat reacts to its own replies and, optionally, incoming messages.</p><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div><div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section>
 <section class="card span12"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
 <section class="card span12"><h2>Dashboard connection</h2><p class="hint">Use this only if the dashboard API key is configured in your deployment. The key is kept in this browser tab's memory only and is not persisted.</p><div class="field"><input id="apiKey" type="password" autocomplete="off" placeholder="Dashboard API key (optional)"><button id="saveKey">Use key for this tab</button><button id="clearKey">Clear</button></div><p class="hint" id="keyMessage">If your host injects authorization separately, you can leave this blank.</p></section>
 </div><p class="footer">Banat Test Bot dashboard · read-only status unless an explicit bot control is available. No automatic deployment is performed by this page.</p>
@@ -61,13 +63,48 @@
     try { await request("/api/dashboard/bot/"+action,{method:"POST",body:"{}"}); await refresh(); }
     catch(e){$("lastUpdated").textContent="Control failed: "+e.message; $(button).disabled=false;}
   }
+  function fillGroup(g={}) {
+    $("groupBanatMode").value=g.banatMode||"inherit"; $("groupTyping").checked=g.typingEnabled!==false;
+    $("groupReplyDelay").value=g.replyDelayMs==null?"":g.replyDelayMs; $("groupCooldown").value=g.cooldownMs==null?"":g.cooldownMs;
+    $("quietStart").value=g.quietStart||""; $("quietEnd").value=g.quietEnd||"";
+  }
+  async function refreshGroups(){
+    const button=$("refreshGroups"); button.disabled=true;
+    try { const data=await request("/api/dashboard/groups"); const select=$("groupThreadID"),previous=select.value;
+      select.replaceChildren(new Option("Choose a group…",""));
+      for(const g of data.groups||[]) select.add(new Option(g.name+(g.participantCount?" ("+g.participantCount+")":""),g.threadID));
+      if(previous&&[...select.options].some(o=>o.value===previous))select.value=previous;
+      $("groupMessage").textContent=(data.groups||[]).length+" Messenger group(s) loaded.";
+    } catch(e){$("groupMessage").textContent="Could not load groups: "+e.message;} finally{button.disabled=false;}
+  }
+  async function loadGroup(){
+    const id=$("groupThreadID").value.trim();if(!id){$("groupMessage").textContent="Choose a group first.";return;}
+    try{const data=await request("/api/dashboard/settings");fillGroup((data.settings.groups||{})[id]||{});$("groupMessage").textContent="Loaded settings for selected group.";}
+    catch(e){$("groupMessage").textContent="Could not load group settings: "+e.message;}
+  }
+  async function saveGroup(){
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("groupMessage").textContent="Choose a group first.";return;}
+    const body={threadID,banatMode:$("groupBanatMode").value,typingEnabled:$("groupTyping").checked,replyDelayMs:$("groupReplyDelay").value===""?null:Number($("groupReplyDelay").value),cooldownMs:$("groupCooldown").value===""?null:Number($("groupCooldown").value),quietStart:$("quietStart").value,quietEnd:$("quietEnd").value};
+    try{const data=await request("/api/dashboard/settings/group",{method:"POST",body:JSON.stringify(body)});$("groupMessage").textContent="Saved settings for "+threadID+" (Banat: "+data.group.banatMode+").";loadEvents();}
+    catch(e){$("groupMessage").textContent="Save failed: "+e.message;}
+  }
+  async function loadSettings(){
+    try{const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};$("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"bot_replies";$("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;$("reactionMessage").textContent="Loaded saved emoji settings.";}
+    catch(e){$("reactionMessage").textContent="Could not load settings: "+e.message;}
+  }
+  async function saveReaction(){
+    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim()||"😆",target:$("reactionTarget").value,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
+    try{const data=await request("/api/dashboard/settings/reaction",{method:"POST",body:JSON.stringify(body)});$("reactionMessage").textContent="Saved reaction emoji "+data.reaction.emoji+".";loadEvents();}
+    catch(e){$("reactionMessage").textContent="Save failed: "+e.message;}
+  }
   async function loadEvents(){
     try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
     catch(e){$("events").textContent="Could not load events: "+e.message;}
   }
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
+  $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings);
   $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();});
   $("clearKey").addEventListener("click",()=>{apiKey="";$("apiKey").value="";$("keyMessage").textContent="Dashboard key cleared.";refresh();loadEvents();});
-  refresh(); loadEvents(); setInterval(refresh,15000);
+  refresh(); loadEvents(); loadSettings(); setInterval(refresh,15000);
 })();
 </script></body></html>

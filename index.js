@@ -24,6 +24,7 @@ const { login } = require("ws3-fca");
 const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
+const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 
 const PORT = Number(process.env.PORT || 10000);
@@ -38,6 +39,7 @@ const threadLastSent = new Map();
 const threadCooldown = new Map();
 let globalActive = 0;
 let botUserID = "";
+let messengerApi = null;
 let botPaused = false;
 let messengerConnected = false;
 let loginError = null;
@@ -266,10 +268,20 @@ function handleBanatCommand(api, event, body) {
 }
 
 async function sendBanat(api, event, text) {
+  const group = getGroupSettings(String(event.threadID));
   return sendBanatReplyWithTyping(api, text, String(event.threadID), event.messageID || null, {
-    trafficSendMessage,
-    incomingText: event.body || ""
+    trafficSendMessage, incomingText: event.body || "",
+    typingEnabled: group.typingEnabled,
+    replyDelayMs: group.replyDelayMs === null ? undefined : group.replyDelayMs
   });
+}
+function reactToMessage(api,event,emoji) {
+  const threadID=String(event?.threadID||""), messageID=String(event?.messageID||"");
+  if(!threadID||!messageID)return;
+  try {
+    if(typeof api?.setMessageReactionMqtt==="function") api.setMessageReactionMqtt(emoji,messageID,threadID,()=>{});
+    else if(typeof api?.setMessageReaction==="function") api.setMessageReaction(emoji,messageID,()=>{},true);
+  } catch(error) { console.warn("[REACTION] Could not react:",error?.message||error); }
 }
 
 function onMessage(api, event) {
@@ -287,7 +299,11 @@ function onMessage(api, event) {
   if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
-  const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
+  const groupSettings = getGroupSettings(threadID);
+  if (isQuietNow(groupSettings)) return;
+  if (groupSettings.banatMode === "off") return;
+  if (shouldReact(threadID, "incoming_messages")) reactToMessage(api, event, getReactionSettings().emoji);
+  const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
   if (active) {
@@ -308,6 +324,7 @@ function onMessage(api, event) {
 }
 
 function start(api) {
+  messengerApi = api;
   messengerConnected = true;
   loginError = null;
   lastConnectedAt = new Date().toISOString();
@@ -346,6 +363,16 @@ function start(api) {
   console.log(`[BANAT] online${botUserID ? ` as ${botUserID}` : ""}`);
 }
 
+function fetchMessengerGroups(api) {
+  if(!api||typeof api.getThreadList!=="function") return Promise.reject(new Error("Messenger group list is unavailable from this session"));
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const done=(err,list)=>{if(settled)return;settled=true;if(err)return reject(err);
+      resolve((Array.isArray(list)?list:[]).filter(x=>x&&(x.threadID||x.threadId)).map(x=>({threadID:String(x.threadID||x.threadId),name:String(x.name||x.threadName||x.snippet||"Unnamed group"),isGroup:x.isGroup!==false,participantCount:Number(x.participantIDs?.length||x.participants?.length||0)})).filter(x=>x.isGroup));};
+    try {const r=api.getThreadList(100,null,[],done);if(r&&typeof r.then==="function")r.then(v=>done(null,v)).catch(done);}catch(e){done(e);}
+  });
+}
+
 function loginBot() {
   const cookie = normalizeSession(readSession());
   console.log("[BANAT] logging in with saved Facebook session...");
@@ -378,7 +405,11 @@ try {
     updated_at: new Date().toISOString()
   }), {
     setPaused: (paused) => { botPaused = paused; },
-    getPaused: () => botPaused
+    getPaused: () => botPaused,
+    getGroups: () => fetchMessengerGroups(messengerApi),
+    getSettings: () => require("./bot-settings").getSettings(),
+    updateReaction: input => require("./bot-settings").updateReaction(input),
+    updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input)
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
