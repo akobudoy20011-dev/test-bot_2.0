@@ -19,7 +19,11 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
     last_message_at: "2026-10-26T00:00:00.000Z"
   }), {
     setPaused(value) { paused = Boolean(value); },
-    getPaused() { return paused; }
+    getPaused() { return paused; },
+    setRecordEvent(record) { this.recordEvent = record; },
+    getSettings() { return { reaction, groups: group ? { [group.threadID]: group } : {} }; },
+    updateReaction(value) { reaction = { ...reaction, ...value }; return reaction; },
+    updateGroup(threadID, value) { group = { threadID, banatMode: value.banatMode || "inherit", typingEnabled: value.typingEnabled !== false }; return group; }
   });
 
   await new Promise((resolve, reject) => {
@@ -61,4 +65,22 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
   const events = await fetch(base + "/api/dashboard/events", { headers });
   assert.equal(events.status, 200);
   assert.equal((await events.json()).events[0].type, "bot-paused");
+
+  const settingsBefore = await fetch(base + "/api/dashboard/settings", { headers });
+  assert.equal(settingsBefore.status, 200);
+  assert.equal((await settingsBefore.json()).settings.reaction.emoji, "😆");
+
+  const reactionSave = await fetch(base + "/api/dashboard/settings/reaction", {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ emoji: "🔥", target: "both", probability: 75, cooldownSeconds: 5 })
+  });
+  assert.equal(reactionSave.status, 200);
+  assert.equal((await reactionSave.json()).reaction.emoji, "🔥");
+
+  const groupSave = await fetch(base + "/api/dashboard/settings/group", {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ threadID: "123456", banatMode: "off", typingEnabled: false })
+  });
+  assert.equal(groupSave.status, 200);
+  assert.equal((await groupSave.json()).group.threadID, "123456");
 });
