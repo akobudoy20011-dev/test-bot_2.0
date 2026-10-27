@@ -215,7 +215,7 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
 }
 
 function isBanatCommand(body) {
-  return /^!banat(?:\s|$)/i.test(String(body || "").trim());
+  return /^(?:!\s*)?banat(?:\s|$)/i.test(String(body || "").trim());
 }
 
 function commandSendMessage(api, message, threadID, replyToMessageID = null) {
@@ -337,19 +337,21 @@ function onMessage(api, event) {
       processedMessageIDs.delete(oldest);
     }
   }
-  // Owner controls are restricted, but explicitly selected Auto Target members may trigger only that feature.
+  // The bot account may control only Banat mode via a typed command; it cannot run other commands.
   const senderIsOwner = isOwner(event.senderID, BOT_OWNER_ID);
-  if (!senderIsOwner) {
+  const senderIsBot = Boolean(botUserID && String(event.senderID || "") === String(botUserID));
+  const body = String(event.body || "").trim();
+  const isBanatControl = isBanatCommand(body);
+  if (!senderIsOwner && !(senderIsBot && isBanatControl)) {
     const targetSettings = getGroupSettings(String(event.threadID || ""));
     if (!(targetSettings.autoTargetEnabled && String(targetSettings.autoTargetID || "") === String(event.senderID || ""))) return;
   }
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
-  if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
+  if (senderIsBot && !isBanatControl) return;
 
-  const body = String(event.body || "").trim();
   if (!body) return;
-  if (isBanatCommand(body)) { if (senderIsOwner) handleBanatCommand(api, event, body); return; }
+  if (isBanatControl) { if (senderIsOwner || senderIsBot) handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
