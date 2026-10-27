@@ -24,6 +24,7 @@ const { login } = require("ws3-fca");
 const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
+const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
@@ -44,6 +45,24 @@ let lastConnectedAt = null;
 let lastDisconnectedAt = null;
 let lastListenerError = null;
 let lastMessageAt = null;
+let lastListenerCallbackAt = null;
+let lastSendSuccessAt = null;
+let lastSendFailureAt = null;
+let sendFailureCount = 0;
+let eventLoopLagMs = 0;
+let lastWatchdogWarningAt = 0;
+const WATCHDOG_STALE_CALLBACK_MS = Math.max(60000, Number(process.env.WATCHDOG_STALE_CALLBACK_MS || 600000));
+let lastWatchdogCheckAt = Date.now();
+const watchdogTimer = setInterval(() => {
+  const now = Date.now();
+  eventLoopLagMs = Math.max(0, now - lastWatchdogCheckAt - 10000);
+  lastWatchdogCheckAt = now;
+  if (lastListenerCallbackAt && now - lastListenerCallbackAt > WATCHDOG_STALE_CALLBACK_MS && now - lastWatchdogWarningAt > 300000) {
+    lastWatchdogWarningAt = now;
+    console.warn("[WATCHDOG] No listenMqtt callback recently. An idle group can be normal; send a test message before treating this as a stalled listener.");
+  }
+}, 10000);
+if (typeof watchdogTimer.unref === "function") watchdogTimer.unref();
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -142,8 +161,10 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
       return;
     }
 
+    const groupSettings = getGroupSettings(key);
+    const effectiveCooldown = groupSettings.cooldownMs === null ? THREAD_COOLDOWN_MS : groupSettings.cooldownMs;
     const sinceLast = now - Number(threadLastSent.get(key) || 0);
-    if (sinceLast < THREAD_COOLDOWN_MS) await sleep(THREAD_COOLDOWN_MS - sinceLast);
+    if (sinceLast < effectiveCooldown) await sleep(effectiveCooldown - sinceLast);
 
     await acquireGlobalSlot();
     try {
@@ -165,6 +186,7 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
             } catch (e) { reject(e); }
           });
           threadLastSent.set(key, Date.now());
+          lastSendSuccessAt = new Date().toISOString();
           callback(null, result);
           return;
         } catch (error) {
@@ -175,6 +197,10 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
           threadCooldown.delete(key);
         }
       }
+      sendFailureCount++;
+      lastSendFailureAt = new Date().toISOString();
+      console.error("[WATCHDOG] Send failure #" + sendFailureCount + " in thread " + key + ":", lastError?.message || lastError);
+      if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("send-failed", { thread_id: key, error: String(lastError?.message || lastError).slice(0, 300), failures: sendFailureCount });
       if (is1545012(lastError)) threadCooldown.set(key, Date.now() + 5 * 60 * 1000);
       callback(lastError);
     } finally {
@@ -265,10 +291,26 @@ function handleBanatCommand(api, event, body) {
 }
 
 async function sendBanat(api, event, text) {
+  const groupSettings = getGroupSettings(String(event.threadID));
   return sendBanatReplyWithTyping(api, text, String(event.threadID), event.messageID || null, {
     trafficSendMessage,
-    incomingText: event.body || ""
+    incomingText: event.body || "",
+    typingEnabled: groupSettings.typingEnabled,
+    replyDelayMs: groupSettings.replyDelayMs === null ? undefined : groupSettings.replyDelayMs
   });
+}
+
+function maybeReactToIncoming(api, event) {
+  const threadID = String(event?.threadID || "");
+  const messageID = String(event?.messageID || "");
+  if (!threadID || !messageID || !shouldReact(threadID, "incoming_messages")) return;
+  const emoji = getReactionSettings().emoji;
+  try {
+    if (typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt(emoji, messageID, threadID, () => {});
+    else if (typeof api?.setMessageReaction === "function") api.setMessageReaction(emoji, messageID, () => {}, true);
+  } catch (error) {
+    console.warn("[REACTION] Incoming-message reaction failed:", error?.message || error);
+  }
 }
 
 function onMessage(api, event) {
@@ -276,13 +318,17 @@ function onMessage(api, event) {
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
+  maybeReactToIncoming(api, event);
 
   const body = String(event.body || "").trim();
   if (!body) return;
   if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
-  const active = activeThreads.has(threadID) || isBanatConversationModeActive(threadID);
+  const groupSettings = getGroupSettings(threadID);
+  if (isQuietNow(groupSettings)) return;
+  if (groupSettings.banatMode === "off") return;
+  const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
   if (active) {
@@ -311,11 +357,13 @@ function start(api) {
   if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
 
   api.listenMqtt((error, event) => {
+    lastListenerCallbackAt = new Date().toISOString();
     if (error) {
       messengerConnected = false;
       lastDisconnectedAt = new Date().toISOString();
       lastListenerError = String(error?.message || error);
       console.error("[BANAT] listener error:", error);
+      if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("listener-error", { error: lastListenerError.slice(0, 300) });
       return;
     }
     if (event) {
@@ -357,6 +405,7 @@ function loginBot() {
   });
 }
 
+let dashboardRecordEvent = null;
 try {
   require("./dashboard-api")(PORT, () => ({
     ok: true,
@@ -370,10 +419,23 @@ try {
     last_disconnected_at: lastDisconnectedAt,
     last_listener_error: lastListenerError,
     last_message_at: lastMessageAt,
+    last_listener_callback_at: lastListenerCallbackAt,
+    last_send_success_at: lastSendSuccessAt,
+    last_send_failure_at: lastSendFailureAt,
+    send_failure_count: sendFailureCount,
+    watchdog: {
+      state: !lastListenerCallbackAt ? "waiting_for_first_callback" : (Date.now() - Date.parse(lastListenerCallbackAt) > WATCHDOG_STALE_CALLBACK_MS ? "no_recent_callback" : "healthy"),
+      stale_after_ms: WATCHDOG_STALE_CALLBACK_MS,
+      listener_callback_age_seconds: lastListenerCallbackAt ? Math.floor((Date.now() - Date.parse(lastListenerCallbackAt)) / 1000) : null,
+      event_loop_lag_ms: eventLoopLagMs,
+      automatic_reconnect: false,
+      note: "Quiet chats may produce no callbacks. Verify with a test message before diagnosing a stalled listener."
+    },
     updated_at: new Date().toISOString()
   }), {
     setPaused: (paused) => { botPaused = paused; },
-    getPaused: () => botPaused
+    getPaused: () => botPaused,
+    recordEvent: (type, details) => { if (dashboardRecordEvent) dashboardRecordEvent(type, details); }
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
