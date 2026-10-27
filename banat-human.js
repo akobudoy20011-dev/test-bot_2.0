@@ -5,6 +5,7 @@ const { chooseSocialResponse, socialTimingMultiplier } = require("./banat-social
 const { humanize } = require("./human-mimic");
 const { calculateHumanDelay } = require("./human-delay");
 const { startTyping, stopTyping } = require("./human-typing");
+const { getReactionSettings, shouldReact } = require("./bot-settings");
 
 const REPLY_DELAY_MS = Math.max(0, Number(process.env.BANAT_REPLY_DELAY_MS || 900));
 const MAX_DELAY_MS = Math.max(2500, Number(process.env.BANAT_MAX_HUMAN_DELAY_MS || 6500));
@@ -63,8 +64,11 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
             if (err) { console.error("[BANAT] send failed:", err?.message || err); finish(false); return; }
             const id = typeof info === "string" ? info : info?.messageID || info?.messageId || info?.id;
             try {
-              if (id && typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt("😆", String(id), String(threadID), () => {});
-              else if (id && typeof api?.setMessageReaction === "function") api.setMessageReaction("😆", String(id), () => {}, true);
+              if (id && shouldReact(threadID, "bot_replies")) {
+                const emoji = getReactionSettings().emoji;
+                if (typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt(emoji, String(id), String(threadID), () => {});
+                else if (typeof api?.setMessageReaction === "function") api.setMessageReaction(emoji, String(id), () => {}, true);
+              }
             } catch (_) {}
             finish(true);
           }, replyToMessageID || null);
