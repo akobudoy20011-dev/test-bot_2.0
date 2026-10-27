@@ -219,8 +219,15 @@ function commandSendMessage(api, message, threadID, replyToMessageID = null) {
     const done = (err, info) => {
       if (settled) return;
       settled = true;
-      if (err) reject(err);
-      else resolve(info);
+      if (err) {
+        sendFailureCount++;
+        lastSendFailureAt = new Date().toISOString();
+        if (typeof dashboardRecordEvent === "function") dashboardRecordEvent("command-send-failed", { thread_id: String(threadID), error: String(err?.message || err).slice(0, 300), failures: sendFailureCount });
+        reject(err);
+      } else {
+        lastSendSuccessAt = new Date().toISOString();
+        resolve(info);
+      }
     };
 
     try {
