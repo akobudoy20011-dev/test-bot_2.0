@@ -23,6 +23,7 @@ const path = require("path");
 const { login } = require("ws3-fca");
 const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
+const { isDuplicateMessage } = require("./message-dedupe");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 
 const PORT = Number(process.env.PORT || 10000);
@@ -275,6 +276,10 @@ function onMessage(api, event) {
   if (!event) return;
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
+  if (isDuplicateMessage(event.messageID)) {
+    console.log(`[BANAT] ignored duplicate message event ${event.messageID}`);
+    return;
+  }
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
