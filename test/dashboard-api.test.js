@@ -11,6 +11,8 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
 
   const startDashboardApi = require("../dashboard-api");
   let paused = false;
+  let reaction = { enabled: true, emoji: "😆", target: "bot_replies", probability: 100, cooldownSeconds: 0 };
+  let group = null;
   const server = startDashboardApi(0, () => ({
     ok: true,
     facebook_connected: true,
