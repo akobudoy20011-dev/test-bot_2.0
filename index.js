@@ -337,23 +337,34 @@ function onMessage(api, event) {
       processedMessageIDs.delete(oldest);
     }
   }
-  // Fail closed until the owner ID is explicitly configured.
-  if (!isOwner(event.senderID, BOT_OWNER_ID)) return;
+  // Owner controls are restricted, but explicitly selected Auto Target members may trigger only that feature.
+  const senderIsOwner = isOwner(event.senderID, BOT_OWNER_ID);
+  if (!senderIsOwner) {
+    const targetSettings = getGroupSettings(String(event.threadID || ""));
+    if (!(targetSettings.autoTargetEnabled && String(targetSettings.autoTargetID || "") === String(event.senderID || ""))) return;
+  }
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
 
   const body = String(event.body || "").trim();
   if (!body) return;
-  if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
+  if (isBanatCommand(body)) { if (senderIsOwner) handleBanatCommand(api, event, body); return; }
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
   if (isQuietNow(groupSettings)) return;
   maybeReactToIncoming(api, event);
-  if (groupSettings.banatMode === "off") return;
+  if (groupSettings.banatMode === "off" && !groupSettings.autoTargetEnabled) return;
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
+  const isAutoTarget = groupSettings.autoTargetEnabled && String(groupSettings.autoTargetID || "") === String(event.senderID || "");
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
+
+  if (isAutoTarget) {
+    const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
+    if (reply) sendBanat(api, event, reply).catch(error => console.error("[AUTO TARGET] reply error:", error));
+    return;
+  }
 
   if (active) {
     console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}`);
@@ -412,6 +423,35 @@ function start(api) {
   });
 
   console.log(`[BANAT] online${botUserID ? ` as ${botUserID}` : ""}`);
+}
+
+function fetchMessengerMembers(api, threadID) {
+  if (!api || typeof api.getThreadInfo !== "function") {
+    return Promise.reject(new Error("Messenger group member list is unavailable from this session"));
+  }
+  const id = String(threadID || "").trim();
+  if (!id) return Promise.reject(new Error("Choose a Messenger group first"));
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (err, info) => {
+      if (settled) return;
+      settled = true;
+      if (err) return reject(err);
+      const ids = info?.participantIDs || info?.participantIds || [];
+      const names = info?.userInfo || info?.participantInfo || [];
+      const byID = new Map((Array.isArray(names) ? names : []).map(person => [String(person.id || person.userID || person.userId || ""), person]));
+      const members = (Array.isArray(ids) ? ids : []).map(rawID => {
+        const memberID = String(rawID);
+        const person = byID.get(memberID);
+        return { userID: memberID, name: String(person?.name || person?.fullName || memberID) };
+      });
+      resolve(members);
+    };
+    try {
+      const returned = api.getThreadInfo(id, done);
+      if (returned && typeof returned.then === "function") returned.then(info => done(null, info)).catch(done);
+    } catch (error) { done(error); }
+  });
 }
 
 function fetchMessengerGroups(api) {
@@ -492,6 +532,7 @@ try {
     setRecordEvent: (record) => { dashboardRecordEvent = typeof record === "function" ? record : null; },
     getSettings: () => require("./bot-settings").getSettings(),
     getGroups: () => fetchMessengerGroups(messengerApi),
+    getMembers: threadID => fetchMessengerMembers(messengerApi, threadID),
     updateReaction: (input) => require("./bot-settings").updateReaction(input),
     updateGroup: (threadID, input) => require("./bot-settings").updateGroup(threadID, input)
   });

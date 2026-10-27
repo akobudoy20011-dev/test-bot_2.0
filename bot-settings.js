@@ -58,6 +58,9 @@ function sanitizeGroup(input = {}) {
   return {
     banatMode: mode,
     typingEnabled: input.typingEnabled !== false,
+    autoTargetEnabled: input.autoTargetEnabled === true,
+    autoTargetID: String(input.autoTargetID || "").trim().slice(0, 128),
+    autoTargetName: String(input.autoTargetName || "").trim().slice(0, 120),
     replyDelayMs: input.replyDelayMs === null || input.replyDelayMs === "" || input.replyDelayMs === undefined
       ? null : clamp(input.replyDelayMs, 0, 30000, 0),
     cooldownMs: input.cooldownMs === null || input.cooldownMs === "" || input.cooldownMs === undefined

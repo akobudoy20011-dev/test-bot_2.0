@@ -124,6 +124,18 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       }
     }
 
+    if (req.method === "GET" && url.pathname === "/api/dashboard/members") {
+      if (typeof controls.getMembers !== "function") return send(res, 501, { ok: false, error: "Messenger group members are unavailable" });
+      try {
+        const threadID = String(url.searchParams.get("threadID") || "").trim();
+        const members = await controls.getMembers(threadID);
+        return send(res, 200, { ok: true, members });
+      } catch (error) {
+        record("group-members-failed", { error: String(error?.message || error).slice(0, 250) });
+        return send(res, 502, { ok: false, error: error?.message || "Could not load group members" });
+      }
+    }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/settings") {
       if (typeof controls.getSettings !== "function") return send(res, 501, { ok: false, error: "Settings are unavailable" });
       return send(res, 200, { ok: true, settings: controls.getSettings() });
