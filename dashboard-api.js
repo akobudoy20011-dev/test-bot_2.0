@@ -24,6 +24,20 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     events.unshift({ at: new Date().toISOString(), type, ...details });
     if (events.length > 80) events.length = 80;
   };
+  if (typeof controls.setRecordEvent === "function") controls.setRecordEvent(record);
+
+  const readJson = (req) => new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", chunk => {
+      raw += chunk;
+      if (raw.length > 16384) { reject(new Error("Request body too large")); req.destroy(); }
+    });
+    req.on("end", () => {
+      if (!raw.trim()) return resolve({});
+      try { resolve(JSON.parse(raw)); } catch (_) { reject(new Error("Invalid JSON body")); }
+    });
+    req.on("error", reject);
+  });
 
   const authorized = (req) => {
     if (!key) return false;
@@ -40,7 +54,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     memory: process.memoryUsage()
   });
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     const requestOrigin = String(req.headers.origin || "");
     if (origin === "*" || !requestOrigin || requestOrigin === origin) {
       res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : origin);
@@ -97,6 +111,35 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
 
     if (req.method === "GET" && url.pathname === "/api/dashboard/events") {
       return send(res, 200, { ok: true, events: events.slice(0, 80) });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/dashboard/settings") {
+      if (typeof controls.getSettings !== "function") return send(res, 501, { ok: false, error: "Settings are unavailable" });
+      return send(res, 200, { ok: true, settings: controls.getSettings() });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/dashboard/settings/reaction") {
+      if (typeof controls.updateReaction !== "function") return send(res, 501, { ok: false, error: "Reaction settings are unavailable" });
+      try {
+        const body = await readJson(req);
+        const reaction = controls.updateReaction(body);
+        record("reaction-settings-updated", { target: reaction.target, enabled: reaction.enabled });
+        return send(res, 200, { ok: true, reaction });
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Could not save reaction settings" });
+      }
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/dashboard/settings/group") {
+      if (typeof controls.updateGroup !== "function") return send(res, 501, { ok: false, error: "Group settings are unavailable" });
+      try {
+        const body = await readJson(req);
+        const group = controls.updateGroup(body.threadID, body);
+        record("group-settings-updated", { thread_id: group.threadID, banat_mode: group.banatMode });
+        return send(res, 200, { ok: true, group });
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Could not save group settings" });
+      }
     }
 
     if (req.method === "POST" && url.pathname === "/api/dashboard/bot/start") {
