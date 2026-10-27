@@ -99,6 +99,26 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 200, { ok: true, events: events.slice(0, 80) });
     }
 
+    if (req.method === "GET" && url.pathname === "/api/dashboard/groups") {
+      if (typeof controls.getGroups !== "function") return send(res, 501, { ok:false, error:"Messenger group list is unavailable" });
+      try { return send(res,200,{ok:true,groups:await controls.getGroups()}); }
+      catch(error){ record("group-list-failed",{error:String(error?.message||error).slice(0,250)}); return send(res,502,{ok:false,error:error?.message||"Could not load Messenger groups"}); }
+    }
+    if (req.method === "GET" && url.pathname === "/api/dashboard/settings") {
+      if (typeof controls.getSettings !== "function") return send(res,501,{ok:false,error:"Settings unavailable"});
+      return send(res,200,{ok:true,settings:controls.getSettings()});
+    }
+    if (req.method === "POST" && url.pathname === "/api/dashboard/settings/reaction") {
+      if (typeof controls.updateReaction !== "function") return send(res,501,{ok:false,error:"Reaction settings unavailable"});
+      try { const body=await readJson(req); const reaction=controls.updateReaction(body); record("reaction-settings-updated",{enabled:reaction.enabled,target:reaction.target}); return send(res,200,{ok:true,reaction}); }
+      catch(error){return send(res,400,{ok:false,error:error.message||"Could not save reaction settings"});}
+    }
+    if (req.method === "POST" && url.pathname === "/api/dashboard/settings/group") {
+      if (typeof controls.updateGroup !== "function") return send(res,501,{ok:false,error:"Group settings unavailable"});
+      try { const body=await readJson(req); const group=controls.updateGroup(body.threadID,body); record("group-settings-updated",{thread_id:group.threadID,banat_mode:group.banatMode}); return send(res,200,{ok:true,group}); }
+      catch(error){return send(res,400,{ok:false,error:error.message||"Could not save group settings"});}
+    }
+
     if (req.method === "POST" && url.pathname === "/api/dashboard/bot/start") {
       if (typeof controls.setPaused !== "function") return send(res, 501, { ok: false, error: "Bot start control is unavailable" });
       controls.setPaused(false);
