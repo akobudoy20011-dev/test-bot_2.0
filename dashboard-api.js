@@ -47,7 +47,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     memory: process.memoryUsage()
   });
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     const requestOrigin = String(req.headers.origin || "");
     if (origin === "*" || !requestOrigin || requestOrigin === origin) {
       res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : origin);
