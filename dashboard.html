@@ -105,7 +105,7 @@
   }
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup);
-  $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();});
+  $("saveKey").addEventListener("click",()=>{apiKey=$("apiKey").value.trim();$("keyMessage").textContent=apiKey?"Key set in memory for this tab only.":"No key set.";refresh();loadEvents();loadSettings();});
   $("clearKey").addEventListener("click",()=>{apiKey="";$("apiKey").value="";$("keyMessage").textContent="Dashboard key cleared.";refresh();loadEvents();});
   refresh(); loadEvents(); setInterval(refresh,15000);
 })();
