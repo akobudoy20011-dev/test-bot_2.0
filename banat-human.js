@@ -55,10 +55,10 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
 
   return new Promise(resolve => {
     setTimeout(() => {
-      startTyping(api, threadID);
+      if (dependencies.typingEnabled !== false) startTyping(api, threadID);
       setTimeout(() => {
         let done = false;
-        const finish = ok => { if (done) return; done = true; stopTyping(api, threadID); resolve(ok); };
+        const finish = ok => { if (done) return; done = true; if (dependencies.typingEnabled !== false) stopTyping(api, threadID); resolve(ok); };
         try {
           send(api, prepared.text, threadID, (err, info) => {
             if (err) { console.error("[BANAT] send failed:", err?.message || err); finish(false); return; }
