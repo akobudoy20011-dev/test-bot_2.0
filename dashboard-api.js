@@ -25,6 +25,13 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     if (events.length > 80) events.length = 80;
   };
 
+  const readJson = (req) => new Promise((resolve,reject)=>{
+    let raw="";
+    req.on("data",chunk=>{raw+=chunk;if(raw.length>16384){reject(new Error("Request body too large"));req.destroy();}});
+    req.on("end",()=>{if(!raw.trim())return resolve({});try{resolve(JSON.parse(raw));}catch(_){reject(new Error("Invalid JSON body"));}});
+    req.on("error",reject);
+  });
+
   const authorized = (req) => {
     if (!key) return false;
     const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
