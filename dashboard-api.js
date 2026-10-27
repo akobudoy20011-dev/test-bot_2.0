@@ -113,6 +113,17 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 200, { ok: true, events: events.slice(0, 80) });
     }
 
+    if (req.method === "GET" && url.pathname === "/api/dashboard/groups") {
+      if (typeof controls.getGroups !== "function") return send(res, 501, { ok: false, error: "Messenger group list is unavailable" });
+      try {
+        const groups = await controls.getGroups();
+        return send(res, 200, { ok: true, groups });
+      } catch (error) {
+        record("group-list-failed", { error: String(error?.message || error).slice(0, 250) });
+        return send(res, 502, { ok: false, error: error?.message || "Could not load Messenger groups" });
+      }
+    }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/settings") {
       if (typeof controls.getSettings !== "function") return send(res, 501, { ok: false, error: "Settings are unavailable" });
       return send(res, 200, { ok: true, settings: controls.getSettings() });
