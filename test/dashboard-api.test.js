@@ -30,8 +30,9 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
     server.once("listening", resolve);
     server.once("error", reject);
   });
-  t.after(() => {
-    server.close();
+  t.after(async () => {
+    server.closeAllConnections?.();
+    await new Promise(resolve => server.close(resolve));
     if (previousKey === undefined) delete process.env.ECLIPSE_DASHBOARD_API_KEY;
     else process.env.ECLIPSE_DASHBOARD_API_KEY = previousKey;
     if (previousOrigin === undefined) delete process.env.ECLIPSE_DASHBOARD_ORIGIN;
