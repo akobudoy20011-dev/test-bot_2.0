@@ -25,14 +25,19 @@ const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
+const { isOwner } = require("./owner-access");
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
+const BOT_OWNER_ID = String(process.env.BOT_OWNER_ID || "").trim();
 const GLOBAL_SEND_LIMIT = Math.max(1, Number(process.env.BANAT_GLOBAL_SEND_LIMIT || 2));
 const THREAD_COOLDOWN_MS = Math.max(0, Number(process.env.BANAT_THREAD_COOLDOWN_MS || 12000));
 const RETRY_DELAYS = [1500, 4000, 8000];
 
 const activeThreads = new Set();
+const processedMessageIDs = new Map();
+const MAX_PROCESSED_MESSAGE_IDS = 5000;
+let messengerApi = null;
 const threadQueues = new Map();
 const threadLastSent = new Map();
 const threadCooldown = new Map();
@@ -322,6 +327,18 @@ function maybeReactToIncoming(api, event) {
 
 function onMessage(api, event) {
   if (!event) return;
+  // Deduplicate MQTT redeliveries: one incoming message ID may trigger at most one reply.
+  const incomingID = String(event.messageID || event.messageId || "").trim();
+  if (incomingID) {
+    if (processedMessageIDs.has(incomingID)) return;
+    processedMessageIDs.set(incomingID, Date.now());
+    if (processedMessageIDs.size > MAX_PROCESSED_MESSAGE_IDS) {
+      const oldest = processedMessageIDs.keys().next().value;
+      processedMessageIDs.delete(oldest);
+    }
+  }
+  // Fail closed until the owner ID is explicitly configured.
+  if (!isOwner(event.senderID, BOT_OWNER_ID)) return;
   if (event.type && event.type !== "message") return;
   if (botPaused) return;
   if (event.senderID && botUserID && String(event.senderID) === String(botUserID)) return;
@@ -356,6 +373,7 @@ function onMessage(api, event) {
 }
 
 function start(api) {
+  messengerApi = api;
   messengerConnected = true;
   loginError = null;
   lastConnectedAt = new Date().toISOString();
@@ -380,7 +398,7 @@ function start(api) {
       lastMessageAt = new Date().toISOString();
     }
     try {
-      if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
+      if (DEFAULT_ON && isOwner(event?.senderID, BOT_OWNER_ID) && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
           activeThreads.add(key);
@@ -394,6 +412,34 @@ function start(api) {
   });
 
   console.log(`[BANAT] online${botUserID ? ` as ${botUserID}` : ""}`);
+}
+
+function fetchMessengerGroups(api) {
+  if (!api || typeof api.getThreadList !== "function") {
+    return Promise.reject(new Error("Messenger group list is unavailable from this session"));
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (err, list) => {
+      if (settled) return;
+      settled = true;
+      if (err) return reject(err);
+      const groups = (Array.isArray(list) ? list : [])
+        .filter(item => item && (item.threadID || item.threadId))
+        .map(item => ({
+          threadID: String(item.threadID || item.threadId),
+          name: String(item.name || item.threadName || item.snippet || "Unnamed group"),
+          isGroup: item.isGroup !== false,
+          participantCount: Number(item.participantIDs?.length || item.participants?.length || 0)
+        }))
+        .filter(item => item.isGroup);
+      resolve(groups);
+    };
+    try {
+      const returned = api.getThreadList(100, null, [], done);
+      if (returned && typeof returned.then === "function") returned.then(list => done(null, list)).catch(done);
+    } catch (error) { done(error); }
+  });
 }
 
 function loginBot() {
@@ -430,6 +476,7 @@ try {
     last_send_success_at: lastSendSuccessAt,
     last_send_failure_at: lastSendFailureAt,
     send_failure_count: sendFailureCount,
+    owner_restriction_enabled: Boolean(BOT_OWNER_ID),
     watchdog: {
       state: !messengerConnected ? "disconnected" : (!lastListenerCallbackAt ? "waiting_for_first_callback" : (Date.now() - Date.parse(lastListenerCallbackAt) > WATCHDOG_STALE_CALLBACK_MS ? "no_recent_callback" : "healthy")),
       stale_after_ms: WATCHDOG_STALE_CALLBACK_MS,
@@ -444,6 +491,7 @@ try {
     getPaused: () => botPaused,
     setRecordEvent: (record) => { dashboardRecordEvent = typeof record === "function" ? record : null; },
     getSettings: () => require("./bot-settings").getSettings(),
+    getGroups: () => fetchMessengerGroups(messengerApi),
     updateReaction: (input) => require("./bot-settings").updateReaction(input),
     updateGroup: (threadID, input) => require("./bot-settings").updateGroup(threadID, input)
   });
