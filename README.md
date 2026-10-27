@@ -14,8 +14,12 @@
 | --- | --- |
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
+| `BOT_OWNER_ID` | Required Facebook numeric user ID allowed to use the bot. Other senders are ignored; if unset, message handling fails closed. |
 | `ECLIPSE_DASHBOARD_API_KEY` | Required long random secret protecting dashboard API endpoints. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Exact dashboard origin for CORS, or `*` only if you understand the implications. |
+
+Required for owner-only access:
+- Set `BOT_OWNER_ID` to the owner’s Facebook numeric user ID in the host environment (Render Environment). Do not use a display name or the bot account ID. Restart after setting it. Dashboard status reports whether the restriction is configured.
 
 Optional:
 - `BANAT_DEFAULT_ON=true` enables Banat automatically in threads after incoming messages.
