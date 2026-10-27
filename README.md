@@ -14,12 +14,8 @@
 | --- | --- |
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
-| `BOT_OWNER_ID` | Required Facebook numeric user ID allowed to use the bot. Other senders are ignored; if unset, message handling fails closed. |
 | `ECLIPSE_DASHBOARD_API_KEY` | Required long random secret protecting dashboard API endpoints. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Exact dashboard origin for CORS, or `*` only if you understand the implications. |
-
-Required for owner-only access:
-- Set `BOT_OWNER_ID` to the owner’s Facebook numeric user ID in the host environment (Render Environment). Do not use a display name or the bot account ID. Restart after setting it. Dashboard status reports whether the restriction is configured.
 
 Optional:
 - `BANAT_DEFAULT_ON=true` enables Banat automatically in threads after incoming messages.
@@ -98,7 +94,7 @@ Send these in the target Messenger group:
 
 ## Dashboard behavior
 
-The dashboard displays session connection state, process state, uptime, Node version, memory, watchdog diagnostics, send failures, and recent dashboard control events. It also provides reaction settings and per-group controls for Banat mode, typing indicators, reply delay, cooldown, and quiet hours (Philippines time). Group settings are stored in a local `bot-settings.json` file; on hosts with ephemeral filesystems, those settings may not survive a redeploy unless `BOT_SETTINGS_PATH` points to durable storage. The watchdog reports stale listener callbacks but does not automatically create a second Messenger session. Start/pause buttons only resume or pause message processing; they do not log in, log out, or replace the Facebook session. The event list is in-memory and resets when the process restarts.
+The dashboard displays session connection state, process state, uptime, Node version, memory, and recent dashboard control events. Start/pause buttons only resume or pause message processing; they do not log in, log out, or replace the Facebook session. The event list is in-memory and resets when the process restarts.
 
 The dashboard API is protected by `ECLIPSE_DASHBOARD_API_KEY`. Enter that key in the dashboard for the current browser tab; it is kept in memory only. If the API key is missing, API endpoints intentionally return 503.
 

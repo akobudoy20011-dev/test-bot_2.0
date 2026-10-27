@@ -11,8 +11,6 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
 
   const startDashboardApi = require("../dashboard-api");
   let paused = false;
-  let reaction = { enabled: true, emoji: "😆", target: "bot_replies", probability: 100, cooldownSeconds: 0 };
-  let group = null;
   const server = startDashboardApi(0, () => ({
     ok: true,
     facebook_connected: true,
@@ -21,20 +19,15 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
     last_message_at: "2026-10-26T00:00:00.000Z"
   }), {
     setPaused(value) { paused = Boolean(value); },
-    getPaused() { return paused; },
-    setRecordEvent(record) { this.recordEvent = record; },
-    getSettings() { return { reaction, groups: group ? { [group.threadID]: group } : {} }; },
-    updateReaction(value) { reaction = { ...reaction, ...value }; return reaction; },
-    updateGroup(threadID, value) { group = { threadID, banatMode: value.banatMode || "inherit", typingEnabled: value.typingEnabled !== false }; return group; }
+    getPaused() { return paused; }
   });
 
   await new Promise((resolve, reject) => {
     server.once("listening", resolve);
     server.once("error", reject);
   });
-  t.after(async () => {
-    server.closeAllConnections?.();
-    await new Promise(resolve => server.close(resolve));
+  t.after(() => {
+    server.close();
     if (previousKey === undefined) delete process.env.ECLIPSE_DASHBOARD_API_KEY;
     else process.env.ECLIPSE_DASHBOARD_API_KEY = previousKey;
     if (previousOrigin === undefined) delete process.env.ECLIPSE_DASHBOARD_ORIGIN;
@@ -68,22 +61,4 @@ test("dashboard serves UI and protects control endpoints", async (t) => {
   const events = await fetch(base + "/api/dashboard/events", { headers });
   assert.equal(events.status, 200);
   assert.equal((await events.json()).events[0].type, "bot-paused");
-
-  const settingsBefore = await fetch(base + "/api/dashboard/settings", { headers });
-  assert.equal(settingsBefore.status, 200);
-  assert.equal((await settingsBefore.json()).settings.reaction.emoji, "😆");
-
-  const reactionSave = await fetch(base + "/api/dashboard/settings/reaction", {
-    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ emoji: "🔥", target: "both", probability: 75, cooldownSeconds: 5 })
-  });
-  assert.equal(reactionSave.status, 200);
-  assert.equal((await reactionSave.json()).reaction.emoji, "🔥");
-
-  const groupSave = await fetch(base + "/api/dashboard/settings/group", {
-    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ threadID: "123456", banatMode: "off", typingEnabled: false })
-  });
-  assert.equal(groupSave.status, 200);
-  assert.equal((await groupSave.json()).group.threadID, "123456");
 });
