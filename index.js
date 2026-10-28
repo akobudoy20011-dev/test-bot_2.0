@@ -30,7 +30,7 @@ const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeAc
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
 const GLOBAL_SEND_LIMIT = Math.max(1, Number(process.env.BANAT_GLOBAL_SEND_LIMIT || 2));
-const THREAD_COOLDOWN_MS = Math.max(0, Number(process.env.BANAT_THREAD_COOLDOWN_MS || 12000));
+const THREAD_COOLDOWN_MS = Math.max(0, Number(process.env.BANAT_THREAD_COOLDOWN_MS ?? 2500));
 const RETRY_DELAYS = [1500, 4000, 8000];
 
 const activeThreads = new Set();
@@ -145,8 +145,14 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
       return;
     }
 
+    const groupSettings = getGroupSettings(key);
+    const sendCooldownMs = groupSettings.cooldownMs == null ? THREAD_COOLDOWN_MS : Math.max(0, Number(groupSettings.cooldownMs));
     const sinceLast = now - Number(threadLastSent.get(key) || 0);
-    if (sinceLast < THREAD_COOLDOWN_MS) await sleep(THREAD_COOLDOWN_MS - sinceLast);
+    if (sinceLast < sendCooldownMs) {
+      const waitMs = sendCooldownMs - sinceLast;
+      console.log(`[BANAT] send queue waiting ${waitMs}ms in ${key}`);
+      await sleep(waitMs);
+    }
 
     await acquireGlobalSlot();
     try {
@@ -168,6 +174,7 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
             } catch (e) { reject(e); }
           });
           threadLastSent.set(key, Date.now());
+          console.log(`[BANAT] send succeeded in ${key}`);
           callback(null, result);
           return;
         } catch (error) {
@@ -178,7 +185,13 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
           threadCooldown.delete(key);
         }
       }
-      if (is1545012(lastError)) threadCooldown.set(key, Date.now() + 5 * 60 * 1000);
+      if (is1545012(lastError)) {
+        const cooldownMs = 60 * 1000;
+        threadCooldown.set(key, Date.now() + cooldownMs);
+        console.error(`[BANAT] Messenger send repeatedly failed in ${key}; pausing sends for ${cooldownMs}ms`);
+      } else {
+        console.error(`[BANAT] send failed in ${key}:`, lastError?.message || lastError);
+      }
       callback(lastError);
     } finally {
       releaseGlobalSlot();
@@ -307,12 +320,12 @@ function onMessage(api, event) {
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
   if (active) {
-    console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}`);
+    console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}; generating reply`);
     const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
     if (reply) {
-      sendBanat(api, event, reply).catch(error => console.error("[BANAT] reply error:", error));
+      sendBanat(api, event, reply).then(sent => { if (sent === false) console.warn(`[BANAT] reply was not delivered in ${threadID}`); }).catch(error => console.error("[BANAT] reply error:", error));
     } else {
-      console.warn(`[BANAT] no reply generated for active message in ${threadID}`);
+      console.warn(`[BANAT] no reply generated for active message in ${threadID}; trigger and fallback both returned empty`);
     }
     return;
   }
