@@ -25,7 +25,6 @@ const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
 const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
-const { handleThreadNameChange, reconcileLockedGroupNames } = require("./group-name-lock");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 
 const PORT = Number(process.env.PORT || 10000);
@@ -48,7 +47,6 @@ let lastConnectedAt = null;
 let lastDisconnectedAt = null;
 let lastListenerError = null;
 let lastMessageAt = null;
-let nameLockReconcileTimer = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -345,18 +343,6 @@ function start(api) {
   lastConnectedAt = new Date().toISOString();
   try { botUserID = String(api.getCurrentUserID?.() || ""); } catch (_) {}
 
-  // ws3-fca does not emit thread title changes unless event listening is enabled.
-  try {
-    if (typeof api.setOptions === "function") {
-      api.setOptions({ listenEvents: true });
-      console.log("[NAME-LOCK] Messenger thread events enabled.");
-    } else {
-      console.error("[NAME-LOCK] This ws3-fca API does not expose setOptions; title-change events may not arrive.");
-    }
-  } catch (error) {
-    console.error("[NAME-LOCK] Could not enable Messenger thread events:", error?.message || error);
-  }
-
   if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
 
   api.listenMqtt((error, event) => {
@@ -381,20 +367,11 @@ function start(api) {
           setBanatConversationMode(key, true, event.senderID);
         }
       }
-      handleThreadNameChange(api, event, setGroupTitle).catch(error => console.error("[NAME-LOCK] handler error:", error));
       onMessage(api, event);
     } catch (e) {
       console.error("[BANAT] message handler error:", e);
     }
   });
-
-  if (nameLockReconcileTimer) clearInterval(nameLockReconcileTimer);
-  if (typeof api.getThreadInfo === "function") {
-    nameLockReconcileTimer = setInterval(() => {
-      reconcileLockedGroupNames(api, setGroupTitle).catch(error => console.error("[NAME-LOCK] reconciliation error:", error?.message || error));
-    }, 30000);
-    nameLockReconcileTimer.unref?.();
-  }
 
   console.log(`[BANAT] online${botUserID ? ` as ${botUserID}` : ""}`);
 }
@@ -445,15 +422,7 @@ try {
     getGroups: () => fetchMessengerGroups(messengerApi),
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
-    updateGroup: (threadID,input) => {
-      const group = require("./bot-settings").updateGroup(threadID,input);
-      if (group.autoLockNameEnabled && group.lockedThreadName) {
-        setGroupTitle(messengerApi, threadID, group.lockedThreadName)
-          .then(() => console.log(`[NAME-LOCK] Applied configured group name in ${threadID}.`))
-          .catch(error => console.error(`[NAME-LOCK] Could not apply configured group name in ${threadID}:`, error?.message || error));
-      }
-      return group;
-    }
+    updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input)
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);

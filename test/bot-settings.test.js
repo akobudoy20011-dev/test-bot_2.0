@@ -10,9 +10,6 @@ test("reaction and group settings validate and persist",t=>{
  const g=settings.updateGroup("123456",{banatMode:"off",typingEnabled:false,replyDelayMs:1250,cooldownMs:0,quietStart:"22:00",quietEnd:"06:00"});
  assert.equal(g.banatMode,"off");assert.equal(g.typingEnabled,false);assert.equal(g.replyDelayMs,1250);
  assert.equal(settings.getGroupSettings("123456").quietStart,"22:00");
- const locked=settings.updateGroup("123456",{autoLockNameEnabled:true,lockedThreadName:"Our GC 🔒"});
- assert.equal(locked.autoLockNameEnabled,true);assert.equal(locked.lockedThreadName,"Our GC 🔒");
- assert.equal(settings.getGroupSettings("123456").lockedThreadName,"Our GC 🔒");
  assert.equal(settings.isQuietNow(g,new Date("2026-01-01T17:30:00.000Z")),true);
  assert.equal(settings.isQuietNow(g,new Date("2026-01-01T08:00:00.000Z")),false);
  assert.equal(settings.shouldReact("123456","bot_replies"),true);
