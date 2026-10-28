@@ -52,6 +52,34 @@ let nameLockReconcileTimer = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+// Shared wrapper used by the group-name lock event handler and dashboard settings.
+// ws3-fca exposes setTitle(title, threadID, callback).
+function setGroupTitle(api, threadID, title) {
+  return new Promise((resolve, reject) => {
+    if (typeof api?.setTitle !== "function") {
+      reject(new Error("This Messenger API does not support setTitle."));
+      return;
+    }
+
+    let settled = false;
+    const done = (error, result) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve(result);
+    };
+
+    try {
+      const returned = api.setTitle(String(title), String(threadID), done);
+      if (returned && typeof returned.then === "function") {
+        returned.then(result => done(null, result)).catch(done);
+      }
+    } catch (error) {
+      done(error);
+    }
+  });
+}
+
 function readSession() {
   const raw = process.env.FB_COOKIES || process.env.FB_APPSTATE;
 
