@@ -345,6 +345,18 @@ function start(api) {
   lastConnectedAt = new Date().toISOString();
   try { botUserID = String(api.getCurrentUserID?.() || ""); } catch (_) {}
 
+  // ws3-fca does not emit thread title changes unless event listening is enabled.
+  try {
+    if (typeof api.setOptions === "function") {
+      api.setOptions({ listenEvents: true });
+      console.log("[NAME-LOCK] Messenger thread events enabled.");
+    } else {
+      console.error("[NAME-LOCK] This ws3-fca API does not expose setOptions; title-change events may not arrive.");
+    }
+  } catch (error) {
+    console.error("[NAME-LOCK] Could not enable Messenger thread events:", error?.message || error);
+  }
+
   if (DEFAULT_ON) console.log("[BANAT] BANAT_DEFAULT_ON enabled.");
 
   api.listenMqtt((error, event) => {
