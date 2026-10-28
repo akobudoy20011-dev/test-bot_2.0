@@ -199,6 +199,49 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
   });
 }
 
+const nameRestoreInFlight = new Set();
+
+function setGroupTitle(api, threadID, title) {
+  const desired = String(title || "").trim().slice(0, 80);
+  if (!desired) return Promise.reject(new Error("A non-empty locked group name is required."));
+  if (typeof api?.setTitle !== "function") return Promise.reject(new Error("This ws3-fca session does not expose setTitle."));
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = error => {
+      if (settled) return;
+      settled = true;
+      error ? reject(error) : resolve(true);
+    };
+    try {
+      const returned = api.setTitle(desired, String(threadID), done);
+      if (returned && typeof returned.then === "function") returned.then(() => done()).catch(done);
+    } catch (error) { done(error); }
+  });
+}
+
+async function handleThreadNameChange(api, event) {
+  const logType = String(event?.logMessageType || event?.type || "");
+  if (!/thread-name/i.test(logType)) return false;
+  const threadID = String(event?.threadID || "");
+  if (!threadID) return false;
+  const group = getGroupSettings(threadID);
+  if (!group.autoLockNameEnabled || !group.lockedThreadName) return false;
+  const actualName = String(event?.logMessageData?.name || event?.logMessageData?.threadName || "").trim();
+  if (!actualName || actualName === group.lockedThreadName || nameRestoreInFlight.has(threadID)) return false;
+
+  nameRestoreInFlight.add(threadID);
+  try {
+    await setGroupTitle(api, threadID, group.lockedThreadName);
+    console.log(`[NAME-LOCK] Restored group name in ${threadID} after a change.`);
+    return true;
+  } catch (error) {
+    console.error(`[NAME-LOCK] Could not restore group name in ${threadID}:`, error?.message || error);
+    return false;
+  } finally {
+    nameRestoreInFlight.delete(threadID);
+  }
+}
+
 function isBanatCommand(body) {
   return /^!banat(?:\s|$)/i.test(String(body || "").trim());
 }
@@ -367,6 +410,7 @@ function start(api) {
           setBanatConversationMode(key, true, event.senderID);
         }
       }
+      handleThreadNameChange(api, event).catch(error => console.error("[NAME-LOCK] handler error:", error));
       onMessage(api, event);
     } catch (e) {
       console.error("[BANAT] message handler error:", e);
@@ -422,7 +466,15 @@ try {
     getGroups: () => fetchMessengerGroups(messengerApi),
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
-    updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input)
+    updateGroup: (threadID,input) => {
+      const group = require("./bot-settings").updateGroup(threadID,input);
+      if (group.autoLockNameEnabled && group.lockedThreadName) {
+        setGroupTitle(messengerApi, threadID, group.lockedThreadName)
+          .then(() => console.log(`[NAME-LOCK] Applied configured group name in ${threadID}.`))
+          .catch(error => console.error(`[NAME-LOCK] Could not apply configured group name in ${threadID}:`, error?.message || error));
+      }
+      return group;
+    }
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
