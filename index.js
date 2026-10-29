@@ -24,7 +24,7 @@ const { login } = require("ws3-fca");
 const { getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
-const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
+const { getGroupSettings, updateGroup: updateGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 
 const PORT = Number(process.env.PORT || 10000);
@@ -141,8 +141,10 @@ function trafficSendMessage(api, message, threadID, callback, replyToMessageID =
     const now = Date.now();
     const cooldownUntil = Number(threadCooldown.get(key) || 0);
     if (cooldownUntil > now) {
-      callback(new Error(`thread cooldown active for ${cooldownUntil - now}ms`));
-      return;
+      const waitMs = cooldownUntil - now;
+      console.log(`[BANAT] waiting ${waitMs}ms for thread cooldown in ${key}`);
+      await sleep(waitMs);
+      if (Number(threadCooldown.get(key) || 0) <= Date.now()) threadCooldown.delete(key);
     }
 
     const groupSettings = getGroupSettings(key);
@@ -240,6 +242,7 @@ function handleBanatCommand(api, event, body) {
   const sub = (parts[1] || "status").toLowerCase();
 
   if (sub === "on" || sub === "enable" || sub === "start") {
+    updateGroupSettings(threadID, { banatMode: "on" });
     setBanatConversationMode(threadID, true, event.senderID);
     activeThreads.add(threadID);
     console.log(`[BANAT] activated thread ${threadID} by ${event.senderID || "unknown"}`);
@@ -248,6 +251,7 @@ function handleBanatCommand(api, event, body) {
   }
 
   if (sub === "off" || sub === "disable" || sub === "stop") {
+    updateGroupSettings(threadID, { banatMode: "off" });
     setBanatConversationMode(threadID, false);
     activeThreads.delete(threadID);
     console.log(`[BANAT] deactivated thread ${threadID}`);
@@ -256,7 +260,11 @@ function handleBanatCommand(api, event, body) {
   }
 
   if (sub === "toggle") {
-    const next = !isBanatConversationModeActive(threadID);
+    const currentSettings = getGroupSettings(threadID);
+    const currentlyOn = currentSettings.banatMode === "on" ||
+      (currentSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
+    const next = !currentlyOn;
+    updateGroupSettings(threadID, { banatMode: next ? "on" : "off" });
     setBanatConversationMode(threadID, next, event.senderID);
     if (next) activeThreads.add(threadID);
     else activeThreads.delete(threadID);
@@ -299,7 +307,7 @@ function reactToMessage(api,event,emoji) {
 
 function onMessage(api, event) {
   if (!event) return;
-  if (event.type && event.type !== "message") return;
+  if (event.type && !["message", "message_reply"].includes(event.type)) return;
   if (botPaused) return;
   if (isDuplicateMessage(event.messageID)) {
     console.log(`[BANAT] ignored duplicate message event ${event.messageID}`);
