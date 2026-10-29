@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("fs"),path=require("path");
 const settingsPath=process.env.BOT_SETTINGS_PATH?path.resolve(process.env.BOT_SETTINGS_PATH):path.join(__dirname,"bot-settings.json");
-const DEFAULTS={reaction:{enabled:true,emoji:"😆",target:"both",probability:100,cooldownSeconds:0},groups:{}};
+const DEFAULTS={reaction:{enabled:true,emoji:"😆",target:"bot_replies",probability:100,cooldownSeconds:0},groups:{}};
 const reactionCooldowns=new Map();
 function clamp(v,min,max,fallback){const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;}
 function validTime(v){return typeof v==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);}
