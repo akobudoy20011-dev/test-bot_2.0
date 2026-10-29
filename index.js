@@ -21,7 +21,7 @@
 const fs = require("fs");
 const path = require("path");
 const { login } = require("ws3-fca");
-const { getTriggerReply, getBanatConversationReply } = require("./triggers");
+const { getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
 const { getGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
@@ -321,7 +321,7 @@ function onMessage(api, event) {
 
   if (active) {
     console.log(`[BANAT] active message in ${threadID} from ${event.senderID || "unknown"}; generating reply`);
-    const reply = getTriggerReply(body, threadID) || getBanatConversationReply(body, threadID);
+    const reply = getBanatConversationReply(body, threadID);
     if (reply) {
       sendBanat(api, event, reply).then(sent => { if (sent === false) console.warn(`[BANAT] reply was not delivered in ${threadID}`); }).catch(error => console.error("[BANAT] reply error:", error));
     } else {

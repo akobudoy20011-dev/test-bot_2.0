@@ -184,8 +184,16 @@ function getTriggerReply(body, threadID = "") {
 function getBanatConversationReply(body, threadID = "") {
   const direct = getTriggerReply(body, threadID);
   if (direct) return direct;
+
   const fallback = groups.flatMap(g => g.replies);
-  const reply = pickBanatReply(threadID, fallback);
+  // The no-repeat shuffle bag can temporarily have only recently-used items
+  // left. In that edge case, pickBanatReply returns null; active Banat must
+  // still answer ordinary chat instead of silently skipping the message.
+  const reply =
+    pickBanatReply(threadID, fallback) ||
+    fallback[Math.floor(Math.random() * fallback.length)] ||
+    null;
+
   if (reply) rememberBanatReply(threadID, reply);
   return reply;
 }
