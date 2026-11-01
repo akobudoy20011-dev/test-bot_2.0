@@ -25,6 +25,8 @@ test("retry lifecycle is bounded, singular, and pauses on explicit auth rejectio
   assert.match(source, /MAX_LOGIN_BACKOFF_MS = 5 \* 60_000/);
   assert.match(source, /isExplicitSessionRejection\(loginError\)/);
   assert.match(source, /Automatic retries paused/);
+  assert.match(source, /isUnverifiableSessionError/);
+  assert.match(source, /user ID lookup failed/);
   assert.match(source, /RATE_LIMIT_RETRY_MS = 120_000/);
 });
 
