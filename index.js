@@ -52,6 +52,7 @@ let loginGeneration = 0;
 let activeListenerGeneration = 0;
 let loginRetryTimer = null;
 let loginAttempt = 0;
+let queuedReplacementSession = null;
 const MAX_LOGIN_BACKOFF_MS = 5 * 60_000;
 const LISTENER_RETRY_MS = 30_000;
 const RATE_LIMIT_RETRY_MS = 120_000;
@@ -480,6 +481,11 @@ function fetchMessengerGroups(api) {
 
 function loginBot(sessionOverride = null) {
   if (loginInProgress) {
+    if (sessionOverride) {
+      queuedReplacementSession = sessionOverride;
+      console.warn("[LOGIN] Replacement session queued behind the current login attempt.");
+      return true;
+    }
     console.warn("[LOGIN] Login already in progress; duplicate attempt skipped.");
     return false;
   }
@@ -511,6 +517,14 @@ function loginBot(sessionOverride = null) {
     loginInProgress = false;
     loginError = getFacebookLoginErrorMessage(error);
     console.error("[AUTH] Messenger login failed:", loginError);
+
+    if (queuedReplacementSession) {
+      const queued = queuedReplacementSession;
+      queuedReplacementSession = null;
+      console.warn("[LOGIN] Starting the queued replacement session after the previous attempt settled.");
+      loginBot(queued);
+      return;
+    }
 
     // A failed replacement must not displace a currently working API/listener.
     if (sessionOverride && messengerConnected && messengerApi) {
@@ -547,7 +561,12 @@ function loginBot(sessionOverride = null) {
         settled = true;
         loginInProgress = false;
         if (loginRetryTimer) { clearTimeout(loginRetryTimer); loginRetryTimer = null; }
-        start(api, generation);
+        start(api, generation, sessionOverride);
+        if (queuedReplacementSession) {
+          const queued = queuedReplacementSession;
+          queuedReplacementSession = null;
+          setTimeout(() => loginBot(queued), 0);
+        }
       }).catch(finishFailure);
     }
   } catch (error) {
