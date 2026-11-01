@@ -22,7 +22,7 @@ Optional:
 - `BANAT_GLOBAL_SEND_LIMIT=2` limits concurrent outgoing messages.
 - `BANAT_THREAD_COOLDOWN_MS=12000` sets a per-thread send cooldown.
 
-Never commit Facebook cookies or dashboard keys. Prefer setting them as private service environment variables. The dashboard does not collect or persist Facebook credentials; session setup and changes remain host-environment tasks.
+Never commit Facebook cookies or dashboard keys. Prefer setting them as private service environment variables. The dashboard can accept a cookie header or JSON appstate export and keeps the normalized session in process memory only. On Render Free, the session is lost whenever the service restarts or spins down; paste it again after that happens. Do not commit or share session values.
 
 
 ## Simple setup tutorial (GitHub + Render)
@@ -61,7 +61,7 @@ Optional settings:
 - `BANAT_GLOBAL_SEND_LIMIT=2` — limit concurrent outgoing messages.
 - `BANAT_THREAD_COOLDOWN_MS=12000` — set the per-thread cooldown in milliseconds.
 
-**Important:** Obtain and use only your own Facebook session. Treat cookies/appstate as passwords: anyone who gets them may be able to access your account. Add them only in Render's private environment settings—never in chat, screenshots, GitHub commits, or the dashboard page. The dashboard does not log you in or store/replace your session.
+**Important:** Obtain and use only your own Facebook session. Treat cookies/appstate as passwords: anyone who gets them may be able to access your account. Add them only in Render's private environment settings—never in chat, screenshots, GitHub commits, or the dashboard page. The dashboard session panel stores a normalized session in memory for the current process only. Render Free restarts/spin-downs clear it; paste it again afterward.
 
 Click **Save Changes**. Render may restart the service to apply the variables.
 
@@ -96,7 +96,7 @@ Send these in the target Messenger group:
 
 The dashboard displays session connection state, process state, uptime, Node version, memory, and recent dashboard control events. Start/pause buttons only resume or pause message processing; they do not log in, log out, or replace the Facebook session. The event list is in-memory and resets when the process restarts.
 
-The dashboard API is protected by `ECLIPSE_DASHBOARD_API_KEY`. Enter that key in the dashboard for the current browser tab; it is kept in memory only. If the API key is missing, API endpoints intentionally return 503.
+The dashboard API's origin check is controlled by `ECLIPSE_DASHBOARD_ORIGIN`. Dashboard-provided Facebook sessions are process-memory-only and are cleared by restarts or Render Free spin-downs.
 
 ## Safety and deployment
 
