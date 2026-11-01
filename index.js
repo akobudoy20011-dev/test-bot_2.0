@@ -406,6 +406,11 @@ function start(api, generation, sessionCandidate = null) {
         console.error("[AUTH] Session rejection detected; automatic login retries are paused.");
         return;
       }
+      if (isUnverifiableSessionError(lastListenerError)) {
+        loginError = "Messenger could not verify the session (user ID lookup failed). Check the cookie export and Facebook login state, then submit a fresh session. Automatic retries are paused.";
+        console.error("[AUTH] Session verification is ambiguous; automatic retries are paused for manual review.");
+        return;
+      }
       const delay = /1675004|rate.?limit|too many requests/i.test(lastListenerError)
         ? RATE_LIMIT_RETRY_MS : LISTENER_RETRY_MS;
       scheduleLoginRetry(delay, "listener recovery");
@@ -458,6 +463,10 @@ function getFacebookLoginErrorMessage(error) {
 
 function isExplicitSessionRejection(value) {
   return /checkpoint|two.factor|2fa|invalid cookie|cookie.*(?:invalid|expired|rejected)|session.*(?:expired|invalid|rejected)|not logged in|login required|authentication failed|account disabled|confirm your identity/i.test(String(value || ""));
+}
+
+function isUnverifiableSessionError(value) {
+  return /error retrieving user.?id|unable to retrieve user.?id|could not retrieve user.?id|no cookie or credentials found/i.test(String(value || ""));
 }
 
 function scheduleLoginRetry(delay, reason) {
@@ -537,6 +546,11 @@ function loginBot(sessionOverride = null) {
     if (isExplicitSessionRejection(loginError)) {
       loginError = "Facebook rejected the session. Paste a fresh cookie/appstate export in the dashboard.";
       console.error("[AUTH] Automatic retries paused because Facebook rejected the session.");
+      return;
+    }
+    if (isUnverifiableSessionError(loginError)) {
+      loginError = "Messenger could not verify the session (user ID lookup failed). Check the cookie export and Facebook login state, then submit a fresh session. Automatic retries are paused.";
+      console.error("[AUTH] Session verification is ambiguous; automatic retries are paused for manual review.");
       return;
     }
 
