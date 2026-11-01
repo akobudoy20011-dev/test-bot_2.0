@@ -97,8 +97,8 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       try {
         const body=await readJson(req);
         controls.saveSession(body.cookie);
-        record("session-saved",{storage:"memory"});
-        return send(res,200,{ok:true,saved:true,encrypted:false,restart_required:true,message:"Session saved in memory for this running instance. Restarting or spinning down the Render Free service will clear it; paste it again afterward."});
+        record("session-validation-started",{storage:"memory"});
+        return send(res,200,{ok:true,saved:true,validating:true,encrypted:false,restart_required:false,message:"Session accepted for validation. The existing connection is preserved unless the replacement successfully authenticates. Session memory is cleared on restart or spin-down."});
       } catch(error) { return send(res,400,{ok:false,error:error.message||"Could not save session"}); }
     }
     if (req.method === "DELETE" && url.pathname === "/api/dashboard/session") {
