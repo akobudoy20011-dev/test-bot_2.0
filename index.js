@@ -397,6 +397,8 @@ function start(api, generation, sessionCandidate = null) {
       lastListenerError = getFacebookLoginErrorMessage(error);
       messengerApi = null;
       activeListenerGeneration = 0;
+      try { api.stopListenMqtt?.(); }
+      catch (stopError) { console.warn("[BANAT] failed listener cleanup:", stopError?.message || stopError); }
       console.error("[BANAT] listener error:", lastListenerError);
 
       if (isExplicitSessionRejection(lastListenerError)) {
