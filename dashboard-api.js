@@ -97,8 +97,8 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       try {
         const body=await readJson(req);
         controls.saveSession(body.cookie);
-        record("session-saved",{encrypted:true});
-        return send(res,200,{ok:true,saved:true,encrypted:true,restart_required:true,message:"Cookie encrypted and saved. Restart the Test Bot service in Render to connect using this session."});
+        record("session-saved",{storage:"memory"});
+        return send(res,200,{ok:true,saved:true,encrypted:false,restart_required:true,message:"Session saved in memory for this running instance. Restarting or spinning down the Render Free service will clear it; paste it again afterward."});
       } catch(error) { return send(res,400,{ok:false,error:error.message||"Could not save session"}); }
     }
     if (req.method === "DELETE" && url.pathname === "/api/dashboard/session") {
