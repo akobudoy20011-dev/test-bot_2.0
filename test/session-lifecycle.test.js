@@ -15,7 +15,7 @@ test("login lifecycle prevents overlapping attempts and stale callbacks", () => 
 
 test("replacement session is promoted only after successful authentication", () => {
   assert.match(source, /A failed replacement must not displace a currently working API/);
-  assert.match(source, /start\(api, generation\)/);
+  assert.match(source, /start\(api, generation(?:, sessionOverride)?\)/);
   assert.match(source, /normalizeSessionInput\(value\)/);
 });
 
