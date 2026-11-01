@@ -38,8 +38,15 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
 
   const server = http.createServer(async (req, res) => {
     const requestOrigin = String(req.headers.origin || "");
-    if (origin === "*" || !requestOrigin || requestOrigin === origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : origin);
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const requestHost = String(req.headers.host || "").trim();
+    const requestHostOrigin = requestHost
+      ? (forwardedProto || "http") + "://" + requestHost
+      : "";
+    const originAllowed = origin === "*" || !requestOrigin ||
+      requestOrigin === origin || requestOrigin === requestHostOrigin;
+    if (originAllowed) {
+      res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : (requestOrigin || origin));
     }
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -71,7 +78,12 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 404, { ok: false, error: "Not found" });
     }
 
-    if (origin !== "*" && requestOrigin !== origin) {
+    if (!originAllowed) {
+      console.warn("[BANAT] dashboard origin rejected", {
+        requestOrigin,
+        configuredOrigin: origin,
+        requestHostOrigin
+      });
       return send(res, 403, { ok: false, error: "Dashboard origin not allowed" });
     }
 
