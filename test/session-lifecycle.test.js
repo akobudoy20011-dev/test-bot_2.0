@@ -11,6 +11,7 @@ test("login lifecycle prevents overlapping attempts and stale callbacks", () => 
   assert.match(source, /const generation = \+\+loginGeneration/);
   assert.match(source, /generation !== loginGeneration/);
   assert.match(source, /generation !== activeListenerGeneration/);
+  assert.match(source, /queuedReplacementSession/);
 });
 
 test("replacement session is promoted only after successful authentication", () => {
