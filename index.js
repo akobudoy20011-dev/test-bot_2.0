@@ -354,7 +354,7 @@ function onMessage(api, event) {
   }
 }
 
-function start(api, generation) {
+function start(api, generation, sessionCandidate = null) {
   const previousApi = messengerApi;
   // A replacement becomes active only after login succeeds. Stop the old
   // listener immediately before promoting the validated API.
@@ -379,6 +379,8 @@ function start(api, generation) {
     const refreshed = api.getAppState?.();
     if (Array.isArray(refreshed) && refreshed.length) {
       require("./session-store").save(JSON.stringify(refreshed));
+    } else if (sessionCandidate) {
+      require("./session-store").save(sessionCandidate);
     }
   } catch (error) {
     console.warn("[AUTH] Could not refresh in-memory session checkpoint:", error?.message || error);
@@ -393,6 +395,7 @@ function start(api, generation) {
       lastDisconnectedAt = new Date().toISOString();
       lastListenerError = getFacebookLoginErrorMessage(error);
       messengerApi = null;
+      activeListenerGeneration = 0;
       console.error("[BANAT] listener error:", lastListenerError);
 
       if (isExplicitSessionRejection(lastListenerError)) {
@@ -487,7 +490,10 @@ function loginBot(sessionOverride = null) {
 
   let cookie;
   try {
-    cookie = normalizeSession(sessionOverride || readSession());
+    const supplied = sessionOverride || readSession();
+    cookie = normalizeSession(require("./session-store").normalizeSessionInput(
+      typeof supplied === "string" ? supplied : JSON.stringify(supplied)
+    ));
   } catch (error) {
     loginError = getFacebookLoginErrorMessage(error);
     console.error("[AUTH] Session input is incomplete or invalid:", loginError);
@@ -533,7 +539,7 @@ function loginBot(sessionOverride = null) {
         clearTimeout(loginRetryTimer);
         loginRetryTimer = null;
       }
-      start(api, generation);
+      start(api, generation, sessionOverride);
     });
     if (result && typeof result.then === "function") {
       result.then(api => {
