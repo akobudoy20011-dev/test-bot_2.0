@@ -554,6 +554,11 @@ function loginBot(sessionOverride = null) {
         loginRetryTimer = null;
       }
       start(api, generation, sessionOverride);
+      if (queuedReplacementSession) {
+        const queued = queuedReplacementSession;
+        queuedReplacementSession = null;
+        setTimeout(() => loginBot(queued), 0);
+      }
     });
     if (result && typeof result.then === "function") {
       result.then(api => {
