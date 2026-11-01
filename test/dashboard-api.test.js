@@ -38,6 +38,12 @@ test("dashboard serves UI and restricts API requests by origin without an API ke
   const blocked = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://wrong.example" } });
   assert.equal(blocked.status, 403);
 
+  const sameHostOrigin = "https://127.0.0.1:" + server.address().port;
+  const sameHost = await fetch(base + "/api/dashboard/status", {
+    headers: { Origin: sameHostOrigin, "X-Forwarded-Proto": "https" }
+  });
+  assert.equal(sameHost.status, 200);
+
   const headers = { Origin: "https://test-dashboard.example" };
   const status = await fetch(base + "/api/dashboard/status", { headers });
   assert.equal(status.status, 200);
