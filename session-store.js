@@ -25,17 +25,17 @@ function normalizeSessionInput(value) {
       const val = cookie?.value;
       if (name == null || val == null) return null;
       const safeName = String(name).trim();
-      if (!safeName || /[=;\\s]/.test(safeName) || /[\\r\\n;]/.test(String(val))) return null;
+      if (!safeName || /[=;\s]/.test(safeName) || /[\r\n;]/.test(String(val))) return null;
       return safeName + "=" + String(val);
     }).filter(Boolean);
     if (!parts.length) throw new Error("The appstate contains no valid cookie entries with name/key and value.");
     const normalized = parts.join("; ");
     if (Buffer.byteLength(normalized, "utf8") > MAX_SESSION_BYTES) throw new Error("Normalized cookie session exceeds 120 KB.");
-    if (!/(?:^|;\\s*)c_user=[^;]+/i.test(normalized)) throw new Error("Appstate must include a c_user cookie.");
+    if (!/(?:^|;\s*)c_user=[^;]+/i.test(normalized)) throw new Error("Appstate must include a c_user cookie.");
     return normalized;
   }
-  if (/[\\r\\n]/.test(input)) throw new Error("Cookie-header format must be a single line. For multiline exports, paste the complete JSON appstate instead.");
-  if (!/(?:^|;\\s*)c_user=[^;]+/i.test(input)) throw new Error("Cookie string must include a c_user cookie. Alternatively, paste the complete JSON appstate export.");
+  if (/[\r\n]/.test(input)) throw new Error("Cookie-header format must be a single line. For multiline exports, paste the complete JSON appstate instead.");
+  if (!/(?:^|;\s*)c_user=[^;]+/i.test(input)) throw new Error("Cookie string must include a c_user cookie. Alternatively, paste the complete JSON appstate export.");
   return input;
 }
 
