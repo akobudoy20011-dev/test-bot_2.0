@@ -429,7 +429,7 @@ try {
   }), {
     setPaused: (paused) => { botPaused = paused; },
     getPaused: () => botPaused,
-    saveSession: value => { const saved = require("./session-store").save(value); loginBot(value); return saved; },
+    saveSession: value => { const saved = require("./session-store").save(value); if (!messengerConnected) loginBot(value); return saved; },
     getSessionStatus: () => require("./session-store").status(),
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
