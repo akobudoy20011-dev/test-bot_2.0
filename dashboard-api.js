@@ -71,7 +71,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 404, { ok: false, error: "Not found" });
     }
 
-    if (origin !== "*" && requestOrigin !== origin) {
+    if (requestOrigin && origin !== "*" && requestOrigin !== origin) {
       return send(res, 403, { ok: false, error: "Dashboard origin not allowed" });
     }
 
