@@ -106,7 +106,6 @@
     $("saveSession").disabled=true;
     try{const data=await request("/api/dashboard/session",{method:"POST",body:JSON.stringify({cookie})});
       $("sessionCookie").value="";$("sessionMessage").textContent=data.message||"Session saved in memory. The bot is attempting to connect.";
-      await refreshSession();
     }catch(e){$("sessionMessage").textContent="Save failed: "+e.message;}
     finally{$("saveSession").disabled=false;}
   }
