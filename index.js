@@ -396,8 +396,8 @@ function fetchMessengerGroups(api) {
   });
 }
 
-function loginBot() {
-  const cookie = normalizeSession(readSession());
+function loginBot(sessionOverride = null) {
+  const cookie = normalizeSession(sessionOverride || readSession());
   console.log("[BANAT] logging in with saved Facebook session...");
   console.log(`[BANAT] session format: cookie string (${cookie.length} chars)`);
   login(cookie, (error, api) => {
@@ -429,7 +429,7 @@ try {
   }), {
     setPaused: (paused) => { botPaused = paused; },
     getPaused: () => botPaused,
-    saveSession: value => require("./session-store").save(value),
+    saveSession: value => { const saved = require("./session-store").save(value); loginBot(value); return saved; },
     getSessionStatus: () => require("./session-store").status(),
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
