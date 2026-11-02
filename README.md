@@ -38,6 +38,7 @@ Configure these private Render environment variables on the original Test Bot se
 | `ECLIPSE_LICENSE_SERVER_MODE=true` | Enables the original deployment as the license authority. |
 | `ECLIPSE_LICENSE_PRIVATE_KEY` | Ed25519 private key in PEM format; keep this only on the owner service. |
 | `ECLIPSE_DASHBOARD_API_KEY` | Long random dashboard/security API key. |
+| `ECLIPSE_DASHBOARD_ORIGIN` | Comma-separated allowed dashboard origins, including the main ECLIPSE dashboard origin. |
 | `ECLIPSE_SECURITY_DATA_DIR=/var/data/eclipse-security` | Registry and installation identity directory on a persistent Render disk. |
 
 Attach a persistent disk mounted at `/var/data`. Without persistent storage, installation identities and approvals can be lost on restart or redeploy.
