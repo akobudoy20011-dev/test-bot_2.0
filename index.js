@@ -627,7 +627,8 @@ try {
     getGroups: () => fetchMessengerGroups(messengerApi),
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
-    updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input)
+    updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
+    licenseGuard
   });
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
