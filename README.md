@@ -58,7 +58,7 @@ A deployment that runs the protected version must have:
 
 - `ECLIPSE_LICENSE_SERVER_URL`: the original owner's Test Bot service URL.
 - `ECLIPSE_LICENSE_PUBLIC_KEY`: the matching Ed25519 public key.
-- `ECLIPSE_SECURITY_DATA_DIR` (optional): a local directory for its installation identity. On ephemeral hosts such as Render Free, the local identity file can be lost after spin-down/redeploy; set a stable `ECLIPSE_INSTALLATION_ID_FILE` only when using storage that actually persists, or expect a new installation identity and approval after the file is lost.
+- `ECLIPSE_SECURITY_DATA_DIR` (optional): local directory for its installation identity. On Render Free, the local identity file can be lost after spin-down/redeploy, which creates a new pending installation that must be approved again. This does not erase the owner registry in Neon.
 - `ECLIPSE_FORK_REPOSITORY` (optional): the fork's `owner/repository` name so the owner registry can label it.
 
 New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
