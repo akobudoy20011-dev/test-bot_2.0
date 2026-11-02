@@ -6,7 +6,7 @@
 - Start command: `npm start`
 - Health endpoint: `/health`
 - Dashboard: `/` or `/dashboard`
-- Dashboard API: authenticated `/api/dashboard/*` endpoints.
+- Dashboard API: origin-restricted `/api/dashboard/*` endpoints; owner-only Security management endpoints additionally require the dashboard API key.
 
 ## Required environment variables
 
@@ -14,10 +14,10 @@
 | --- | --- |
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
-| `ECLIPSE_DASHBOARD_API_KEY` | Optional long random secret required for owner-only Security management endpoints; normal dashboard API access remains origin-restricted. |
-| `ECLIPSE_DASHBOARD_ORIGIN` | Exact dashboard origin for CORS, or `*` only if you understand the implications. |
+| `ECLIPSE_DASHBOARD_ORIGIN` | Allowed dashboard origin(s), comma-separated when more than one is needed. |
 
 Optional:
+- `ECLIPSE_DASHBOARD_API_KEY` — long random key required for owner-only Security management endpoints; normal dashboard API access remains origin-restricted.
 - `BANAT_DEFAULT_ON=true` enables Banat automatically in threads after incoming messages.
 - `BANAT_GLOBAL_SEND_LIMIT=2` limits concurrent outgoing messages.
 - `BANAT_THREAD_COOLDOWN_MS=12000` sets a per-thread send cooldown.
