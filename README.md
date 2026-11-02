@@ -45,7 +45,7 @@ Attach a persistent disk mounted at `/var/data`. Without persistent storage, ins
 Generate a signing keypair on a trusted local machine (never in a public repository):
 
 ```bash
-node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');console.log('PRIVATE KEY\\n'+k.privateKey.export({type:'pkcs8',format:'pem'}));console.log('PUBLIC KEY\\n'+k.publicKey.export({type:'spki',format:'pem'}))"
+node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');console.log('PRIVATE KEY\n'+k.privateKey.export({type:'pkcs8',format:'pem'}));console.log('PUBLIC KEY\n'+k.publicKey.export({type:'spki',format:'pem'}))"
 ```
 
 Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
