@@ -12,7 +12,6 @@
 <body><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">B</div><div><div class="eyebrow">Standalone edition</div><h1>Banat Test Bot</h1><p class="sub">Essentials dashboard · no RPG, economy, music, or PM mode</p></div></div><div class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></div></header>
 <div class="grid">
-<section class="card span12"><h2>Dashboard authentication</h2><p class="hint">Enter the private ECLIPSE_DASHBOARD_API_KEY configured in the Test Bot Render environment. The key is kept in this browser tab session only.</p><div class="field"><input id="dashboardKey" type="password" autocomplete="off" placeholder="Dashboard API key"><button class="primary" id="saveDashboardKey">Connect dashboard</button></div><p class="hint" id="dashboardAuthMessage">Dashboard API requests require authentication.</p></section>
 <section class="card span8"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
 <section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
 <section class="card span6"><h2>Session setup</h2><div class="notice">Paste your Facebook session in the panel below. It is held in server memory only; no persistent disk or encryption-key environment variable is needed.</div><ol class="setup"><li>Paste a single-line cookie header or complete JSON appstate export.</li><li>Choose Save session. The bot will attempt to connect immediately.</li><li>If Render restarts, redeploys, or spins down, the session is cleared and you must paste it again.</li></ol><p class="hint">Never share your Facebook session or put it in frontend code, screenshots, or public logs.</p></section>
@@ -31,8 +30,6 @@
   const fmtBytes = n => { n=Number(n)||0; return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"; };
   async function request(path, options={}) {
     const headers=Object.assign({"Accept":"application/json"},options.headers||{});
-    const dashboardKey=sessionStorage.getItem("eclipse_dashboard_api_key")||"";
-    if(dashboardKey) headers["X-ECLIPSE-DASHBOARD-KEY"]=dashboardKey;
     if(options.body) headers["Content-Type"]="application/json";
     const response=await fetch(path,Object.assign({},options,{headers,cache:"no-store"}));
     let data={}; try{data=await response.json()}catch(_){}
@@ -121,8 +118,6 @@
     try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
     catch(e){$("events").textContent="Could not load events: "+e.message;}
   }
-  $("dashboardKey").value=sessionStorage.getItem("eclipse_dashboard_api_key")||"";
-  $("saveDashboardKey").addEventListener("click",()=>{const key=$("dashboardKey").value.trim();if(!key){$("dashboardAuthMessage").textContent="Enter the dashboard API key.";return;}sessionStorage.setItem("eclipse_dashboard_api_key",key);$("dashboardAuthMessage").textContent="Key saved for this browser tab. Checking API access…";refresh();loadEvents();loadSettings();refreshSession();});
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings);
