@@ -184,8 +184,8 @@ function createLicenseGuard(options = {}) {
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({
         installation_id: id,
-        repository: UPSTREAM_REPOSITORY,
-        fork_repository: process.env.ECLIPSE_FORK_REPOSITORY || "",
+        repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || UPSTREAM_REPOSITORY,
+        fork_repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || "",
         version: process.env.npm_package_version || "unknown"
       }),
       signal: AbortSignal.timeout(10_000)
