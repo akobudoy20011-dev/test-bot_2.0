@@ -93,9 +93,9 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 404, { ok: false, error: "Not found" });
     }
 
-    const dashboardApiRoute = url.pathname.startsWith("/api/dashboard/");
-    if (dashboardApiRoute && (!licenseGuard || !licenseGuard.dashboardAuthorized(req))) {
-      return send(res, 401, { ok: false, error: "Valid X-ECLIPSE-DASHBOARD-KEY required for dashboard API access." });
+    const securityRoute = url.pathname.startsWith("/api/dashboard/security/");
+    if (securityRoute && (!licenseGuard || !licenseGuard.dashboardAuthorized(req))) {
+      return send(res, 401, { ok: false, error: "Valid X-ECLIPSE-DASHBOARD-KEY required for security management." });
     }
 
     if (!originAllowed) {
