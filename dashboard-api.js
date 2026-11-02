@@ -8,6 +8,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
   const origin = String(process.env.ECLIPSE_DASHBOARD_ORIGIN || "*").trim();
   const events = [];
   const dashboardPath = path.join(__dirname, "dashboard.html");
+  const licenseGuard = controls.licenseGuard || null;
 
   const send = (res, status, body) => {
     res.writeHead(status, {
@@ -49,7 +50,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : (requestOrigin || origin));
     }
     res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-ECLIPSE-DASHBOARD-KEY");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Cache-Control", "no-store");
 
@@ -74,8 +75,26 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 200, { ok: true, service: "banat-test-bot", dashboard_api: true });
     }
 
+    if (req.method === "POST" && url.pathname === "/api/license/verify") {
+      if (!licenseGuard || typeof licenseGuard.verifyIncomingInstallation !== "function") {
+        return send(res, 503, { ok: false, status: "unavailable", error: "License authority is not configured." });
+      }
+      try {
+        const body = await readJson(req);
+        const result = licenseGuard.verifyIncomingInstallation(body);
+        return send(res, result.status === "approved" ? 200 : 403, result);
+      } catch (error) {
+        return send(res, 400, { ok: false, status: "invalid", error: error.message || "License verification failed." });
+      }
+    }
+
     if (!url.pathname.startsWith("/api/dashboard/")) {
       return send(res, 404, { ok: false, error: "Not found" });
+    }
+
+    const securityRoute = url.pathname.startsWith("/api/dashboard/security/");
+    if (securityRoute && (!licenseGuard || !licenseGuard.dashboardAuthorized(req))) {
+      return send(res, 401, { ok: false, error: "Valid X-ECLIPSE-DASHBOARD-KEY required." });
     }
 
     if (!originAllowed) {
@@ -85,6 +104,31 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
         requestHostOrigin
       });
       return send(res, 403, { ok: false, error: "Dashboard origin not allowed" });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/dashboard/security/status") {
+      return send(res, 200, { ok: true, license: licenseGuard ? licenseGuard.getStatus() : null, mode: licenseGuard ? (licenseGuard.getStatus().mode) : "unavailable" });
+    }
+    if (req.method === "GET" && url.pathname === "/api/dashboard/security/installations") {
+      try { return send(res, 200, { ok: true, installations: licenseGuard.listInstallations() }); }
+      catch (error) { return send(res, 503, { ok: false, error: error.message || "Installation registry unavailable." }); }
+    }
+    if (req.method === "GET" && url.pathname === "/api/dashboard/security/forks") {
+      try { return send(res, 200, { ok: true, forks: await licenseGuard.listForks() }); }
+      catch (error) { return send(res, 502, { ok: false, error: error.message || "GitHub fork lookup failed." }); }
+    }
+    if (req.method === "GET" && url.pathname === "/api/dashboard/security/events") {
+      try { return send(res, 200, { ok: true, events: licenseGuard.listEvents() }); }
+      catch (error) { return send(res, 503, { ok: false, error: error.message || "Security event history unavailable." }); }
+    }
+    const installationAction = url.pathname.match(/^\\/api\\/dashboard\\/security\\/installations\\/([a-f0-9-]{32,64})\\/(approve|revoke)$/i);
+    if (req.method === "POST" && installationAction) {
+      try {
+        const installation = licenseGuard.updateInstallation(installationAction[1], installationAction[2] === "approve" ? "approved" : "revoked");
+        return send(res, 200, { ok: true, installation });
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Could not update installation authorization." });
+      }
     }
 
     if (req.method === "GET" && url.pathname === "/api/dashboard/session") {
