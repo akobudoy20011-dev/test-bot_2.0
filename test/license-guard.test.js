@@ -33,6 +33,7 @@ test("owner service approves itself and requires explicit approval for new insta
 
   await withEnvironment({
     ECLIPSE_SECURITY_DATA_DIR: path.join(root, "owner"),
+    ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
     ECLIPSE_LICENSE_SERVER_MODE: "true",
     ECLIPSE_LICENSE_PRIVATE_KEY: privateKey,
     ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
@@ -42,10 +43,10 @@ test("owner service approves itself and requires explicit approval for new insta
     const owner = createLicenseGuard();
     assert.equal(await owner.initialize(), true);
     const unknownId = crypto.randomUUID();
-    const pending = owner.verifyIncomingInstallation({ installation_id: unknownId, repository: "someone/test-bot" });
+    const pending = await owner.verifyIncomingInstallation({ installation_id: unknownId, repository: "someone/test-bot" });
     assert.equal(pending.status, "pending");
     owner.updateInstallation(unknownId, "approved");
-    const approved = owner.verifyIncomingInstallation({ installation_id: unknownId });
+    const approved = await owner.verifyIncomingInstallation({ installation_id: unknownId });
     assert.equal(approved.status, "approved");
     assert.ok(approved.token);
 
@@ -60,6 +61,7 @@ test("owner service approves itself and requires explicit approval for new insta
     try {
       await withEnvironment({
         ECLIPSE_SECURITY_DATA_DIR: clientDir,
+      ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
         ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
         ECLIPSE_LICENSE_SERVER_MODE: "false",
         ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
