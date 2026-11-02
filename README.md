@@ -40,7 +40,6 @@ Configure these private Render environment variables on the original Test Bot se
 | `ECLIPSE_DASHBOARD_API_KEY` | Long random key required only for owner-only Security management endpoints. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Comma-separated allowed dashboard origins, including the main ECLIPSE dashboard origin. |
 | `ECLIPSE_LICENSE_DATABASE_URL` | Neon PostgreSQL connection string used for the durable owner registry. `DATABASE_URL` is accepted as a fallback. |
-| `ECLIPSE_SECURITY_DATA_DIR` | Local directory for client installation identity files; on Render Free this filesystem is temporary. |
 
 The owner registry is stored in Neon PostgreSQL, so the original Test Bot does not need a Render persistent disk. Create a Neon project and database, then copy its pooled connection string into `ECLIPSE_LICENSE_DATABASE_URL` on the original Test Bot Render service. Keep the connection string private. The application creates its tables and stores the owner installation identity, installation approvals/revocations, and security events automatically. Use the pooled connection string with SSL enabled. Render Free local files are temporary and must not be used as the owner registry.
 
