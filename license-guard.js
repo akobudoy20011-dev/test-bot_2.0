@@ -35,48 +35,13 @@ function createLicenseGuard(options = {}) {
   let timer = null;
   let onRevoked = null;
 
-  function ensureDir() {
-    fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-  }
-
-  function readRegistry() {
-    ensureDir();
-    try {
-      const parsed = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-      return {
-        installations: parsed && parsed.installations && typeof parsed.installations === "object" ? parsed.installations : {},
-        events: Array.isArray(parsed && parsed.events) ? parsed.events.slice(0, 500) : []
-      };
-    } catch (error) {
-      if (error && error.code !== "ENOENT") throw error;
-      return { installations: {}, events: [] };
-    }
-  }
-
-  function writeRegistry(registry) {
-    ensureDir();
-    const temporary = registryPath + ".tmp";
-    fs.writeFileSync(temporary, JSON.stringify(registry, null, 2), { mode: 0o600 });
-    fs.renameSync(temporary, registryPath);
-  }
-
   function record(registry, type, details = {}) {
     registry.events.unshift({ id: crypto.randomUUID(), at: new Date(now()).toISOString(), type, ...details });
     registry.events = registry.events.slice(0, 500);
   }
 
   function getInstallationId() {
-    if (installationId) return installationId;
-    ensureDir();
-    try {
-      installationId = fs.readFileSync(identityPath, "utf8").trim();
-    } catch (error) {
-      if (!error || error.code !== "ENOENT") throw error;
-    }
-    if (!/^[a-f0-9-]{32,64}$/i.test(installationId)) {
-      installationId = crypto.randomUUID();
-      fs.writeFileSync(identityPath, installationId + "\n", { mode: 0o600, flag: "w" });
-    }
+    if (!installationId) installationId = store.getInstallationId();
     return installationId;
   }
 
