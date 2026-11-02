@@ -172,8 +172,9 @@ function createLicenseGuard(options = {}) {
   }
 
   async function initialize() {
-    getInstallationId();
     try {
+      await store.initialize(ownerMode);
+      getInstallationId();
       await checkWithAuthority();
       return true;
     } catch (error) {
@@ -268,7 +269,7 @@ function createLicenseGuard(options = {}) {
     updateInstallation,
     listEvents,
     listForks,
-    stop() { if (timer) clearInterval(timer); timer = null; }
+    stop() { if (timer) clearInterval(timer); timer = null; store.close().catch(() => {}); }
   };
 }
 
