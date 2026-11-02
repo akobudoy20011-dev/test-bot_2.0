@@ -26,6 +26,9 @@ const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
 const { getGroupSettings, updateGroup: updateGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
+const { createLicenseGuard } = require("./license-guard");
+const licenseGuard = createLicenseGuard();
+let licenseAuthorized = false;
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
@@ -319,7 +322,7 @@ function reactToMessage(api,event,emoji) {
 function onMessage(api, event) {
   if (!event) return;
   if (event.type && !["message", "message_reply"].includes(event.type)) return;
-  if (botPaused) return;
+  if (botPaused || !licenseAuthorized) return;
   if (isDuplicateMessage(event.messageID)) {
     console.log(`[BANAT] ignored duplicate message event ${event.messageID}`);
     return;
@@ -609,7 +612,8 @@ try {
     last_disconnected_at: lastDisconnectedAt,
     last_listener_error: lastListenerError,
     last_message_at: lastMessageAt,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    license: { ...licenseGuard.getStatus(), authorized: licenseAuthorized }
   }), {
     setPaused: (paused) => { botPaused = paused; },
     getPaused: () => botPaused,
@@ -629,6 +633,22 @@ try {
   console.error("[BANAT] dashboard API failed:", error);
 }
 
-loginBot();
+licenseGuard.initialize().then(ok => {
+  licenseAuthorized = ok;
+  if (ok) {
+    console.log("[ECLIPSE LICENSE] Installation authorized:", licenseGuard.getInstallationId());
+    loginBot();
+  } else {
+    console.error("[ECLIPSE LICENSE] Bot processing is disabled:", licenseGuard.getStatus().last_error);
+  }
+  licenseGuard.startHeartbeat(reason => {
+    licenseAuthorized = false;
+    botPaused = true;
+    console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
+  });
+}).catch(error => {
+  licenseAuthorized = false;
+  console.error("[ECLIPSE LICENSE] Authorization initialization failed; bot processing remains disabled:", error?.message || error);
+});
 
 module.exports = { trafficSendMessage, onMessage, handleBanatCommand };
