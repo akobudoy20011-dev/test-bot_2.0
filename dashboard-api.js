@@ -121,7 +121,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       try { return send(res, 200, { ok: true, events: licenseGuard.listEvents() }); }
       catch (error) { return send(res, 503, { ok: false, error: error.message || "Security event history unavailable." }); }
     }
-    const installationAction = url.pathname.match(/^\\/api\\/dashboard\\/security\\/installations\\/([a-f0-9-]{32,64})\\/(approve|revoke)$/i);
+    const installationAction = url.pathname.match(new RegExp("^/api/dashboard/security/installations/([a-f0-9-]{32,64})/(approve|revoke)$", "i"));
     if (req.method === "POST" && installationAction) {
       try {
         const installation = licenseGuard.updateInstallation(installationAction[1], installationAction[2] === "approve" ? "approved" : "revoked");
