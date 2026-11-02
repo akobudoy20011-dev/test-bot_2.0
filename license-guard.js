@@ -192,7 +192,6 @@ function createLicenseGuard(options = {}) {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.status !== "approved") {
-      authorized = false;
       lease = null;
       throw new Error(result.error || "Installation is not approved by the ECLIPSE owner.");
     }
