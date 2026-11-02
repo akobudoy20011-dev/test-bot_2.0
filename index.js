@@ -648,8 +648,11 @@ licenseGuard.initialize().then(ok => {
   }
   licenseGuard.startHeartbeat(reason => {
     licenseAuthorized = false;
-    botPaused = true;
     console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
+  }, () => {
+    licenseAuthorized = true;
+    console.log("[ECLIPSE LICENSE] Installation authorization restored.");
+    if (!messengerConnected && !loginInProgress) loginBot();
   });
 }).catch(error => {
   licenseAuthorized = false;
