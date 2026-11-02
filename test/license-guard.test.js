@@ -9,14 +9,14 @@ const crypto = require("node:crypto");
 
 const { createLicenseGuard } = require("../license-guard");
 
-function withEnvironment(values, callback) {
+async function withEnvironment(values, callback) {
   const previous = {};
   for (const [key, value] of Object.entries(values)) {
     previous[key] = process.env[key];
     if (value == null) delete process.env[key];
     else process.env[key] = value;
   }
-  try { return callback(); }
+  try { return await callback(); }
   finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value == null) delete process.env[key];
