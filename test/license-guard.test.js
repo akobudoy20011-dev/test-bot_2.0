@@ -45,7 +45,7 @@ test("owner service approves itself and requires explicit approval for new insta
     const unknownId = crypto.randomUUID();
     const pending = await owner.verifyIncomingInstallation({ installation_id: unknownId, repository: "someone/test-bot" });
     assert.equal(pending.status, "pending");
-    owner.updateInstallation(unknownId, "approved");
+    await owner.updateInstallation(unknownId, "approved");
     const approved = await owner.verifyIncomingInstallation({ installation_id: unknownId });
     assert.equal(approved.status, "approved");
     assert.ok(approved.token);
@@ -55,7 +55,7 @@ test("owner service approves itself and requires explicit approval for new insta
     fs.writeFileSync(path.join(clientDir, "installation-id"), unknownId);
     const originalFetch = global.fetch;
     global.fetch = async (_url, options) => {
-      const result = owner.verifyIncomingInstallation(JSON.parse(options.body));
+      const result = await owner.verifyIncomingInstallation(JSON.parse(options.body));
       return { ok: result.status === "approved", status: result.status === "approved" ? 200 : 403, json: async () => result };
     };
     try {
