@@ -26,7 +26,7 @@ function createLicenseStore() {
     mode = ownerMode ? "owner" : "client";
     if (!ownerMode || initialized) return;
     if (databaseUrl) {
-      pool = new Pool({
+      if (!pool) pool = new Pool({
         connectionString: databaseUrl,
         max: 3,
         idleTimeoutMillis: 30_000,
@@ -79,6 +79,7 @@ function createLicenseStore() {
       ownerInstallationId = crypto.randomUUID();
       fs.writeFileSync(identityPath, ownerInstallationId + "\n", { mode: 0o600 });
     }
+    initialized = true;
   }
 
   function getInstallationId() {
