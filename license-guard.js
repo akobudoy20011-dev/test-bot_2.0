@@ -1,8 +1,7 @@
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
+const { createLicenseStore } = require("./license-store");
 
 const APP_ID = "test-bot_2.0";
 const UPSTREAM_REPOSITORY = "akobudoy20011-dev/test-bot_2.0";
@@ -20,9 +19,7 @@ function encode(value) {
 }
 
 function createLicenseGuard(options = {}) {
-  const dataDir = path.resolve(process.env.ECLIPSE_SECURITY_DATA_DIR || path.join(process.cwd(), ".eclipse-security"));
-  const identityPath = path.resolve(process.env.ECLIPSE_INSTALLATION_ID_FILE || path.join(dataDir, "installation-id"));
-  const registryPath = path.resolve(process.env.ECLIPSE_LICENSE_REGISTRY_PATH || path.join(dataDir, "registry.json"));
+  const store = createLicenseStore();
   const ownerMode = /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_LICENSE_SERVER_MODE || "false");
   const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
   const privateKey = process.env.ECLIPSE_LICENSE_PRIVATE_KEY || "";
