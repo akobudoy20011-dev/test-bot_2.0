@@ -22,7 +22,7 @@ Optional:
 - `BANAT_GLOBAL_SEND_LIMIT=2` limits concurrent outgoing messages.
 - `BANAT_THREAD_COOLDOWN_MS=12000` sets a per-thread send cooldown.
 
-Never commit Facebook cookies or dashboard keys. Prefer setting them as private service environment variables. The dashboard can accept a cookie header or JSON appstate export and keeps the normalized session in process memory only. On Render Free, the session is lost whenever the service restarts or spins down; paste it again after that happens. Do not commit or share session values.
+Never commit Facebook cookies or dashboard keys. Prefer setting them as private service environment variables. The dashboard can accept a cookie header or JSON appstate export and keeps the normalized session in process memory only. On Render Free, local files and process memory are temporary. Facebook sessions must be re-entered after restart/spin-down, and a client installation identity may need owner reapproval if its local identity file is lost. Do not commit or share session values.
 
 
 ## ECLIPSE licensing and authorized deployments
@@ -39,9 +39,10 @@ Configure these private Render environment variables on the original Test Bot se
 | `ECLIPSE_LICENSE_PRIVATE_KEY` | Ed25519 private key in PEM format; keep this only on the owner service. |
 | `ECLIPSE_DASHBOARD_API_KEY` | Long random key required only for owner-only Security management endpoints. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Comma-separated allowed dashboard origins, including the main ECLIPSE dashboard origin. |
-| `ECLIPSE_SECURITY_DATA_DIR=/var/data/eclipse-security` | Registry and installation identity directory on a persistent Render disk. |
+| `ECLIPSE_LICENSE_DATABASE_URL` | Neon PostgreSQL connection string used for the durable owner registry. `DATABASE_URL` is accepted as a fallback. |
+| `ECLIPSE_SECURITY_DATA_DIR` | Local directory for client installation identity files; on Render Free this filesystem is temporary. |
 
-Attach a persistent disk mounted at `/var/data`. Without persistent storage, installation identities and approvals can be lost on restart or redeploy.
+The owner registry is stored in Neon PostgreSQL, so the original Test Bot does not need a Render persistent disk. Create a Neon project and database, then copy its pooled connection string into `ECLIPSE_LICENSE_DATABASE_URL` on the original Test Bot Render service. Keep the connection string private. The application creates its tables and stores the owner installation identity, installation approvals/revocations, and security events automatically. Use the pooled connection string with SSL enabled. Render Free local files are temporary and must not be used as the owner registry.
 
 Generate a signing keypair on a trusted local machine (never in a public repository):
 
@@ -57,7 +58,7 @@ A deployment that runs the protected version must have:
 
 - `ECLIPSE_LICENSE_SERVER_URL`: the original owner's Test Bot service URL.
 - `ECLIPSE_LICENSE_PUBLIC_KEY`: the matching Ed25519 public key.
-- `ECLIPSE_SECURITY_DATA_DIR`: a persistent directory for its installation identity.
+- `ECLIPSE_SECURITY_DATA_DIR` (optional): a local directory for its installation identity. On ephemeral hosts such as Render Free, the local identity file can be lost after spin-down/redeploy; set a stable `ECLIPSE_INSTALLATION_ID_FILE` only when using storage that actually persists, or expect a new installation identity and approval after the file is lost.
 - `ECLIPSE_FORK_REPOSITORY` (optional): the fork's `owner/repository` name so the owner registry can label it.
 
 New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
