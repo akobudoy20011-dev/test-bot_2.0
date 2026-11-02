@@ -126,7 +126,7 @@ function createLicenseGuard(options = {}) {
     return {
       enabled: true,
       mode: ownerMode ? "owner" : "client",
-      installation_id: getInstallationId(),
+      installation_id: installationId || null,
       authorized,
       status: authorized ? "authorized" : "blocked",
       last_check_at: lastCheckAt,
@@ -253,14 +253,14 @@ function createLicenseGuard(options = {}) {
   function updateInstallation(id, status) {
     if (!ownerMode) throw new Error("Installation management is available only on the license owner service.");
     if (!["approved", "revoked", "pending"].includes(status)) throw new Error("Unsupported installation status.");
-    const registry = readRegistry();
+    const registry = await store.readRegistry();
     const entry = registry.installations[id];
     if (!entry) throw new Error("Installation not found.");
     if (id === getInstallationId() && status !== "approved") throw new Error("The owner installation cannot be revoked or downgraded.");
     entry.status = status;
     entry.updated_at = new Date(now()).toISOString();
     record(registry, "installation-" + status, { installation_id: id });
-    writeRegistry(registry);
+    await store.writeRegistry(registry);
     return entry;
   }
 
