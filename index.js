@@ -609,7 +609,7 @@ try {
     facebook_connected: messengerConnected,
     facebook_user_name: null,
     session_active: messengerConnected,
-    bot_running: messengerConnected && !botPaused,
+    bot_running: messengerConnected && !botPaused && licenseAuthorized,
     login_in_progress: loginInProgress,
     login_error: loginError,
     last_connected_at: lastConnectedAt,
@@ -620,7 +620,7 @@ try {
     license: { ...licenseGuard.getStatus(), authorized: licenseAuthorized }
   }), {
     setPaused: (paused) => { botPaused = paused; },
-    getPaused: () => botPaused,
+    getPaused: () => botPaused || !licenseAuthorized,
     saveSession: value => {
       const candidate = require("./session-store").normalizeSessionInput(value);
       loginBot(candidate);
