@@ -82,7 +82,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       }
       try {
         const body = await readJson(req);
-        const result = licenseGuard.verifyIncomingInstallation(body);
+        const result = await licenseGuard.verifyIncomingInstallation(body);
         return send(res, result.status === "approved" ? 200 : 403, result);
       } catch (error) {
         return send(res, 400, { ok: false, status: "invalid", error: error.message || "License verification failed." });
@@ -111,7 +111,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       return send(res, 200, { ok: true, license: licenseGuard ? licenseGuard.getStatus() : null, mode: licenseGuard ? (licenseGuard.getStatus().mode) : "unavailable" });
     }
     if (req.method === "GET" && url.pathname === "/api/dashboard/security/installations") {
-      try { return send(res, 200, { ok: true, installations: licenseGuard.listInstallations() }); }
+      try { return send(res, 200, { ok: true, installations: await licenseGuard.listInstallations() }); }
       catch (error) { return send(res, 503, { ok: false, error: error.message || "Installation registry unavailable." }); }
     }
     if (req.method === "GET" && url.pathname === "/api/dashboard/security/forks") {
@@ -119,13 +119,13 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       catch (error) { return send(res, 502, { ok: false, error: error.message || "GitHub fork lookup failed." }); }
     }
     if (req.method === "GET" && url.pathname === "/api/dashboard/security/events") {
-      try { return send(res, 200, { ok: true, events: licenseGuard.listEvents() }); }
+      try { return send(res, 200, { ok: true, events: await licenseGuard.listEvents() }); }
       catch (error) { return send(res, 503, { ok: false, error: error.message || "Security event history unavailable." }); }
     }
     const installationAction = url.pathname.match(new RegExp("^/api/dashboard/security/installations/([a-f0-9-]{32,64})/(approve|revoke)$", "i"));
     if (req.method === "POST" && installationAction) {
       try {
-        const installation = licenseGuard.updateInstallation(installationAction[1], installationAction[2] === "approve" ? "approved" : "revoked");
+        const installation = await licenseGuard.updateInstallation(installationAction[1], installationAction[2] === "approve" ? "approved" : "revoked");
         return send(res, 200, { ok: true, installation });
       } catch (error) {
         return send(res, 400, { ok: false, error: error.message || "Could not update installation authorization." });
