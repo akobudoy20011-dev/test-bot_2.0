@@ -478,7 +478,7 @@ function scheduleLoginRetry(delay, reason) {
   console.warn(`[LOGIN] ${reason}; retry scheduled in ${wait}ms.`);
   loginRetryTimer = setTimeout(() => {
     loginRetryTimer = null;
-    if (!messengerConnected && !loginInProgress) loginBot();
+    if (licenseAuthorized && !messengerConnected && !loginInProgress) loginBot();
   }, wait);
 }
 
@@ -494,6 +494,10 @@ function fetchMessengerGroups(api) {
 }
 
 function loginBot(sessionOverride = null) {
+  if (!licenseAuthorized) {
+    console.warn("[ECLIPSE LICENSE] Messenger login blocked because this installation is not authorized.");
+    return false;
+  }
   if (loginInProgress) {
     if (sessionOverride) {
       queuedReplacementSession = sessionOverride;
