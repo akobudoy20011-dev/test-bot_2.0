@@ -25,63 +25,48 @@ Optional:
 Never commit Facebook cookies or dashboard keys. Prefer setting them as private service environment variables. The dashboard can accept a cookie header or JSON appstate export and keeps the normalized session in process memory only. On Render Free, the session is lost whenever the service restarts or spins down; paste it again after that happens. Do not commit or share session values.
 
 
-## Simple setup tutorial (GitHub + Render)
+## ECLIPSE licensing and authorized deployments
 
-### 1. Make your own copy
+This repository is the owner-controlled upstream for Test Bot 2.0. Do not publish deployment credentials, Facebook sessions, signing keys, or private license data.
 
-1. Open this repository on GitHub.
-2. Click **Fork** and create your own copy under your GitHub account.
-3. In your fork, open **Settings → Secrets and variables → Actions** only if you plan to use GitHub Actions secrets. For Render setup, add the values in Render's environment settings instead.
-4. Do not upload cookies, appstate files, or API keys into the repository.
+### Owner service (the original Render deployment)
 
-### 2. Create the Render service
+Configure these private Render environment variables on the original Test Bot service:
 
-1. Sign in to [Render](https://render.com/).
-2. Choose **New + → Web Service** and connect your fork.
-3. Select the branch you want to run.
-4. Use these settings:
-   - **Runtime:** Node
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-5. Create the service. Wait for the first build to finish before testing it.
-
-### 3. Add environment variables in Render
-
-Open your Render service → **Environment** → **Add Environment Variable**. Add:
-
-| Key | Value |
+| Variable | Purpose |
 | --- | --- |
-| `ECLIPSE_DASHBOARD_API_KEY` | A long, random secret that you create. Keep it private. |
-| `ECLIPSE_DASHBOARD_ORIGIN` | Your exact Render service origin, e.g. `https://your-service-name.onrender.com` (no path or trailing slash). |
-| `FB_COOKIES` | Your session cookie/header string **or** use `FB_APPSTATE` instead. |
-| `FB_APPSTATE` | Optional alternative to `FB_COOKIES`; provide the supported exported cookie/appstate JSON format. Do not set both unless you have verified the code's precedence. |
+| `ECLIPSE_LICENSE_SERVER_MODE=true` | Enables the original deployment as the license authority. |
+| `ECLIPSE_LICENSE_PRIVATE_KEY` | Ed25519 private key in PEM format; keep this only on the owner service. |
+| `ECLIPSE_DASHBOARD_API_KEY` | Long random dashboard/security API key. |
+| `ECLIPSE_SECURITY_DATA_DIR=/var/data/eclipse-security` | Registry and installation identity directory on a persistent Render disk. |
 
-Optional settings:
-- `BANAT_DEFAULT_ON=true` — enable Banat by default where supported.
-- `BANAT_GLOBAL_SEND_LIMIT=2` — limit concurrent outgoing messages.
-- `BANAT_THREAD_COOLDOWN_MS=12000` — set the per-thread cooldown in milliseconds.
+Attach a persistent disk mounted at `/var/data`. Without persistent storage, installation identities and approvals can be lost on restart or redeploy.
 
-**Important:** Obtain and use only your own Facebook session. Treat cookies/appstate as passwords: anyone who gets them may be able to access your account. Add them only in Render's private environment settings—never in chat, screenshots, GitHub commits, or the dashboard page. The dashboard session panel stores a normalized session in memory for the current process only. Render Free restarts/spin-downs clear it; paste it again afterward.
+Generate a signing keypair on a trusted local machine (never in a public repository):
 
-Click **Save Changes**. Render may restart the service to apply the variables.
+```bash
+node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');console.log('PRIVATE KEY\\n'+k.privateKey.export({type:'pkcs8',format:'pem'}));console.log('PUBLIC KEY\\n'+k.publicKey.export({type:'spki',format:'pem'}))"
+```
 
-### 4. Open and use the dashboard
+Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
 
-1. Open your Render service URL, such as `https://your-service-name.onrender.com/`.
-2. Enter the value you set for `ECLIPSE_DASHBOARD_API_KEY` into the dashboard when prompted.
-3. Check that the status loads and the session reports connected. A page loading by itself does **not** prove Messenger login works.
-4. Use the pause/resume controls to pause or resume message processing. They do not log in or repair an expired session.
-5. In your target Messenger group, try `!banat status`, then `!banat help`. Only enable Banat with `!banat on` after confirming the bot is connected and you understand its behavior.
+### Authorized client deployments
 
-### 5. If something does not work
+A deployment that runs the protected version must have:
 
-- **Build fails:** open Render → **Logs** and read the first build error; confirm the repository has `package.json` and the build command is `npm install`.
-- **Dashboard says unauthorized / API key missing:** check that `ECLIPSE_DASHBOARD_API_KEY` is set in Render and enter the exact same value in the dashboard.
-- **Dashboard API returns a CORS error:** set `ECLIPSE_DASHBOARD_ORIGIN` to the exact origin shown in your browser address bar (scheme + hostname, without a path), then save and let Render restart.
-- **Session is disconnected:** verify your private session environment variable is present and valid. Facebook sessions can expire; update it securely in Render and restart the service. Never paste the value into a support message.
-- **Bot does not reply:** check Render runtime logs and test `!banat status` in a group where the bot is present. A connected dashboard alone does not guarantee Messenger can send messages.
+- `ECLIPSE_LICENSE_SERVER_URL`: the original owner's Test Bot service URL.
+- `ECLIPSE_LICENSE_PUBLIC_KEY`: the matching Ed25519 public key.
+- `ECLIPSE_SECURITY_DATA_DIR`: a persistent directory for its installation identity.
 
-Before using it in a real group, test with a small, controlled group and confirm the right thread is targeted. Do not deploy an unverified branch as a production bot.
+New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
+
+### Existing forks
+
+Forks that are already running the older version are not remotely changed by this release and may continue running their current code. If an existing fork updates to this protected version, it must be registered and approved by the owner before it can start. Existing forks are not automatically revoked merely because the protection is introduced.
+
+### Important limits
+
+GitHub monitoring detects public GitHub forks of the upstream repository; it cannot reliably discover private copies, downloaded archives, or code redistributed elsewhere. The license check protects deployments that retain this enforcement code and depend on the owner's license authority. Someone who removes or rewrites the check can bypass it, so never include private credentials or signing keys in the repository.
 
 ## Banat commands
 
