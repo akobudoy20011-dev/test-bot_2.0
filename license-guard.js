@@ -221,12 +221,15 @@ function createLicenseGuard(options = {}) {
     }
   }
 
-  function startHeartbeat(onDenied) {
+  function startHeartbeat(onDenied, onAuthorized) {
     onRevoked = typeof onDenied === "function" ? onDenied : null;
+    const onRestored = typeof onAuthorized === "function" ? onAuthorized : null;
     if (timer) clearInterval(timer);
     timer = setInterval(async () => {
       try {
+        const wasAuthorized = authorized;
         await checkWithAuthority();
+        if (!wasAuthorized && authorized && onRestored) onRestored();
       } catch (error) {
         const message = String(error && error.message || error);
         const explicitDenial = /not approved|revoked|invalid signature|missing/i.test(message);
@@ -253,6 +256,7 @@ function createLicenseGuard(options = {}) {
     const registry = readRegistry();
     const entry = registry.installations[id];
     if (!entry) throw new Error("Installation not found.");
+    if (id === getInstallationId() && status !== "approved") throw new Error("The owner installation cannot be revoked or downgraded.");
     entry.status = status;
     entry.updated_at = new Date(now()).toISOString();
     record(registry, "installation-" + status, { installation_id: id });
