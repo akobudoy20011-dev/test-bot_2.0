@@ -98,6 +98,7 @@ function createLicenseGuard(options = {}) {
 
   async function verifyIncomingInstallation(body) {
     if (!ownerMode) return { status: "unavailable", error: "This installation is not configured as the ECLIPSE license authority." };
+    await store.initialize(true);
     const id = String(body && body.installation_id || "").trim();
     if (!/^[a-f0-9-]{32,64}$/i.test(id)) return { status: "invalid", error: "Invalid installation identity." };
 
