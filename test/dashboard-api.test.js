@@ -3,7 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-test("dashboard serves UI and restricts API requests by origin without an API key", async (t) => {
+test("dashboard serves UI and requires the dashboard API key plus an allowed origin", async (t) => {
   const previousOrigin = process.env.ECLIPSE_DASHBOARD_ORIGIN;
   process.env.ECLIPSE_DASHBOARD_ORIGIN = "https://test-dashboard.example";
 
@@ -17,7 +17,8 @@ test("dashboard serves UI and restricts API requests by origin without an API ke
     last_message_at: "2026-10-26T00:00:00.000Z"
   }), {
     setPaused(value) { paused = Boolean(value); },
-    getPaused() { return paused; }
+    getPaused() { return paused; },
+    licenseGuard: { dashboardAuthorized(req) { return req.headers["x-eclipse-dashboard-key"] === "test-dashboard-key"; } }
   });
 
   await new Promise((resolve, reject) => {
@@ -35,16 +36,16 @@ test("dashboard serves UI and restricts API requests by origin without an API ke
   assert.equal(page.status, 200);
   assert.match(await page.text(), /Banat Test Bot/);
 
-  const blocked = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://wrong.example" } });
+  const blocked = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://wrong.example", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" } });
   assert.equal(blocked.status, 403);
 
   const sameHostOrigin = "https://127.0.0.1:" + server.address().port;
   const sameHost = await fetch(base + "/api/dashboard/status", {
-    headers: { Origin: sameHostOrigin, "X-Forwarded-Proto": "https" }
+    headers: { Origin: sameHostOrigin, "X-Forwarded-Proto": "https", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" }
   });
   assert.equal(sameHost.status, 200);
 
-  const headers = { Origin: "https://test-dashboard.example" };
+  const headers = { Origin: "https://test-dashboard.example", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" };
   const status = await fetch(base + "/api/dashboard/status", { headers });
   assert.equal(status.status, 200);
   const data = await status.json();
