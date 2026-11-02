@@ -14,7 +14,7 @@
 | --- | --- |
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
-| `ECLIPSE_DASHBOARD_API_KEY` | Required long random secret protecting dashboard API endpoints. |
+| `ECLIPSE_DASHBOARD_API_KEY` | Optional long random secret required for owner-only Security management endpoints; normal dashboard API access remains origin-restricted. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Exact dashboard origin for CORS, or `*` only if you understand the implications. |
 
 Optional:
@@ -37,7 +37,7 @@ Configure these private Render environment variables on the original Test Bot se
 | --- | --- |
 | `ECLIPSE_LICENSE_SERVER_MODE=true` | Enables the original deployment as the license authority. |
 | `ECLIPSE_LICENSE_PRIVATE_KEY` | Ed25519 private key in PEM format; keep this only on the owner service. |
-| `ECLIPSE_DASHBOARD_API_KEY` | Long random dashboard/security API key. |
+| `ECLIPSE_DASHBOARD_API_KEY` | Long random key required only for owner-only Security management endpoints. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Comma-separated allowed dashboard origins, including the main ECLIPSE dashboard origin. |
 | `ECLIPSE_SECURITY_DATA_DIR=/var/data/eclipse-security` | Registry and installation identity directory on a persistent Render disk. |
 
