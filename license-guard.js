@@ -64,7 +64,7 @@ function createLicenseGuard(options = {}) {
   }
 
   function record(registry, type, details = {}) {
-    registry.events.unshift({ at: new Date(now()).toISOString(), type, ...details });
+    registry.events.unshift({ id: crypto.randomUUID(), at: new Date(now()).toISOString(), type, ...details });
     registry.events = registry.events.slice(0, 500);
   }
 
