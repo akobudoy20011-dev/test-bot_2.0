@@ -39,6 +39,9 @@ test("dashboard serves UI and requires the dashboard API key plus an allowed ori
   const blocked = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://wrong.example", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" } });
   assert.equal(blocked.status, 403);
 
+  const missingKey = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://test-dashboard.example" } });
+  assert.equal(missingKey.status, 401);
+
   const sameHostOrigin = "https://127.0.0.1:" + server.address().port;
   const sameHost = await fetch(base + "/api/dashboard/status", {
     headers: { Origin: sameHostOrigin, "X-Forwarded-Proto": "https", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" }
