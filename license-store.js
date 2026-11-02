@@ -16,6 +16,7 @@ function createLicenseStore() {
   let pool = null;
   let ownerInstallationId = "";
   let mode = "client";
+  let initialized = false;
 
   function ensureDir() {
     fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
@@ -23,7 +24,7 @@ function createLicenseStore() {
 
   async function initialize(ownerMode) {
     mode = ownerMode ? "owner" : "client";
-    if (!ownerMode) return;
+    if (!ownerMode || initialized) return;
     if (databaseUrl) {
       pool = new Pool({
         connectionString: databaseUrl,
@@ -62,6 +63,7 @@ function createLicenseStore() {
         const saved = await pool.query("SELECT value FROM eclipse_license_meta WHERE key = 'owner_installation_id'");
         ownerInstallationId = saved.rows[0].value;
       }
+      initialized = true;
       return;
     }
     if (!allowFileStore) {
