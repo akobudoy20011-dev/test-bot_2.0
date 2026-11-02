@@ -166,6 +166,7 @@ function createLicenseGuard(options = {}) {
   }
 
   async function checkWithAuthority() {
+    if (ownerMode) await store.initialize(ownerMode);
     const id = getInstallationId();
     if (ownerMode) {
       const result = verifyIncomingInstallation({ installation_id: id, repository: UPSTREAM_REPOSITORY, version: process.version });
