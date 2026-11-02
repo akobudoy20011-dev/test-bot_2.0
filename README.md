@@ -58,6 +58,7 @@ A deployment that runs the protected version must have:
 - `ECLIPSE_LICENSE_SERVER_URL`: the original owner's Test Bot service URL.
 - `ECLIPSE_LICENSE_PUBLIC_KEY`: the matching Ed25519 public key.
 - `ECLIPSE_SECURITY_DATA_DIR`: a persistent directory for its installation identity.
+- `ECLIPSE_FORK_REPOSITORY` (optional): the fork's `owner/repository` name so the owner registry can label it.
 
 New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
 
