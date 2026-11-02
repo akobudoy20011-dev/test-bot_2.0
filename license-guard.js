@@ -96,12 +96,12 @@ function createLicenseGuard(options = {}) {
     };
   }
 
-  function verifyIncomingInstallation(body) {
+  async function verifyIncomingInstallation(body) {
     if (!ownerMode) return { status: "unavailable", error: "This installation is not configured as the ECLIPSE license authority." };
     const id = String(body && body.installation_id || "").trim();
     if (!/^[a-f0-9-]{32,64}$/i.test(id)) return { status: "invalid", error: "Invalid installation identity." };
 
-    const registry = readRegistry();
+    const registry = await store.readRegistry();
     let entry = registry.installations[id];
     if (!entry) {
       entry = {
@@ -121,7 +121,7 @@ function createLicenseGuard(options = {}) {
       if (body.fork_repository) entry.reported_fork = String(body.fork_repository).slice(0, 200);
       if (body.version) entry.version = String(body.version).slice(0, 40);
     }
-    writeRegistry(registry);
+    await store.writeRegistry(registry);
 
     if (entry.status !== "approved") return { status: entry.status, installation_id: id };
     return { status: "approved", installation_id: id, token: issueLease(id, "approved") };
@@ -131,7 +131,7 @@ function createLicenseGuard(options = {}) {
     if (ownerMode) await store.initialize(ownerMode);
     const id = getInstallationId();
     if (ownerMode) {
-      const result = verifyIncomingInstallation({ installation_id: id, repository: UPSTREAM_REPOSITORY, version: process.version });
+      const result = await verifyIncomingInstallation({ installation_id: id, repository: UPSTREAM_REPOSITORY, version: process.version });
       if (result.status !== "approved") throw new Error(result.error || "Owner installation could not authorize itself.");
       lease = result.token || issueLease(id, "approved");
       authorized = true;
@@ -208,12 +208,12 @@ function createLicenseGuard(options = {}) {
     if (timer.unref) timer.unref();
   }
 
-  function listInstallations() {
+  async function listInstallations() {
     if (!ownerMode) throw new Error("Installation management is available only on the license owner service.");
-    return Object.values(readRegistry().installations).sort((a, b) => String(b.last_seen_at).localeCompare(String(a.last_seen_at)));
+    return Object.values((await store.readRegistry()).installations).sort((a, b) => String(b.last_seen_at).localeCompare(String(a.last_seen_at)));
   }
 
-  function updateInstallation(id, status) {
+  async function updateInstallation(id, status) {
     if (!ownerMode) throw new Error("Installation management is available only on the license owner service.");
     if (!["approved", "revoked", "pending"].includes(status)) throw new Error("Unsupported installation status.");
     const registry = await store.readRegistry();
@@ -227,9 +227,9 @@ function createLicenseGuard(options = {}) {
     return entry;
   }
 
-  function listEvents() {
+  async function listEvents() {
     if (!ownerMode) throw new Error("Security event history is available only on the license owner service.");
-    return readRegistry().events;
+    return (await store.readRegistry()).events;
   }
 
   async function listForks() {
