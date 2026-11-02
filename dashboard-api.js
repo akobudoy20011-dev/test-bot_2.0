@@ -6,6 +6,7 @@ const path = require("path");
 
 module.exports = function startDashboardApi(port, getStatus, controls = {}) {
   const origin = String(process.env.ECLIPSE_DASHBOARD_ORIGIN || "*").trim();
+  const allowedOrigins = origin.split(",").map(value => value.trim()).filter(Boolean);
   const events = [];
   const dashboardPath = path.join(__dirname, "dashboard.html");
   const licenseGuard = controls.licenseGuard || null;
@@ -45,9 +46,9 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       ? (forwardedProto || "http") + "://" + requestHost
       : "";
     const originAllowed = origin === "*" || !requestOrigin ||
-      requestOrigin === origin || requestOrigin === requestHostOrigin;
+      allowedOrigins.includes(requestOrigin) || requestOrigin === requestHostOrigin;
     if (originAllowed) {
-      res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : (requestOrigin || origin));
+      res.setHeader("Access-Control-Allow-Origin", origin === "*" ? "*" : (requestOrigin || allowedOrigins[0] || origin));
     }
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-ECLIPSE-DASHBOARD-KEY");
