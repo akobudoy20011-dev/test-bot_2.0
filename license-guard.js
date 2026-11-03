@@ -5,6 +5,7 @@ const { createLicenseStore } = require("./license-store");
 
 const APP_ID = "test-bot_2.0";
 const UPSTREAM_REPOSITORY = "akobudoy20011-dev/test-bot_2.0";
+const DEFAULT_LICENSE_SERVER_URL = "https://test-bot-2-0-u3xy.onrender.com";
 const HEARTBEAT_MS = Math.max(30_000, Number(process.env.ECLIPSE_LICENSE_HEARTBEAT_MS || 60_000));
 const LEASE_SAFETY_MS = 15_000;
 
@@ -21,7 +22,7 @@ function encode(value) {
 function createLicenseGuard(options = {}) {
   const store = createLicenseStore();
   const ownerMode = /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_LICENSE_SERVER_MODE || "false");
-  const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
+  const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || DEFAULT_LICENSE_SERVER_URL).replace(/\/+$/, "");
   const privateKey = process.env.ECLIPSE_LICENSE_PRIVATE_KEY || "";
   const publicKey = process.env.ECLIPSE_LICENSE_PUBLIC_KEY || "";
   const dashboardKey = process.env.ECLIPSE_DASHBOARD_API_KEY || "";
