@@ -62,6 +62,16 @@ test("owner service approves itself and requires explicit approval for new insta
     await owner.updateInstallation(secondId, "approved");
     assert.equal((await owner.getLicenseSettings()).max_approved_installations, 1);
 
+    // A verification heartbeat racing with an owner approval must not restore
+    // a stale "pending" snapshot over the approval.
+    const raceId = crypto.randomUUID();
+    assert.equal((await owner.verifyIncomingInstallation({ installation_id: raceId })).status, "pending");
+    await Promise.all([
+      owner.verifyIncomingInstallation({ installation_id: raceId }),
+      owner.updateInstallation(raceId, "approved")
+    ]);
+    assert.equal((await owner.verifyIncomingInstallation({ installation_id: raceId })).status, "approved");
+
     const clientDir = path.join(root, "client");
     fs.mkdirSync(clientDir, { recursive: true });
     fs.writeFileSync(path.join(clientDir, "installation-id"), secondId);
