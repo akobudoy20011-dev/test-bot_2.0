@@ -10,6 +10,7 @@ const groups = [
     replies: [
       "ikaw bot",
       "mama mo bot",
+      "moka ka paa ko",
       "bot nang bot, aning ka?",
       "ikaw mukhang bot tanga",
       "wag aning sa ope",
