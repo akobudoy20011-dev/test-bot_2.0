@@ -13,6 +13,7 @@ function createLicenseStore() {
   const registryPath = path.resolve(process.env.ECLIPSE_LICENSE_REGISTRY_PATH || path.join(dataDir, "registry.json"));
   const databaseUrl = process.env.ECLIPSE_LICENSE_DATABASE_URL || process.env.DATABASE_URL || "";
   const allowFileStore = truthy(process.env.ECLIPSE_LICENSE_ALLOW_FILE_STORE);
+  const configuredInstallationId = String(process.env.ECLIPSE_INSTALLATION_ID || "").trim();
   let pool = null;
   let ownerInstallationId = "";
   let mode = "client";
@@ -88,6 +89,15 @@ function createLicenseStore() {
       return ownerInstallationId;
     }
     ensureDir();
+    if (configuredInstallationId) {
+      if (!/^[a-f0-9-]{32,64}$/i.test(configuredInstallationId)) {
+        throw new Error("ECLIPSE_INSTALLATION_ID must be a UUID or 32-64 character hexadecimal/hyphen installation ID.");
+      }
+      // Explicit configuration takes precedence over ephemeral filesystem identity.
+      // Persist it locally as a fallback if the environment variable is later removed.
+      fs.writeFileSync(identityPath, configuredInstallationId + "\n", { mode: 0o600, flag: "w" });
+      return configuredInstallationId;
+    }
     let id = "";
     try { id = fs.readFileSync(identityPath, "utf8").trim(); }
     catch (error) { if (!error || error.code !== "ENOENT") throw error; }
