@@ -127,3 +127,38 @@ test("an unapproved installation remains blocked", async () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("fork clients default to the canonical license authority, not their own Render URL", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-default-authority-"));
+  const pair = crypto.generateKeyPairSync("ed25519");
+  const publicKey = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+  const id = crypto.randomUUID();
+  const clientDir = path.join(root, "client");
+  fs.mkdirSync(clientDir, { recursive: true });
+  fs.writeFileSync(path.join(clientDir, "installation-id"), id);
+  const originalFetch = global.fetch;
+  let requestedUrl = "";
+  global.fetch = async url => {
+    requestedUrl = String(url);
+    return { ok: false, status: 403, json: async () => ({ status: "pending" }) };
+  };
+  try {
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: clientDir,
+      ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
+      ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_LICENSE_SERVER_URL: null,
+      RENDER_EXTERNAL_URL: "https://their-own-fork.onrender.com",
+      ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
+      ECLIPSE_LICENSE_PRIVATE_KEY: null
+    }, async () => {
+      const client = createLicenseGuard();
+      assert.equal(await client.initialize(), false);
+      assert.equal(requestedUrl, "https://test-bot-2-0-u3xy.onrender.com/api/license/verify");
+      client.stop();
+    });
+  } finally {
+    global.fetch = originalFetch;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
