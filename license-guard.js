@@ -106,34 +106,40 @@ function createLicenseGuard(options = {}) {
 
   async function verifyIncomingInstallation(body) {
     if (!ownerMode) return { status: "unavailable", error: "This installation is not configured as the ECLIPSE license authority." };
-    await store.initialize(true);
-    const id = String(body && body.installation_id || "").trim();
-    if (!/^[a-f0-9-]{32,64}$/i.test(id)) return { status: "invalid", error: "Invalid installation identity." };
 
-    const registry = await store.readRegistry();
-    let entry = registry.installations[id];
-    if (!entry) {
-      entry = {
-        installation_id: id,
-        app: APP_ID,
-        repository: String(body.repository || UPSTREAM_REPOSITORY).slice(0, 200),
-        reported_fork: String(body.fork_repository || "").slice(0, 200),
-        version: String(body.version || "").slice(0, 40),
-        status: id === getInstallationId() ? "approved" : "pending",
-        first_seen_at: new Date(now()).toISOString(),
-        last_seen_at: new Date(now()).toISOString()
-      };
-      registry.installations[id] = entry;
-      record(registry, "installation-discovered", { installation_id: id, status: entry.status });
-    } else {
-      entry.last_seen_at = new Date(now()).toISOString();
-      if (body.fork_repository) entry.reported_fork = String(body.fork_repository).slice(0, 200);
-      if (body.version) entry.version = String(body.version).slice(0, 40);
-    }
-    await store.writeRegistry(registry);
+    // Verification updates last_seen_at and can create new pending records. Serialize
+    // it with approvals/revocations so a stale verification snapshot cannot overwrite
+    // a dashboard decision in the shared registry.
+    return serializeMutation(async () => {
+      await store.initialize(true);
+      const id = String(body && body.installation_id || "").trim();
+      if (!/^[a-f0-9-]{32,64}$/i.test(id)) return { status: "invalid", error: "Invalid installation identity." };
 
-    if (entry.status !== "approved") return { status: entry.status, installation_id: id };
-    return { status: "approved", installation_id: id, token: issueLease(id, "approved") };
+      const registry = await store.readRegistry();
+      let entry = registry.installations[id];
+      if (!entry) {
+        entry = {
+          installation_id: id,
+          app: APP_ID,
+          repository: String(body.repository || UPSTREAM_REPOSITORY).slice(0, 200),
+          reported_fork: String(body.fork_repository || "").slice(0, 200),
+          version: String(body.version || "").slice(0, 40),
+          status: id === getInstallationId() ? "approved" : "pending",
+          first_seen_at: new Date(now()).toISOString(),
+          last_seen_at: new Date(now()).toISOString()
+        };
+        registry.installations[id] = entry;
+        record(registry, "installation-discovered", { installation_id: id, status: entry.status });
+      } else {
+        entry.last_seen_at = new Date(now()).toISOString();
+        if (body.fork_repository) entry.reported_fork = String(body.fork_repository).slice(0, 200);
+        if (body.version) entry.version = String(body.version).slice(0, 40);
+      }
+      await store.writeRegistry(registry);
+
+      if (entry.status !== "approved") return { status: entry.status, installation_id: id };
+      return { status: "approved", installation_id: id, token: issueLease(id, "approved") };
+    });
   }
 
   async function checkWithAuthority() {
