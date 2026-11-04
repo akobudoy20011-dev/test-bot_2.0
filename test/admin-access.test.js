@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const { parseAdminIds, isBotAdmin } = require("../admin-access");
 
 test("parses comma, semicolon, and whitespace separated admin IDs", () => {
-  assert.deepEqual(parseAdminIds("123, 456;789\\n123"), ["123", "456", "789"]);
+  assert.deepEqual(parseAdminIds("123, 456;789\n123"), ["123", "456", "789"]);
 });
 
 test("only explicitly configured Messenger IDs are admins", () => {
