@@ -2,7 +2,7 @@
 
 function parseAdminIds(value = process.env.BOT_ADMIN_IDS || "") {
   return [...new Set(String(value)
-    .split(/[,,;\\s]+/)
+    .split(/[,;\s]+/)
     .map(id => id.trim())
     .filter(Boolean))];
 }
