@@ -24,6 +24,7 @@ const { login } = require("ws3-fca");
 const { getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
+const { isBotAdmin } = require("./admin-access");
 const { getGroupSettings, updateGroup: updateGroupSettings, getReactionSettings, isQuietNow, shouldReact } = require("./bot-settings");
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 const { createLicenseGuard } = require("./license-guard");
@@ -256,6 +257,15 @@ function handleBanatCommand(api, event, body) {
   const threadID = String(event.threadID);
   const parts = String(body).trim().split(/\s+/);
   const sub = (parts[1] || "status").toLowerCase();
+  const changesBotState = ["on", "enable", "start", "off", "disable", "stop", "toggle"].includes(sub);
+
+  // State-changing commands are restricted to IDs explicitly configured in BOT_ADMIN_IDS.
+  // With no configured admin IDs, nobody can remotely change the bot state.
+  if (changesBotState && !isBotAdmin(event.senderID)) {
+    sendCommandReply(api, event, "⛔ only configured bot admins can turn Banat on or off.");
+    console.warn(`[BANAT] rejected state change from non-admin ${event.senderID || "unknown"} in ${threadID}`);
+    return true;
+  }
 
   if (sub === "on" || sub === "enable" || sub === "start") {
     updateGroupSettings(threadID, { banatMode: "on" });
