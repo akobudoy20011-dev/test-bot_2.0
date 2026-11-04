@@ -15,8 +15,10 @@
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Allowed dashboard origin(s), comma-separated when more than one is needed. |
+| `BOT_ADMIN_IDS` | Comma-, semicolon-, or whitespace-separated Messenger user IDs allowed to use `!banat on`, `!banat off`, and `!banat toggle`. Required for remote state changes; leave unset to deny everyone. |
 
 Optional:
+- `BOT_ADMIN_IDS=123456789,987654321` — configure the Messenger sender IDs that may change Banat state. Do not use Facebook names; use numeric Messenger user IDs.
 - `ECLIPSE_DASHBOARD_API_KEY` — long random key required for owner-only Security management endpoints; normal dashboard API access remains origin-restricted.
 - `BANAT_DEFAULT_ON=true` enables Banat automatically in threads after incoming messages.
 - `BANAT_GLOBAL_SEND_LIMIT=2` limits concurrent outgoing messages.
@@ -78,6 +80,8 @@ Send these in the target Messenger group:
 - `!banat toggle`
 - `!banat status`
 - `!banat help`
+
+Only IDs listed in `BOT_ADMIN_IDS` can run the state-changing `on`, `off`, and `toggle` commands. Status and help remain available to everyone. If no admin IDs are configured, state-changing commands are denied.
 
 ## Dashboard behavior
 
