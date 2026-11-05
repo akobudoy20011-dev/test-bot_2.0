@@ -84,15 +84,49 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/license/verify") {
+      const requestId = String(req.headers["x-eclipse-request-id"] || ("license-" + Date.now())).slice(0, 100);
+      const startedAt = Date.now();
+      console.info("[ECLIPSE LICENSE API] Verification request received", {
+        request_id: requestId,
+        method: req.method,
+        path: url.pathname
+      });
       if (!licenseGuard || typeof licenseGuard.verifyIncomingInstallation !== "function") {
-        return send(res, 503, { ok: false, status: "unavailable", error: "License authority is not configured." });
+        console.warn("[ECLIPSE LICENSE API] Authority is not configured", { request_id: requestId });
+        return send(res, 503, { ok: false, status: "unavailable", error: "License authority is not configured.", request_id: requestId });
+      }
+      let body;
+      try {
+        body = await readJson(req);
+      } catch (error) {
+        console.warn("[ECLIPSE LICENSE API] Invalid verification request body", {
+          request_id: requestId,
+          error: String(error && error.message || error).slice(0, 200)
+        });
+        return send(res, 400, { ok: false, status: "invalid", error: "Invalid license verification request.", request_id: requestId });
       }
       try {
-        const body = await readJson(req);
         const result = await licenseGuard.verifyIncomingInstallation(body);
-        return send(res, result.status === "approved" ? 200 : 403, result);
+        const statusCode = result.status === "approved" ? 200 : 403;
+        console.info("[ECLIPSE LICENSE API] Verification completed", {
+          request_id: requestId,
+          result: result.status || "unknown",
+          http_status: statusCode,
+          elapsed_ms: Date.now() - startedAt
+        });
+        return send(res, statusCode, { ...result, request_id: requestId });
       } catch (error) {
-        return send(res, 400, { ok: false, status: "invalid", error: error.message || "License verification failed." });
+        console.error("[ECLIPSE LICENSE API] Verification failed", {
+          request_id: requestId,
+          elapsed_ms: Date.now() - startedAt,
+          error: String(error && error.stack || error).slice(0, 1200)
+        });
+        return send(res, 503, {
+          ok: false,
+          status: "unavailable",
+          error: "The license authority could not complete verification.",
+          request_id: requestId
+        });
       }
     }
 

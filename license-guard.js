@@ -7,6 +7,7 @@ const APP_ID = "test-bot_2.0";
 const UPSTREAM_REPOSITORY = "akobudoy20011-dev/test-bot_2.0";
 const HEARTBEAT_MS = Math.max(30_000, Number(process.env.ECLIPSE_LICENSE_HEARTBEAT_MS || 60_000));
 const LEASE_SAFETY_MS = 15_000;
+const LICENSE_REQUEST_TIMEOUT_MS = Math.min(60_000, Math.max(5_000, Number(process.env.ECLIPSE_LICENSE_REQUEST_TIMEOUT_MS || 30_000)));
 
 function safeEqual(a, b) {
   const left = Buffer.from(String(a || ""));
@@ -150,16 +151,46 @@ function createLicenseGuard(options = {}) {
     if (!serverUrl) throw new Error("ECLIPSE_LICENSE_SERVER_URL is missing; this deployment is not authorized.");
     if (!publicKey) throw new Error("ECLIPSE_LICENSE_PUBLIC_KEY is missing; signed license verification is unavailable.");
 
-    const response = await fetch(serverUrl + "/api/license/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({
-        installation_id: id,
-        repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || UPSTREAM_REPOSITORY,
-        fork_repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || "",
-        version: process.env.npm_package_version || "unknown"
-      }),
-      signal: AbortSignal.timeout(10_000)
+    const verificationUrl = new URL("/api/license/verify", serverUrl).toString();
+    const requestId = crypto.randomUUID();
+    const startedAt = now();
+    console.info("[ECLIPSE LICENSE] Verification request started", {
+      request_id: requestId,
+      authority: new URL(verificationUrl).origin,
+      timeout_ms: LICENSE_REQUEST_TIMEOUT_MS
+    });
+    let response;
+    try {
+      response = await fetch(verificationUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-ECLIPSE-REQUEST-ID": requestId
+        },
+        body: JSON.stringify({
+          installation_id: id,
+          repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || UPSTREAM_REPOSITORY,
+          fork_repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || "",
+          version: process.env.npm_package_version || "unknown"
+        }),
+        signal: AbortSignal.timeout(LICENSE_REQUEST_TIMEOUT_MS)
+      });
+    } catch (error) {
+      const elapsedMs = Math.max(0, now() - startedAt);
+      console.warn("[ECLIPSE LICENSE] Verification request failed before an HTTP response", {
+        request_id: requestId,
+        authority: new URL(verificationUrl).origin,
+        elapsed_ms: elapsedMs,
+        error: String(error && error.message || error).slice(0, 240)
+      });
+      throw new Error("Could not reach the ECLIPSE license authority within " + elapsedMs + "ms. Check the authority URL and its availability.");
+    }
+    const elapsedMs = Math.max(0, now() - startedAt);
+    console.info("[ECLIPSE LICENSE] Verification response received", {
+      request_id: requestId,
+      http_status: response.status,
+      elapsed_ms: elapsedMs
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.status !== "approved") {
