@@ -22,6 +22,9 @@ function encode(value) {
 function createLicenseGuard(options = {}) {
   const store = createLicenseStore();
   const ownerMode = /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_LICENSE_SERVER_MODE || "false");
+  // Explicit, client-only escape hatch for temporary testing while installation registration is unavailable.
+  const temporaryMode = !ownerMode && /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_TEMP_INSTALLATION_MODE || "false");
+  const temporaryInstallationId = temporaryMode ? "temporary-" + crypto.randomUUID() : "";
   const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
   const privateKey = process.env.ECLIPSE_LICENSE_PRIVATE_KEY || "";
   const publicKey = process.env.ECLIPSE_LICENSE_PUBLIC_KEY || "";
@@ -49,6 +52,7 @@ function createLicenseGuard(options = {}) {
   }
 
   function getInstallationId() {
+    if (temporaryMode) return temporaryInstallationId;
     if (!installationId) installationId = store.getInstallationId();
     return installationId;
   }
@@ -95,10 +99,10 @@ function createLicenseGuard(options = {}) {
   function getStatus() {
     return {
       enabled: true,
-      mode: ownerMode ? "owner" : "client",
-      installation_id: installationId || null,
+      mode: ownerMode ? "owner" : temporaryMode ? "temporary" : "client",
+      installation_id: temporaryMode ? temporaryInstallationId : installationId || null,
       authorized,
-      status: authorized ? "authorized" : "blocked",
+      status: temporaryMode && authorized ? "temporary" : authorized ? "authorized" : "blocked",
       last_check_at: lastCheckAt,
       last_error: lastError
     };
@@ -218,6 +222,14 @@ function createLicenseGuard(options = {}) {
 
   async function initialize() {
     try {
+      if (temporaryMode) {
+        installationId = temporaryInstallationId;
+        authorized = true;
+        lastCheckAt = new Date(now()).toISOString();
+        lastError = "Temporary installation mode is active; owner license approval and signed-lease checks are bypassed for this process.";
+        console.warn("[ECLIPSE LICENSE] TEMPORARY INSTALLATION MODE enabled. License authority checks are bypassed until this environment flag is removed.");
+        return true;
+      }
       await store.initialize(ownerMode);
       getInstallationId();
       await checkWithAuthority();
@@ -231,6 +243,7 @@ function createLicenseGuard(options = {}) {
   }
 
   function startHeartbeat(onDenied, onAuthorized) {
+    if (temporaryMode) return;
     onRevoked = typeof onDenied === "function" ? onDenied : null;
     const onRestored = typeof onAuthorized === "function" ? onAuthorized : null;
     if (timer) clearInterval(timer);
