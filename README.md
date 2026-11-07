@@ -53,6 +53,12 @@ node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');cons
 
 Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
 
+### Temporary Test Bot client mode (testing only)
+
+For a short-lived test deployment that cannot yet obtain an installation ID or owner approval, set `ECLIPSE_TEMP_INSTALLATION_MODE=true` on that client service. This client-only flag skips the owner verification request and signed-lease heartbeat for that process, creates an in-memory `temporary-...` identity, and does not write an installation ID file. The temporary identity changes after a process restart. The dashboard reports the license status as `temporary` so it is not confused with an approved installation.
+
+This is an intentional licensing bypass: anyone who can set this environment variable on a copy can run it without owner approval. Use it only on the specific Test Bot test deployment, remove it when permanent registration is ready, and never enable it on the original license owner service. It does not disable dashboard origin checks or dashboard API-key authentication.
+
 ### Authorized client deployments
 
 A deployment that runs the protected version must have:
