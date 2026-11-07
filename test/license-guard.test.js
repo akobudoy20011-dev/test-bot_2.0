@@ -127,3 +127,65 @@ test("an unapproved installation remains blocked", async () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("temporary installation mode skips identity persistence and owner approval only when explicitly enabled", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-temporary-"));
+  const originalFetch = global.fetch;
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error("Temporary mode must not contact the license authority.");
+  };
+  try {
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: root,
+      ECLIPSE_INSTALLATION_ID_FILE: path.join(root, "installation-id"),
+      ECLIPSE_INSTALLATION_ID: null,
+      ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_TEMP_INSTALLATION_MODE: "true",
+      ECLIPSE_LICENSE_SERVER_URL: null,
+      ECLIPSE_LICENSE_PUBLIC_KEY: null,
+      ECLIPSE_LICENSE_PRIVATE_KEY: null
+    }, async () => {
+      const client = createLicenseGuard();
+      assert.equal(await client.initialize(), true);
+      const status = client.getStatus();
+      assert.equal(status.authorized, true);
+      assert.equal(status.mode, "temporary");
+      assert.equal(status.status, "temporary");
+      assert.match(status.installation_id, /^temporary-/);
+      assert.match(status.last_error, /bypassed for this process/);
+      assert.equal(client.getInstallationId(), status.installation_id);
+      client.startHeartbeat(() => assert.fail("Temporary mode must not start license revocation checks."));
+      assert.equal(fs.existsSync(path.join(root, "installation-id")), false);
+      client.stop();
+    });
+    assert.equal(fetchCalls, 0);
+  } finally {
+    global.fetch = originalFetch;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("temporary installation mode does not activate on the license owner service", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-temporary-owner-"));
+  try {
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: root,
+      ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
+      ECLIPSE_LICENSE_SERVER_MODE: "true",
+      ECLIPSE_TEMP_INSTALLATION_MODE: "true",
+      ECLIPSE_LICENSE_PRIVATE_KEY: null,
+      ECLIPSE_LICENSE_PUBLIC_KEY: null,
+      ECLIPSE_LICENSE_SERVER_URL: null
+    }, async () => {
+      const owner = createLicenseGuard();
+      assert.equal(await owner.initialize(), false);
+      assert.equal(owner.getStatus().mode, "owner");
+      assert.equal(owner.getStatus().authorized, false);
+      owner.stop();
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
