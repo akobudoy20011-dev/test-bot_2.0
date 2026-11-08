@@ -106,12 +106,12 @@ function createRaidMode(options = {}) {
     if (!nickname) throw new Error("Enter the nickname to apply to every member.");
     const current = await getTheme();
     const theme = {
-      groupTitle, nickname, imageKey: current?.imageKey || null,
+      groupTitle, nickname, imageKey: null,
       imageType: current?.imageType || null, imageName: current?.imageName || null,
       updatedAt: new Date().toISOString()
     };
     await writeTheme(theme);
-    await record("theme-saved", null, { groupTitle, hasImage: Boolean(theme.imageKey) });
+    await record("theme-saved", null, { groupTitle, hasImage: Boolean(theme.imageType) });
     return theme;
   }
 
@@ -181,7 +181,7 @@ function createRaidMode(options = {}) {
     };
     await stillEnabled();
     const theme = await getTheme();
-    if (!theme?.groupTitle || !theme?.nickname || !theme?.imageKey) throw new Error("Complete the Raid theme and upload its group photo before activation.");
+    if (!theme?.groupTitle || !theme?.nickname || !theme?.imageType) throw new Error("Complete the Raid theme and upload its group photo before activation.");
     const info = await invoke(api, "getThreadInfo", [String(threadID)]);
     if (!info) throw new Error("Messenger returned no group information for this thread.");
     if (info.isGroup === false || Number(info.threadType) === 1) throw new Error("Raid Mode can only be activated for group chats.");
