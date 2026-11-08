@@ -207,7 +207,7 @@
     try{
       const data=await raidRequest("/api/dashboard/raid/status");
       const raid=data.raid||{};
-      $("raidStatus").textContent="Storage: "+(raid.available?"Neon connected":"Unavailable")+" · Image storage: "+(raid.imageStorageConfigured?"Ready":"Not configured")+" · Mode: "+(raid.active?"ON":"OFF")+(raid.error?" · "+raid.error:"");
+      $("raidStatus").textContent="Storage: "+(raid.available?"Neon connected":"Unavailable")+" · Photos: Neon database · Mode: "+(raid.active?"ON":"OFF")+(raid.error?" · "+raid.error:"");
       $("raidThemeMessage").textContent=raid.theme?"Saved theme: "+raid.theme.groupTitle+" · nickname "+raid.theme.nickname+" · photo "+(raid.theme.hasImage?"uploaded":"missing"):"No saved theme yet.";
       if(raid.theme){$("raidGroupTitle").value=raid.theme.groupTitle||"";$("raidNickname").value=raid.theme.nickname||"";updateRaidPreview();}
       const statusRoot=$("raidGroupStatus");statusRoot.replaceChildren();
@@ -235,7 +235,7 @@
     const response=await fetch("/api/dashboard/raid/theme-image",{method:"POST",headers:Object.assign({"Content-Type":file.type,"X-File-Name":file.name},raidHeaders()),body:file,cache:"no-store"});
     let data={};try{data=await response.json()}catch(_){}
     if(!response.ok)throw new Error(data.error||("HTTP "+response.status));
-    $("raidThemeMessage").textContent="Persistent theme photo uploaded: "+file.name;
+    $("raidThemeMessage").textContent="Theme photo saved in Neon: "+file.name;
     return data.image;
   }
   async function raidRepair(threadID){
