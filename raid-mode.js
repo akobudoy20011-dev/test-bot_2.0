@@ -158,7 +158,7 @@ function createRaidMode(options = {}) {
     return {
       available: Boolean(initialized), ready: Boolean(initialized),
       active: groups.some(group => group.enabled), namespace,
-      theme: theme ? { groupTitle: theme.groupTitle, nickname: theme.nickname, imageName: theme.imageName, hasImage: Boolean(theme.imageKey), updatedAt: theme.updatedAt } : null,
+      theme: theme ? { groupTitle: theme.groupTitle, nickname: theme.nickname, imageName: theme.imageName, hasImage: Boolean(theme.imageType), updatedAt: theme.updatedAt } : null,
       groups, imageStorageConfigured: Boolean(initialized),
       storage: "neon", error: initError || null,
       lastEventAt
@@ -247,7 +247,7 @@ function createRaidMode(options = {}) {
   async function activate(input = {}) {
     if (!initialized) throw new Error(initError || "Raid Mode storage is unavailable.");
     const theme = await getTheme();
-    if (!theme?.groupTitle || !theme?.nickname || !theme?.imageKey) throw new Error("Save a complete theme and upload its photo before activating Raid Mode.");
+    if (!theme?.groupTitle || !theme?.nickname || !theme?.imageType) throw new Error("Save a complete theme and upload its photo before activating Raid Mode.");
     const ids = [...new Set((Array.isArray(input.threadIDs) ? input.threadIDs : []).map(x => String(x).trim()).filter(Boolean))].slice(0, 50);
     if (!ids.length) throw new Error("Select at least one Messenger group.");
     for (const id of ids) {
