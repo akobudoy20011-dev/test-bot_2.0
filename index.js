@@ -760,7 +760,7 @@ try {
   console.error("[BANAT] dashboard API failed:", error);
 }
 
-eclipseControlsStore.initialize().then(ok => {
+eclipseControlsStore.initialize().then(async ok => {
   if (ok) {
     console.log("[ECLIPSE CONTROLS] Neon controls store initialized.");
     try { persistentReactionSettings = await eclipseControlsStore.getReactionSettings(); if (persistentReactionSettings) require("./bot-settings").setRuntimeReaction(persistentReactionSettings); } catch (error) { console.warn("[ECLIPSE CONTROLS] Could not load persistent reaction settings:", error?.message || error); }
