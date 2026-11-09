@@ -736,7 +736,16 @@ try {
           if (!member) throw new Error("The selected countdown target is not a member of this Messenger group.");
           input = { ...input, countdownTargetName: member.name };
         }
-        return eclipseControlsStore.updateGroup(threadID, input);
+        const before = await eclipseControlsStore.getGroup(threadID);
+        const saved = await eclipseControlsStore.updateGroup(threadID, input);
+        if (!saved.countdownEnabled || String(before.countdownTargetId || "") !== String(saved.countdownTargetId || "")) {
+          await countdownEngine.cancel(threadID);
+        }
+        if (saved.autolockEnabled) {
+          try { await groupTitleGuard.repair(String(threadID), "dashboard-save"); }
+          catch (error) { console.warn("[GROUP TITLE LOCK] Initial repair failed:", error?.message || error); }
+        }
+        return saved;
       }
     },
     getSettings: async () => {
