@@ -1,11 +1,11 @@
 "use strict";
 const fs=require("fs"),path=require("path");
 const settingsPath=process.env.BOT_SETTINGS_PATH?path.resolve(process.env.BOT_SETTINGS_PATH):path.join(__dirname,"bot-settings.json");
-const DEFAULTS={reaction:{enabled:true,emoji:"😆",target:"incoming_messages",targetMode:"all",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:0},groups:{}};
+const DEFAULTS={reaction:{enabled:true,emoji:"😆",target:"incoming_messages",targetMode:"admins",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:0},groups:{}};
 const reactionCooldowns=new Map();
 function clamp(v,min,max,fallback){const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;}
 function validTime(v){return typeof v==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);}
-function sanitizeReaction(i={}){return {enabled:i.enabled!==false,emoji:String(i.emoji??"😆").trim().slice(0,16)||"😆",target:["bot_replies","incoming_messages","both"].includes(i.target)?i.target:"incoming_messages",targetMode:["all","admins","member"].includes(i.targetMode)?i.targetMode:"all",targetUserId:String(i.targetUserId||"").trim().slice(0,128),targetUserName:String(i.targetUserName||"").trim().slice(0,100),targetThreadID:String(i.targetThreadID||"").trim().slice(0,128),probability:clamp(i.probability,0,100,100),cooldownSeconds:clamp(i.cooldownSeconds,0,86400,0)};}
+function sanitizeReaction(i={}){return {enabled:i.enabled!==false,emoji:String(i.emoji??"😆").trim().slice(0,16)||"😆",target:["bot_replies","incoming_messages","both"].includes(i.target)?i.target:"incoming_messages",targetMode:["all","admins","member"].includes(i.targetMode)?i.targetMode:"admins",targetUserId:String(i.targetUserId||"").trim().slice(0,128),targetUserName:String(i.targetUserName||"").trim().slice(0,100),targetThreadID:String(i.targetThreadID||"").trim().slice(0,128),probability:clamp(i.probability,0,100,100),cooldownSeconds:clamp(i.cooldownSeconds,0,86400,0)};}
 function sanitizeGroup(i={}){return {banatMode:["inherit","on","off"].includes(i.banatMode)?i.banatMode:"inherit",typingEnabled:i.typingEnabled!==false,replyDelayMs:i.replyDelayMs==null||i.replyDelayMs===""?null:clamp(i.replyDelayMs,0,30000,0),cooldownMs:i.cooldownMs==null||i.cooldownMs===""?null:clamp(i.cooldownMs,0,300000,0),quietStart:validTime(i.quietStart)?i.quietStart:"",quietEnd:validTime(i.quietEnd)?i.quietEnd:""};}
 function load(){try{const p=JSON.parse(fs.readFileSync(settingsPath,"utf8"));const groups={};for(const [id,g] of Object.entries(p.groups||{}).slice(0,500))groups[String(id).slice(0,128)]=sanitizeGroup(g);return {reaction:sanitizeReaction(p.reaction),groups};}catch(_){return {reaction:{...DEFAULTS.reaction},groups:{}};}}
 let settings=load();
