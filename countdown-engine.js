@@ -11,6 +11,7 @@ function createCountdownEngine(options = {}) {
   const getApi = options.getApi || (() => null);
   const states = new Map();
   let stopped = false;
+  let suspended = false;
 
   function clearTimer(state) {
     if (state?.timer) clearTimeout(state.timer);
@@ -18,7 +19,7 @@ function createCountdownEngine(options = {}) {
   }
 
   function valid(state, generation) {
-    return !stopped && state && state.generation === generation &&
+    return !stopped && !suspended && state && state.generation === generation &&
       states.get(state.threadID) === state;
   }
 
@@ -217,6 +218,7 @@ function createCountdownEngine(options = {}) {
 
   async function restore(api = getApi()) {
     if (stopped || !store?.isInitialized?.() || !api) return;
+    suspended = false;
     let saved = [];
     try { saved = await store.loadCountdownStates(); }
     catch (error) { console.warn("[COUNTDOWN] Could not restore saved runs:", error?.message || error); return; }
@@ -247,6 +249,12 @@ function createCountdownEngine(options = {}) {
     }
   }
 
+  function pause() {
+    suspended = true;
+    for (const state of states.values()) { state.generation++; clearTimer(state); }
+    states.clear();
+  }
+
   function stop() {
     stopped = true;
     for (const state of states.values()) {
@@ -256,7 +264,7 @@ function createCountdownEngine(options = {}) {
     states.clear();
   }
 
-  return { onMessage, restore, stop, getActive: () => [...states.values()].map(s => ({
+  return { onMessage, restore, pause, stop, getActive: () => [...states.values()].map(s => ({
     threadID: s.threadID, targetId: s.targetId, targetName: s.targetName,
     counting: s.counting, nextNumber: s.nextNumber, lastActivityAt: s.lastActivityAt
   })) };
