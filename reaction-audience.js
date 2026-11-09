@@ -1,5 +1,14 @@
 "use strict";
 
+function validateReactionTarget(settings = {}) {
+  if (settings.targetMode === "member") {
+    if (!String(settings.targetThreadID || "").trim() || !String(settings.targetUserId || "").trim()) {
+      throw new Error("Choose a Messenger group and a custom reaction target.");
+    }
+  }
+  return settings;
+}
+
 function createReactionAudience(options = {}) {
   const getAdmins = options.getAdmins || (async () => []);
   const ttlMs = Math.max(1000, Number(options.ttlMs) || 120000);
@@ -49,4 +58,4 @@ function createReactionAudience(options = {}) {
   return { isAllowed, invalidate };
 }
 
-module.exports = { createReactionAudience };
+module.exports = { createReactionAudience, validateReactionTarget };
