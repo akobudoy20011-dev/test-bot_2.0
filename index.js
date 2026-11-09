@@ -349,7 +349,15 @@ function onMessage(api, event) {
   const groupSettings = getGroupSettings(threadID);
   if (isQuietNow(groupSettings)) return;
   if (groupSettings.banatMode === "off") return;
-  if (shouldReact(threadID, "incoming_messages")) reactToMessage(api, event, getReactionSettings().emoji);
+  const reaction = getReactionSettings();
+  const senderID = String(event.senderID || "");
+  const targetAllowed = reaction.targetMode === "admins"
+    ? (groupAdminCache.get(threadID)?.has(senderID) || isBotAdmin(senderID))
+    : reaction.targetMode === "member"
+      ? Boolean(reaction.targetUserId && reaction.targetUserId === senderID &&
+          (!reaction.targetThreadID || reaction.targetThreadID === threadID))
+      : true;
+  if (targetAllowed && shouldReact(threadID, "incoming_messages")) reactToMessage(api, event, reaction.emoji);
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
@@ -500,6 +508,8 @@ function scheduleLoginRetry(delay, reason) {
 }
 
 
+const groupAdminCache = new Map();
+
 function fetchMessengerGroups(api) {
   if(!api||typeof api.getThreadList!=="function") return Promise.reject(new Error("Messenger group list is unavailable from this session"));
   return new Promise((resolve,reject)=>{
@@ -524,6 +534,8 @@ async function fetchMessengerGroupMembers(api, threadID) {
   });
   const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
   const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
+  const adminIDs = Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : [];
+  groupAdminCache.set(id, new Set(adminIDs));
   return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
     userID,
     name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
