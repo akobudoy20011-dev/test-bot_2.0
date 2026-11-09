@@ -38,6 +38,7 @@ const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" 
 const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
 const groupTitleGuard = createGroupTitleGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
 let licenseAuthorized = false;
+let persistentReactionSettings = null;
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
@@ -355,7 +356,7 @@ function onMessage(api, event) {
   const groupSettings = getGroupSettings(threadID);
   if (isQuietNow(groupSettings)) return;
   if (groupSettings.banatMode === "off") return;
-  const reaction = getReactionSettings();
+  const reaction = persistentReactionSettings || getReactionSettings();
   const senderID = String(event.senderID || "");
   const targetAllowed = reaction.targetMode === "admins"
     ? (groupAdminCache.get(threadID)?.has(senderID) || isBotAdmin(senderID))
@@ -738,8 +739,18 @@ try {
         return eclipseControlsStore.updateGroup(threadID, input);
       }
     },
-    getSettings: () => require("./bot-settings").getSettings(),
-    updateReaction: input => require("./bot-settings").updateReaction(input),
+    getSettings: async () => {
+      const value = require("./bot-settings").getSettings();
+      if (persistentReactionSettings) value.reaction = persistentReactionSettings;
+      return value;
+    },
+    updateReaction: async input => {
+      const settings = require("./bot-settings");
+      const next = settings.sanitizeReaction({ ...(persistentReactionSettings || settings.getReactionSettings()), ...input });
+      persistentReactionSettings = await eclipseControlsStore.updateReactionSettings(next);
+      settings.setRuntimeReaction(persistentReactionSettings);
+      return persistentReactionSettings;
+    },
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
     raidMode,
     isLicensed: () => licenseAuthorized,
@@ -752,6 +763,7 @@ try {
 eclipseControlsStore.initialize().then(ok => {
   if (ok) {
     console.log("[ECLIPSE CONTROLS] Neon controls store initialized.");
+    try { persistentReactionSettings = await eclipseControlsStore.getReactionSettings(); if (persistentReactionSettings) require("./bot-settings").setRuntimeReaction(persistentReactionSettings); } catch (error) { console.warn("[ECLIPSE CONTROLS] Could not load persistent reaction settings:", error?.message || error); }
     if (messengerConnected && messengerApi) {
       countdownEngine.restore(messengerApi).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
       groupTitleGuard.start();
