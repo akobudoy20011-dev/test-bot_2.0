@@ -61,6 +61,11 @@ function createEclipseControlsStore(options = {}) {
         );
         CREATE INDEX IF NOT EXISTS eclipse_test_countdown_history_recent
           ON eclipse_test_countdown_history (bot_namespace, created_at DESC);
+        CREATE TABLE IF NOT EXISTS eclipse_test_reaction_settings (
+          bot_namespace TEXT PRIMARY KEY,
+          settings JSONB NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
       `);
       initialized = true;
       initError = "";
@@ -117,6 +122,22 @@ function createEclipseControlsStore(options = {}) {
        expectedTitle || null]
     );
     return result.rows[0];
+  }
+
+  async function getReactionSettings() {
+    assertReady();
+    const result = await pool.query("SELECT settings FROM eclipse_test_reaction_settings WHERE bot_namespace=$1",[namespace]);
+    return result.rows[0]?.settings || null;
+  }
+
+  async function updateReactionSettings(settings) {
+    assertReady();
+    const value = settings && typeof settings === "object" ? settings : {};
+    const result = await pool.query(
+      "INSERT INTO eclipse_test_reaction_settings (bot_namespace,settings,updated_at) VALUES ($1,$2::jsonb,NOW()) ON CONFLICT (bot_namespace) DO UPDATE SET settings=EXCLUDED.settings,updated_at=NOW() RETURNING settings",
+      [namespace,JSON.stringify(value)]
+    );
+    return result.rows[0].settings;
   }
 
   async function listProtectedGroups() {
@@ -179,7 +200,7 @@ function createEclipseControlsStore(options = {}) {
 
   return {
     initialize, isInitialized: () => initialized, getError: () => initError,
-    getGroup, updateGroup, listProtectedGroups, saveCountdownState, deleteCountdownState,
+    getGroup, updateGroup, listProtectedGroups, getReactionSettings, updateReactionSettings, saveCountdownState, deleteCountdownState,
     loadCountdownStates, recordCountdownResult, listCountdownHistory
   };
 }
