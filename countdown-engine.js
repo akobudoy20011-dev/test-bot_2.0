@@ -166,7 +166,7 @@ function createCountdownEngine(options = {}) {
       } catch (error) {
         console.warn("[COUNTDOWN] Could not record target return:", error?.message || error);
       }
-      return;
+      state = null;
     }
 
     let group;
