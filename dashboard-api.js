@@ -284,6 +284,33 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       try { return send(res,200,{ok:true,groups:await controls.getGroups()}); }
       catch(error){ record("group-list-failed",{error:String(error?.message||error).slice(0,250)}); return send(res,502,{ok:false,error:error?.message||"Could not load Messenger groups"}); }
     }
+    const countdown = controls.countdown;
+    if (url.pathname.startsWith("/api/dashboard/countdown/")) {
+      if (!countdown) return send(res, 503, { ok: false, error: "Countdown controls are unavailable." });
+      if (typeof controls.isLicensed === "function" && !controls.isLicensed()) return send(res, 403, { ok: false, error: "This installation is not authorized." });
+      try {
+        if (req.method === "GET" && url.pathname === "/api/dashboard/countdown/status") {
+          return send(res, 200, { ok: true, active: countdown.getActive() });
+        }
+        if (req.method === "GET" && url.pathname === "/api/dashboard/countdown/history") {
+          return send(res, 200, { ok: true, history: await countdown.getHistory() });
+        }
+        if (req.method === "GET" && url.pathname === "/api/dashboard/countdown/group") {
+          const threadID = String(url.searchParams.get("threadID") || "").trim();
+          if (!threadID) return send(res, 400, { ok: false, error: "A group is required." });
+          return send(res, 200, { ok: true, group: await countdown.getGroup(threadID) });
+        }
+        if (req.method === "POST" && url.pathname === "/api/dashboard/countdown/group") {
+          const body = await readJson(req);
+          if (!body.threadID) return send(res, 400, { ok: false, error: "A group is required." });
+          const group = await countdown.updateGroup(body.threadID, body);
+          return send(res, 200, { ok: true, group });
+        }
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Countdown request failed." });
+      }
+    }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/group-members") {
       if (typeof controls.getGroupMembers !== "function") return send(res, 501, { ok: false, error: "Messenger member lookup is unavailable" });
       try {
