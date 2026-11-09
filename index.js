@@ -29,8 +29,12 @@ const { getGroupSettings, updateGroup: updateGroupSettings, getReactionSettings,
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 const { createLicenseGuard } = require("./license-guard");
 const { createRaidMode } = require("./raid-mode");
+const { createEclipseControlsStore } = require("./eclipse-controls-store");
+const { createCountdownEngine } = require("./countdown-engine");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
+const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
+const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
 let licenseAuthorized = false;
 
 const PORT = Number(process.env.PORT || 10000);
@@ -415,6 +419,7 @@ function start(api, generation, sessionCandidate = null) {
     if (typeof api.setOptions === "function") api.setOptions({ listenEvents: true });
   } catch (error) { console.warn("[RAID] Could not enable Messenger group events:", error?.message || error); }
   if (licenseAuthorized && raidMode.isInitialized()) raidMode.start();
+  if (licenseAuthorized && eclipseControlsStore.isInitialized()) countdownEngine.restore(api).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
 
   api.listenMqtt((error, event) => {
     if (generation !== activeListenerGeneration) return;
@@ -451,6 +456,7 @@ function start(api, generation, sessionCandidate = null) {
     }
     try {
       if (licenseAuthorized && event) raidMode.handleEvent(event).catch(error => console.warn("[RAID] event handler failed:", error?.message || error));
+      if (licenseAuthorized && event) countdownEngine.onMessage(api, event).catch(error => console.warn("[COUNTDOWN] event handler failed:", error?.message || error));
       if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
@@ -680,6 +686,12 @@ try {
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
     getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
+    countdown: {
+      getActive: () => countdownEngine.getActive(),
+      getHistory: () => eclipseControlsStore.listCountdownHistory(50),
+      getGroup: threadID => eclipseControlsStore.getGroup(threadID),
+      updateGroup: (threadID, input) => eclipseControlsStore.updateGroup(threadID, input)
+    },
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
@@ -690,6 +702,15 @@ try {
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
 }
+
+eclipseControlsStore.initialize().then(ok => {
+  if (ok) {
+    console.log("[ECLIPSE CONTROLS] Neon controls store initialized.");
+    if (messengerConnected && messengerApi) countdownEngine.restore(messengerApi).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
+  } else {
+    console.warn("[ECLIPSE CONTROLS] Countdown and title-lock controls unavailable:", eclipseControlsStore.getError());
+  }
+}).catch(error => console.warn("[ECLIPSE CONTROLS] initialization failed:", error?.message || error));
 
 raidMode.initialize().then(ok => {
   if (ok && messengerConnected) raidMode.start();
