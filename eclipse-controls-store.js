@@ -119,6 +119,15 @@ function createEclipseControlsStore(options = {}) {
     return result.rows[0];
   }
 
+  async function listProtectedGroups() {
+    assertReady();
+    const result = await pool.query(
+      'SELECT thread_id AS "threadID" FROM eclipse_test_group_controls WHERE bot_namespace=$1 AND autolock_enabled=TRUE AND expected_title IS NOT NULL AND expected_title<>\'\'',
+      [namespace]
+    );
+    return result.rows;
+  }
+
   async function saveCountdownState(state) {
     assertReady();
     await pool.query(
@@ -170,7 +179,7 @@ function createEclipseControlsStore(options = {}) {
 
   return {
     initialize, isInitialized: () => initialized, getError: () => initError,
-    getGroup, updateGroup, saveCountdownState, deleteCountdownState,
+    getGroup, updateGroup, listProtectedGroups, saveCountdownState, deleteCountdownState,
     loadCountdownStates, recordCountdownResult, listCountdownHistory
   };
 }
