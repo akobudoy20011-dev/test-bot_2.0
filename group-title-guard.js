@@ -75,6 +75,11 @@ function createGroupTitleGuard(options = {}) {
     if (typeof timer.unref === "function") timer.unref();
   }
 
+  function pause() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
   function stop() {
     stopped = true;
     if (timer) clearInterval(timer);
@@ -82,7 +87,7 @@ function createGroupTitleGuard(options = {}) {
     inFlight.clear();
   }
 
-  return { start, stop, handleEvent, repair };
+  return { start, pause, stop, handleEvent, repair };
 }
 
 module.exports = { createGroupTitleGuard };
