@@ -284,6 +284,18 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       try { return send(res,200,{ok:true,groups:await controls.getGroups()}); }
       catch(error){ record("group-list-failed",{error:String(error?.message||error).slice(0,250)}); return send(res,502,{ok:false,error:error?.message||"Could not load Messenger groups"}); }
     }
+    if (req.method === "POST" && url.pathname === "/api/dashboard/setnn/mass") {
+      if (typeof controls.massSetNickname !== "function") return send(res, 503, { ok: false, error: "Mass SetNN is unavailable." });
+      if (typeof controls.isLicensed === "function" && !controls.isLicensed()) return send(res, 403, { ok: false, error: "This installation is not authorized." });
+      try {
+        const body = await readJson(req);
+        const result = await controls.massSetNickname(body.threadID, body.userIDs, body.nickname);
+        return send(res, 200, { ok: true, result });
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Mass SetNN failed." });
+      }
+    }
+
     const countdown = controls.countdown;
     if (url.pathname.startsWith("/api/dashboard/countdown/")) {
       if (!countdown) return send(res, 503, { ok: false, error: "Countdown controls are unavailable." });
