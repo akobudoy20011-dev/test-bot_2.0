@@ -356,8 +356,6 @@ function onMessage(api, event) {
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
-  if (isQuietNow(groupSettings)) return;
-  if (groupSettings.banatMode === "off") return;
   const reaction = persistentReactionSettings || getReactionSettings();
   const senderID = String(event.senderID || "");
   if (reaction.enabled && ["incoming_messages", "both"].includes(reaction.target)) {
@@ -374,6 +372,8 @@ function onMessage(api, event) {
       }
     }).catch(error => console.warn("[REACTION] Audience lookup failed:", error?.message || error));
   }
+  if (isQuietNow(groupSettings)) return;
+  if (groupSettings.banatMode === "off") return;
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
