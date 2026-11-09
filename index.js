@@ -32,7 +32,7 @@ const { createRaidMode } = require("./raid-mode");
 const { createEclipseControlsStore } = require("./eclipse-controls-store");
 const { createCountdownEngine } = require("./countdown-engine");
 const { createGroupTitleGuard } = require("./group-title-guard");
-const { createReactionAudience } = require("./reaction-audience");
+const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
@@ -742,7 +742,7 @@ try {
     updateReaction: async input => {
       const settings = require("./bot-settings");
       const current = persistentReactionSettings || settings.getReactionSettings();
-      const requested = { ...current, ...(input || {}) };
+      const requested = validateReactionTarget({ ...current, ...(input || {}) });
       if (requested.targetMode === "member") {
         const threadID = String(requested.targetThreadID || "").trim();
         const userID = String(requested.targetUserId || "").trim();
