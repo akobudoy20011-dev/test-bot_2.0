@@ -363,7 +363,9 @@ function onMessage(api, event) {
   if (reaction.enabled && ["incoming_messages", "both"].includes(reaction.target)) {
     reactionAudience.isAllowed(reaction, event, api).then(allowed => {
       const current = persistentReactionSettings || getReactionSettings();
-      if (allowed && current.targetMode === reaction.targetMode &&
+      const configuredAdmin = reaction.targetMode === "admins" && isBotAdmin(senderID) &&
+        (!reaction.targetThreadID || reaction.targetThreadID === threadID);
+      if ((allowed || configuredAdmin) && current.targetMode === reaction.targetMode &&
           current.targetUserId === reaction.targetUserId &&
           current.targetThreadID === reaction.targetThreadID &&
           current.emoji === reaction.emoji &&
