@@ -336,11 +336,11 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     }
     if (req.method === "GET" && url.pathname === "/api/dashboard/settings") {
       if (typeof controls.getSettings !== "function") return send(res,501,{ok:false,error:"Settings unavailable"});
-      return send(res,200,{ok:true,settings:controls.getSettings()});
+      return send(res,200,{ok:true,settings:await controls.getSettings()});
     }
     if (req.method === "POST" && url.pathname === "/api/dashboard/settings/reaction") {
       if (typeof controls.updateReaction !== "function") return send(res,501,{ok:false,error:"Reaction settings unavailable"});
-      try { const body=await readJson(req); const reaction=controls.updateReaction(body); record("reaction-settings-updated",{enabled:reaction.enabled,target:reaction.target}); return send(res,200,{ok:true,reaction}); }
+      try { const body=await readJson(req); const reaction=await controls.updateReaction(body); record("reaction-settings-updated",{enabled:reaction.enabled,target:reaction.target,targetMode:reaction.targetMode}); return send(res,200,{ok:true,reaction}); }
       catch(error){return send(res,400,{ok:false,error:error.message||"Could not save reaction settings"});}
     }
     if (req.method === "POST" && url.pathname === "/api/dashboard/settings/group") {
