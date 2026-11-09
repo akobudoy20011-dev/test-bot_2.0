@@ -88,10 +88,10 @@ test("target returning during the countdown cancels remaining numbers and record
   for(let i=0;i<50&&!messages.includes("1");i++) await new Promise(resolve=>setTimeout(resolve,5));
   assert.ok(messages.includes("1"));
   await engine.onMessage(api,{type:"message",threadID:"g-return",senderID:"target"});
+  await engine.cancel("g-return");
   await new Promise(resolve=>setTimeout(resolve,80));
   assert.equal(messages.includes("2"),false);
   assert.equal(results.some(item=>item.result==="LOSE"&&item.reason==="TARGET_RETURNED"),true);
-  await engine.cancel("g-return");
   engine.stop();
 });
 
