@@ -255,6 +255,18 @@ function createCountdownEngine(options = {}) {
     states.clear();
   }
 
+  async function cancel(threadID) {
+    const id = String(threadID || "");
+    const state = states.get(id);
+    if (state) {
+      state.generation++;
+      clearTimer(state);
+      states.delete(id);
+    }
+    if (store?.isInitialized?.()) await store.deleteCountdownState(id).catch(() => {});
+    return Boolean(state);
+  }
+
   function stop() {
     stopped = true;
     for (const state of states.values()) {
@@ -264,7 +276,7 @@ function createCountdownEngine(options = {}) {
     states.clear();
   }
 
-  return { onMessage, restore, pause, stop, getActive: () => [...states.values()].map(s => ({
+  return { onMessage, restore, cancel, pause, stop, getActive: () => [...states.values()].map(s => ({
     threadID: s.threadID, targetId: s.targetId, targetName: s.targetName,
     counting: s.counting, nextNumber: s.nextNumber, lastActivityAt: s.lastActivityAt
   })) };
