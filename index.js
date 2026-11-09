@@ -690,7 +690,15 @@ try {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
       getGroup: threadID => eclipseControlsStore.getGroup(threadID),
-      updateGroup: (threadID, input) => eclipseControlsStore.updateGroup(threadID, input)
+      updateGroup: async (threadID, input) => {
+        if (input.countdownTargetId) {
+          const members = await fetchMessengerGroupMembers(messengerApi, threadID);
+          const member = members.find(item => item.userID === String(input.countdownTargetId));
+          if (!member) throw new Error("The selected countdown target is not a member of this Messenger group.");
+          input = { ...input, countdownTargetName: member.name };
+        }
+        return eclipseControlsStore.updateGroup(threadID, input);
+      }
     },
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
