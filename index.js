@@ -692,6 +692,38 @@ try {
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
     getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
+    massSetNickname: async (threadID, userIDs, nickname) => {
+      const id = String(threadID || "").trim();
+      const name = String(nickname || "").trim();
+      const selected = [...new Set((Array.isArray(userIDs) ? userIDs : []).map(String).filter(Boolean))];
+      if (!id || !name) throw new Error("Choose a group and enter a nickname.");
+      if (name.length > 64) throw new Error("Nickname must be 64 characters or fewer.");
+      if (!selected.length || selected.length > 50) throw new Error("Select between 1 and 50 group members.");
+      if (!messengerApi || typeof messengerApi.changeNickname !== "function") throw new Error("Messenger nickname controls are unavailable.");
+      const members = await fetchMessengerGroupMembers(messengerApi, id);
+      const allowed = new Set(members.map(member => member.userID));
+      const invalid = selected.filter(userID => !allowed.has(userID));
+      if (invalid.length) throw new Error("One or more selected users are no longer members of this group. Reload the member list.");
+      const results = [];
+      for (let i = 0; i < selected.length; i++) {
+        const userID = selected[i];
+        try {
+          await new Promise((resolve, reject) => {
+            let settled = false;
+            const done = error => { if (settled) return; settled = true; error ? reject(error) : resolve(); };
+            try {
+              const returned = messengerApi.changeNickname(name, id, userID, done);
+              if (returned && typeof returned.then === "function") returned.then(() => done(null)).catch(done);
+            } catch (error) { done(error); }
+          });
+          results.push({ userID, ok: true });
+        } catch (error) {
+          results.push({ userID, ok: false, error: String(error?.message || error).slice(0, 180) });
+        }
+        if (i < selected.length - 1) await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+      return { total: selected.length, succeeded: results.filter(item => item.ok).length, failed: results.filter(item => !item.ok).length, results };
+    },
     countdown: {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
