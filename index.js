@@ -359,7 +359,8 @@ function onMessage(api, event) {
   const reaction = persistentReactionSettings || getReactionSettings();
   const senderID = String(event.senderID || "");
   const targetAllowed = reaction.targetMode === "admins"
-    ? (groupAdminCache.get(threadID)?.has(senderID) || isBotAdmin(senderID))
+    ? ((!reaction.targetThreadID || reaction.targetThreadID === threadID) &&
+        (groupAdminCache.get(threadID)?.has(senderID) || isBotAdmin(senderID)))
     : reaction.targetMode === "member"
       ? Boolean(reaction.targetUserId && reaction.targetUserId === senderID &&
           (!reaction.targetThreadID || reaction.targetThreadID === threadID))
