@@ -32,6 +32,8 @@ const { createRaidMode } = require("./raid-mode");
 const { createEclipseControlsStore } = require("./eclipse-controls-store");
 const { createCountdownEngine } = require("./countdown-engine");
 const { createGroupTitleGuard } = require("./group-title-guard");
+const { createReactionAudience } = require("./reaction-audience");
+const { executeMassSetNickname } = require("./mass-setnn");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
@@ -358,14 +360,18 @@ function onMessage(api, event) {
   if (groupSettings.banatMode === "off") return;
   const reaction = persistentReactionSettings || getReactionSettings();
   const senderID = String(event.senderID || "");
-  const targetAllowed = reaction.targetMode === "admins"
-    ? ((!reaction.targetThreadID || reaction.targetThreadID === threadID) &&
-        (groupAdminCache.get(threadID)?.has(senderID) || isBotAdmin(senderID)))
-    : reaction.targetMode === "member"
-      ? Boolean(reaction.targetUserId && reaction.targetUserId === senderID &&
-          (!reaction.targetThreadID || reaction.targetThreadID === threadID))
-      : true;
-  if (targetAllowed && shouldReact(threadID, "incoming_messages")) reactToMessage(api, event, reaction.emoji);
+  if (reaction.enabled && ["incoming_messages", "both"].includes(reaction.target)) {
+    reactionAudience.isAllowed(reaction, event, api).then(allowed => {
+      const current = persistentReactionSettings || getReactionSettings();
+      if (allowed && current.targetMode === reaction.targetMode &&
+          current.targetUserId === reaction.targetUserId &&
+          current.targetThreadID === reaction.targetThreadID &&
+          current.emoji === reaction.emoji &&
+          shouldReact(threadID, "incoming_messages")) {
+        reactToMessage(api, event, reaction.emoji);
+      }
+    }).catch(error => console.warn("[REACTION] Audience lookup failed:", error?.message || error));
+  }
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
@@ -522,8 +528,6 @@ function scheduleLoginRetry(delay, reason) {
 }
 
 
-const groupAdminCache = new Map();
-
 function fetchMessengerGroups(api) {
   if(!api||typeof api.getThreadList!=="function") return Promise.reject(new Error("Messenger group list is unavailable from this session"));
   return new Promise((resolve,reject)=>{
@@ -549,13 +553,18 @@ async function fetchMessengerGroupMembers(api, threadID) {
   const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
   const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
   const adminIDs = Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : [];
-  groupAdminCache.set(id, new Set(adminIDs));
   return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
     userID,
     name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
     isAdmin: Array.isArray(info?.adminIDs) && info.adminIDs.map(String).includes(userID)
   })).sort((a,b) => a.name.localeCompare(b.name));
 }
+
+const reactionAudience = createReactionAudience({
+  ttlMs: 120000,
+  getAdmins: async (api, threadID) => (await fetchMessengerGroupMembers(api, threadID))
+    .filter(member => member.isAdmin).map(member => member.userID)
+});
 
 function loginBot(sessionOverride = null) {
   if (!licenseAuthorized) {
@@ -694,38 +703,14 @@ try {
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
     getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
-    massSetNickname: async (threadID, userIDs, nickname) => {
-      const id = String(threadID || "").trim();
-      const name = String(nickname || "").trim();
-      const selected = [...new Set((Array.isArray(userIDs) ? userIDs : []).map(String).filter(Boolean))];
-      if (!id || !name) throw new Error("Choose a group and enter a nickname.");
-      if (name.length > 64) throw new Error("Nickname must be 64 characters or fewer.");
-      if (!selected.length || selected.length > 50) throw new Error("Select between 1 and 50 group members.");
-      if (!messengerApi || typeof messengerApi.changeNickname !== "function") throw new Error("Messenger nickname controls are unavailable.");
-      const members = await fetchMessengerGroupMembers(messengerApi, id);
-      const allowed = new Set(members.map(member => member.userID));
-      const invalid = selected.filter(userID => !allowed.has(userID));
-      if (invalid.length) throw new Error("One or more selected users are no longer members of this group. Reload the member list.");
-      const results = [];
-      for (let i = 0; i < selected.length; i++) {
-        const userID = selected[i];
-        try {
-          await new Promise((resolve, reject) => {
-            let settled = false;
-            const done = error => { if (settled) return; settled = true; error ? reject(error) : resolve(); };
-            try {
-              const returned = messengerApi.changeNickname(name, id, userID, done);
-              if (returned && typeof returned.then === "function") returned.then(() => done(null)).catch(done);
-            } catch (error) { done(error); }
-          });
-          results.push({ userID, ok: true });
-        } catch (error) {
-          results.push({ userID, ok: false, error: String(error?.message || error).slice(0, 180) });
-        }
-        if (i < selected.length - 1) await new Promise(resolve => setTimeout(resolve, 1200));
-      }
-      return { total: selected.length, succeeded: results.filter(item => item.ok).length, failed: results.filter(item => !item.ok).length, results };
-    },
+    massSetNickname: async (threadID, userIDs, nickname) => executeMassSetNickname({
+      api: messengerApi,
+      threadID,
+      userIDs,
+      nickname,
+      getMembers: id => fetchMessengerGroupMembers(messengerApi, id),
+      delayMs: 1200
+    }),
     countdown: {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
@@ -756,7 +741,19 @@ try {
     },
     updateReaction: async input => {
       const settings = require("./bot-settings");
-      const next = settings.sanitizeReaction({ ...(persistentReactionSettings || settings.getReactionSettings()), ...input });
+      const current = persistentReactionSettings || settings.getReactionSettings();
+      const requested = { ...current, ...(input || {}) };
+      if (requested.targetMode === "member") {
+        const threadID = String(requested.targetThreadID || "").trim();
+        const userID = String(requested.targetUserId || "").trim();
+        if (!threadID || !userID) throw new Error("Choose a Messenger group and a custom reaction target.");
+        const members = await fetchMessengerGroupMembers(messengerApi, threadID);
+        const member = members.find(item => item.userID === userID);
+        if (!member) throw new Error("The selected reaction target is no longer a member of this Messenger group. Reload the member list.");
+        requested.targetUserName = member.name;
+        requested.targetThreadID = threadID;
+      }
+      const next = settings.sanitizeReaction(requested);
       persistentReactionSettings = await eclipseControlsStore.updateReactionSettings(next);
       settings.setRuntimeReaction(persistentReactionSettings);
       return persistentReactionSettings;
