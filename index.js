@@ -745,8 +745,8 @@ licenseGuard.initialize().then(ok => {
   licenseGuard.startHeartbeat(reason => {
     licenseAuthorized = false;
     raidMode.stop();
-    countdownEngine.stop();
-    groupTitleGuard.stop();
+    countdownEngine.pause();
+    groupTitleGuard.pause();
     console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
   }, () => {
     licenseAuthorized = true;
