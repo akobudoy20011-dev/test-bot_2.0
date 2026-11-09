@@ -45,3 +45,10 @@ test("admin lookup failures fail closed",async()=>{
   const audience=createReactionAudience({async getAdmins(){throw new Error("offline");}});
   assert.equal(await audience.isAllowed({targetMode:"admins"},{threadID:"g",senderID:"admin"}),false);
 });
+
+test("custom reaction target validation rejects incomplete dashboard saves",()=>{
+  const {validateReactionTarget}=require("../reaction-audience");
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1"}),/group and a custom reaction target/);
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetUserId:"user-1"}),/group and a custom reaction target/);
+  assert.deepEqual(validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserId:"user-1"}),{targetMode:"member",targetThreadID:"group-1",targetUserId:"user-1"});
+});
