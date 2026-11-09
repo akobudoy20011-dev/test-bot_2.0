@@ -167,7 +167,7 @@ button{min-height:42px}
     catch(e){$("groupMessage").textContent="Save failed: "+e.message;}
   }
   async function loadSettings(){
-    try{const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};$("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"incoming_messages";$("reactionAudience").value=r.targetMode||"all";$("reactionMember").dataset.userId=r.targetUserId||"";$("reactionMember").dataset.threadId=r.targetThreadID||"";$("reactionMember").replaceChildren(new Option(r.targetUserName||"Select a member…",r.targetUserId||""));$("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;$("reactionMessage").textContent="Loaded saved emoji settings.";}
+    try{const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};$("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"incoming_messages";$("reactionAudience").value=r.targetMode||"all";$("reactionMember").dataset.userId=r.targetUserId||"";$("reactionMember").dataset.threadId=r.targetThreadID||"";$("reactionMember").replaceChildren(new Option(r.targetUserName||"Select a member…",r.targetUserId||""));$("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;$("reactionMessage").textContent="Loaded saved emoji settings.";if(r.targetMode==="admins"||r.targetMode==="member")await loadReactionMembers();}
     catch(e){$("reactionMessage").textContent="Could not load settings: "+e.message;}
   }
   async function loadMassMembers(){
@@ -420,7 +420,8 @@ button{min-height:42px}
   $("loadCountdownSettings").addEventListener("click",loadCountdownSettings);
   $("saveCountdown").addEventListener("click",saveCountdown);
   $("refreshCountdownHistory").addEventListener("click",refreshCountdownHistory);
-  $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value==="member")loadReactionMembers();});
+  $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
+  $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   refresh(); loadEvents(); loadSettings(); refreshSession(); setInterval(refresh,15000);
 })();
 </script></body></html>
