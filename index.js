@@ -510,6 +510,27 @@ function fetchMessengerGroups(api) {
   });
 }
 
+async function fetchMessengerGroupMembers(api, threadID) {
+  const id = String(threadID || "").trim();
+  if (!id) throw new Error("A Messenger group is required.");
+  if (!api || typeof api.getThreadInfo !== "function") throw new Error("Messenger member lookup is unavailable from this session.");
+  const info = await new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (error, value) => { if (settled) return; settled = true; error ? reject(error) : resolve(value); };
+    try {
+      const returned = api.getThreadInfo(id, done);
+      if (returned && typeof returned.then === "function") returned.then(value => done(null, value)).catch(done);
+    } catch (error) { done(error); }
+  });
+  const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
+  const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
+  return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
+    userID,
+    name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
+    isAdmin: Array.isArray(info?.adminIDs) && info.adminIDs.map(String).includes(userID)
+  })).sort((a,b) => a.name.localeCompare(b.name));
+}
+
 function loginBot(sessionOverride = null) {
   if (!licenseAuthorized) {
     console.warn("[ECLIPSE LICENSE] Messenger login blocked because this installation is not authorized.");
@@ -646,6 +667,7 @@ try {
     getSessionStatus: () => require("./session-store").status(),
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
+    getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
     getSettings: () => require("./bot-settings").getSettings(),
     updateReaction: input => require("./bot-settings").updateReaction(input),
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
