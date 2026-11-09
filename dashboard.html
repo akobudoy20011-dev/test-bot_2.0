@@ -71,6 +71,8 @@
   const fmtBytes = n => { n=Number(n)||0; return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"; };
   async function request(path, options={}) {
     const headers=Object.assign({"Accept":"application/json"},options.headers||{});
+    const ownerKey=$("raidApiKey")?.value?.trim();
+    if(ownerKey && !headers["X-ECLIPSE-DASHBOARD-KEY"]) headers["X-ECLIPSE-DASHBOARD-KEY"]=ownerKey;
     if(options.body) headers["Content-Type"]="application/json";
     const response=await fetch(path,Object.assign({},options,{headers,cache:"no-store"}));
     let data={}; try{data=await response.json()}catch(_){}
