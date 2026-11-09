@@ -398,6 +398,7 @@ button{min-height:42px}
     catch(error){$("raidActionMessage").textContent="Emergency stop failed: "+error.message;}
   }
   $("raidGroupTitle").addEventListener("input",updateRaidPreview);$("raidNickname").addEventListener("input",updateRaidPreview);$("raidImageFile").addEventListener("change",updateRaidPreview);
+  $("raidApiKey").addEventListener("change",()=>{loadSettings();refreshSession();refreshGroups();loadEvents();});
   $("raidRefresh").addEventListener("click",raidRefreshStatus);$("raidLoadGroups").addEventListener("click",raidLoadGroups);
   $("raidSelectAll").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=true);updateRaidSelectionCount();});
   $("raidClearGroups").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=false);updateRaidSelectionCount();});
