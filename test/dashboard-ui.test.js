@@ -19,6 +19,16 @@ test("ECLIPSE dashboard navigation points to real panels and inline script parse
   assert.match(html,/ECLIPSE Test Bot/);
 });
 
+test("dashboard management key is available globally rather than hidden inside Raid Mode",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  const access=html.indexOf('class="dashboard-access"');
+  const raid=html.indexOf('id="raidModePanel"');
+  assert.ok(access>=0 && raid>access,"global dashboard access panel appears before feature modules");
+  assert.match(html,/id="raidApiKey"/);
+  assert.match(html,/const ownerKey=\$\("raidApiKey"\)\?\.value\?\.trim\(\)/);
+  assert.match(html,/ECLIPSE_DASHBOARD_API_KEY/);
+});
+
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
