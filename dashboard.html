@@ -117,14 +117,20 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   }
 }
 
+  .app-nav-label{margin-top:4px}.app-nav a{transition:background .15s ease,color .15s ease}.app-nav a:focus-visible,.mobile-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  #appearancePanel .actions button{min-width:92px}
 </style>
 </head>
 <body>
 <aside class="app-sidebar">
   <a class="app-brand" href="#overview"><span class="app-brand-mark">E</span><span><strong>ECLIPSE</strong><small>MESSENGER CONTROL</small></span></a>
-  <div class="app-nav-label">WORKSPACE</div>
+  <div class="app-nav-label">COMMAND CENTER</div>
   <nav class="app-nav" aria-label="Dashboard navigation">
     <a href="#overview"><span>⌂</span>Overview</a>
+    <a href="#eventsPanel"><span>≋</span>Activity</a>
+  </nav>
+  <div class="app-nav-label">BOT MANAGEMENT</div>
+  <nav class="app-nav" aria-label="Bot management navigation">
     <a href="#groupSettings"><span>▦</span>Groups</a>
     <a href="#reactionPanel"><span>☺</span>MESS Reactions</a>
     <a href="#countdownPanel"><span>◷</span>Countdown</a>
@@ -132,7 +138,11 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     <a href="#groupTitleLockPanel"><span>⌑</span>Auto-lock</a>
     <a href="#raidModePanel"><span>◇</span>Raid Mode</a>
     <a href="#sessionCookiePanel"><span>▣</span>Session</a>
-    <a href="#eventsPanel"><span>≋</span>Activity</a>
+  </nav>
+  <div class="app-nav-label">SYSTEM</div>
+  <nav class="app-nav" aria-label="System navigation">
+    <a href="#runtimePanel"><span>⌁</span>Diagnostics</a>
+    <a href="#appearancePanel"><span>◐</span>Appearance</a>
   </nav>
   <div class="app-sidebar-foot"><strong>Test Bot 2.0</strong>Independent ECLIPSE instance</div>
 </aside>
@@ -216,7 +226,8 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </div>
 </section>
 
-<section class="card span12" id="eventsPanel"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
+<section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
+<section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
 
 </div><p class="footer">ECLIPSE Test Bot</p>
 </main>
@@ -577,6 +588,13 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("refreshCountdownHistory").addEventListener("click",refreshCountdownHistory);
   $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
+  function applyAccent(value,label){if(!/^#[0-9a-f]{6}$/i.test(value))return;$(":root");document.documentElement.style.setProperty("--accent",value);try{localStorage.setItem("eclipse-testbot-accent",value);}catch(_){}$("themeMessage").textContent=label+" theme active.";$("customAccent").value=value;}
+  const presets={burgundy:"#c75a6a",cyan:"#42b8c7",gold:"#c7a45a"};
+  let savedAccent="";try{savedAccent=localStorage.getItem("eclipse-testbot-accent")||"";}catch(_){}
+  if(savedAccent&&/^#[0-9a-f]{6}$/i.test(savedAccent)){document.documentElement.style.setProperty("--accent",savedAccent);$("customAccent").value=savedAccent;$("themeMessage").textContent="Saved device accent active.";}
+  $("themeChoices").addEventListener("click",event=>{const button=event.target.closest("button[data-theme]");if(!button)return;const theme=button.dataset.theme;applyAccent(presets[theme],theme.charAt(0).toUpperCase()+theme.slice(1));});
+  $("applyCustomAccent").addEventListener("click",()=>applyAccent($("customAccent").value,"Custom"));
+  $("resetAccent").addEventListener("click",()=>{try{localStorage.removeItem("eclipse-testbot-accent");}catch(_){}document.documentElement.style.setProperty("--accent",presets.burgundy);$("customAccent").value=presets.burgundy;$("themeMessage").textContent="Default burgundy theme restored.";});
   refresh(); loadEvents(); loadSettings(); refreshSession(); setInterval(refresh,15000);
 })();
 </script></body></html>
