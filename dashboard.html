@@ -86,6 +86,33 @@ body{display:flow-root}
 }
 @media(min-width:851px){.wrap{margin-left:232px}.top{z-index:15}}
 
+
+/* Explicit feature layout: keep every Test Bot module in its own full-width row. */
+main.wrap > .grid {
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  grid-auto-flow: row !important;
+  align-items: start;
+  gap: 16px;
+}
+main.wrap > .grid > .card:not(#overview):not(#runtimePanel) {
+  grid-column: 1 / -1 !important;
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+}
+main.wrap > .grid > .card > h2 { margin-bottom: 16px; }
+main.wrap > .grid > .card .field { align-items: end; }
+main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
+@media (max-width: 850px) {
+  main.wrap > .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 12px; }
+  main.wrap > .grid > .card,
+  main.wrap > .grid > .card:not(#overview):not(#runtimePanel) {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+  }
+}
+
 </style>
 </head>
 <body>
