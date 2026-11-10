@@ -553,13 +553,41 @@ async function fetchMessengerGroupMembers(api, threadID) {
     } catch (error) { done(error); }
   });
   const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
-  const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
-  const adminIDs = Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : [];
-  return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
-    userID,
-    name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
-    isAdmin: Array.isArray(info?.adminIDs) && info.adminIDs.map(String).includes(userID)
-  })).sort((a,b) => a.name.localeCompare(b.name));
+  const userIDs = [...new Set(ids.map(String).filter(Boolean))];
+  const names = new Map();
+  const addUserInfo = value => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const id = String(item?.id || item?.userID || item?.uid || "");
+        if (id) names.set(id, item);
+      }
+    } else if (value && typeof value === "object") {
+      for (const [id, item] of Object.entries(value)) if (item && typeof item === "object") names.set(String(id), item);
+    }
+  };
+  addUserInfo(info?.userInfo);
+  const missingNames = userIDs.filter(id => !String(names.get(id)?.name || names.get(id)?.firstName || names.get(id)?.fullName || "").trim());
+  if (missingNames.length && typeof api.getUserInfo === "function") {
+    try {
+      const fetched = await new Promise((resolve, reject) => {
+        let settled = false;
+        const done = (error, value) => { if (settled) return; settled = true; error ? reject(error) : resolve(value); };
+        try {
+          const returned = api.getUserInfo(missingNames, done);
+          if (returned && typeof returned.then === "function") returned.then(value => done(null, value)).catch(done);
+        } catch (error) { done(error); }
+      });
+      addUserInfo(fetched);
+    } catch (error) {
+      console.warn("[DASHBOARD] Could not resolve some Messenger member names:", error?.message || error);
+    }
+  }
+  const adminIDs = new Set(Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : []);
+  return userIDs.map(userID => {
+    const person = names.get(userID) || {};
+    const name = person.name || person.fullName || person.firstName || person.vanity || "";
+    return { userID, name: String(name || "Unknown member (" + userID.slice(-5) + ")").slice(0, 100), isAdmin: adminIDs.has(userID), nameResolved: Boolean(name) };
+  }).sort((a,b) => a.name.localeCompare(b.name));
 }
 
 const reactionAudience = createReactionAudience({
