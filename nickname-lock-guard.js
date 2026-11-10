@@ -48,8 +48,8 @@ function createNicknameLockGuard(options = {}) {
           continue;
         }
         const current = nicknames ? String(nicknames[userID] || "") : null;
-        if (!forcedUserID && current === null) continue;
-        if (!forcedUserID && current === String(lock.expectedNickname)) continue;
+        if (current === String(lock.expectedNickname)) continue;
+        if (current === null && !forcedUserID) continue;
         await invoke(api, "changeNickname", [String(lock.expectedNickname), id, userID]);
         results.push(userID);
       }
