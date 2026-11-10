@@ -56,6 +56,8 @@ function createRaidMode(options = {}) {
   const imageStore = options.imageStore || null;
   const apiGetter = options.getApi || (() => null);
   const inFlight = new Map();
+  const eventRepairCooldown = new Map();
+  const repairLogCooldown = new Map();
   let initialized = false, initError = "", reconcileTimer = null, lastEventAt = null, stopGeneration = 0;
 
   async function initialize() {
@@ -232,8 +234,9 @@ function createRaidMode(options = {}) {
       } catch (error) {
         const message = String(error?.message || error);
         const failures = Number(current.rows[0].failures || 0) + 1;
+        const transientConnection = /EPIPE|EHOSTUNREACH|ECONNRESET|ECONNREFUSED|socket hang up|Messenger is disconnected/i.test(message);
         const rateLimited = /rate.?limit|1675004|1545012|temporarily unavailable/i.test(message);
-        const delay = rateLimited ? 5 * 60_000 : Math.min(15 * 60_000, 15000 * (2 ** Math.min(failures - 1, 5)));
+        const delay = (rateLimited || transientConnection) ? 5 * 60_000 : Math.min(15 * 60_000, 15000 * (2 ** Math.min(failures - 1, 5)));
         const next = new Date(Date.now() + delay).toISOString();
         await setGroupState(id, "error", message, failures, next);
         await record("group-repair-failed", id, { reason, error: message, failures, retryAt: next });
@@ -273,22 +276,42 @@ function createRaidMode(options = {}) {
     return { stopped: result.rowCount };
   }
 
+  function logRepairFailureOnce(threadID, kind, error) {
+    const id = String(threadID);
+    const key = kind + ":" + id;
+    const now = Date.now();
+    const previous = repairLogCooldown.get(key) || 0;
+    if (now - previous < 60_000) return;
+    repairLogCooldown.set(key, now);
+    if (repairLogCooldown.size > 500) {
+      for (const [entry, at] of repairLogCooldown) if (now - at > 10 * 60_000) repairLogCooldown.delete(entry);
+    }
+    console.warn("[RAID] " + kind + " failed for " + id + ":", error?.message || error);
+  }
+
   async function handleEvent(event) {
     if (!initialized || !isRaidMutationEvent(event)) return;
     const type = [event.type, event.logMessageType, event.logMessageData?.type].filter(Boolean).join(" ").toLowerCase();
     const id = String(event.threadID);
     const found = await pool.query("SELECT enabled FROM eclipse_raid_groups WHERE bot_namespace=$1 AND thread_id=$2", [namespace, id]).catch(() => ({ rows: [] }));
     if (!found.rows[0]?.enabled) return;
+    const now = Date.now();
+    const lastRepair = eventRepairCooldown.get(id) || 0;
+    if (now - lastRepair < 30_000) return;
+    eventRepairCooldown.set(id, now);
+    if (eventRepairCooldown.size > 500) {
+      for (const [entry, at] of eventRepairCooldown) if (now - at > 10 * 60_000) eventRepairCooldown.delete(entry);
+    }
     lastEventAt = new Date().toISOString();
     await record("mutation-detected", id, { type });
-    repairGroup(id, "event:" + type).catch(error => console.warn("[RAID] event repair failed for " + id + ":", error?.message || error));
+    repairGroup(id, "event:" + type).catch(error => logRepairFailureOnce(id, "event repair", error));
   }
 
   async function reconcile() {
     if (!initialized) return;
     const result = await pool.query("SELECT thread_id FROM eclipse_raid_groups WHERE bot_namespace=$1 AND enabled=TRUE ORDER BY updated_at ASC", [namespace]);
     for (const row of result.rows) {
-      repairGroup(row.thread_id, "periodic-reconcile").catch(error => console.warn("[RAID] reconciliation failed for " + row.thread_id + ":", error?.message || error));
+      repairGroup(row.thread_id, "periodic-reconcile").catch(error => logRepairFailureOnce(row.thread_id, "reconciliation", error));
       await sleep(1500);
     }
   }
