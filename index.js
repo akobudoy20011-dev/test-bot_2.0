@@ -32,6 +32,7 @@ const { createRaidMode } = require("./raid-mode");
 const { createEclipseControlsStore } = require("./eclipse-controls-store");
 const { createCountdownEngine } = require("./countdown-engine");
 const { createGroupTitleGuard } = require("./group-title-guard");
+const { createNicknameLockGuard } = require("./nickname-lock-guard");
 const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
 const licenseGuard = createLicenseGuard();
@@ -39,6 +40,7 @@ const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-b
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
 const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
 const groupTitleGuard = createGroupTitleGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
+const nicknameLockGuard = createNicknameLockGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
 let licenseAuthorized = false;
 let persistentReactionSettings = null;
 
@@ -473,6 +475,7 @@ function start(api, generation, sessionCandidate = null) {
       if (licenseAuthorized && event) raidMode.handleEvent(event).catch(error => console.warn("[RAID] event handler failed:", error?.message || error));
       if (licenseAuthorized && event) countdownEngine.onMessage(api, event).catch(error => console.warn("[COUNTDOWN] event handler failed:", error?.message || error));
       if (licenseAuthorized && event) groupTitleGuard.handleEvent(event).catch(error => console.warn("[GROUP TITLE LOCK] event handler failed:", error?.message || error));
+      if (licenseAuthorized && event) nicknameLockGuard.handleEvent(event).catch(error => console.warn("[NICKNAME LOCK] event handler failed:", error?.message || error));
       if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
@@ -739,7 +742,11 @@ try {
       userIDs,
       nickname,
       getMembers: id => fetchMessengerGroupMembers(messengerApi, id),
-      delayMs: 1200
+      delayMs: 1200,
+      saveNickname: (id, userID, value) => {
+        if (!eclipseControlsStore.isInitialized()) throw new Error("Neon nickname-lock storage is unavailable.");
+        return eclipseControlsStore.saveNicknameLock(id, userID, value);
+      }
     }),
     countdown: {
       getActive: () => countdownEngine.getActive(),
@@ -804,6 +811,7 @@ eclipseControlsStore.initialize().then(async ok => {
     if (messengerConnected && messengerApi) {
       countdownEngine.restore(messengerApi).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
       groupTitleGuard.start();
+      nicknameLockGuard.start();
     }
   } else {
     console.warn("[ECLIPSE CONTROLS] Countdown and title-lock controls unavailable:", eclipseControlsStore.getError());
@@ -828,11 +836,12 @@ licenseGuard.initialize().then(ok => {
     raidMode.stop();
     countdownEngine.pause();
     groupTitleGuard.pause();
+    nicknameLockGuard.pause();
     console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
   }, () => {
     licenseAuthorized = true;
     if (raidMode.isInitialized()) raidMode.start();
-    if (eclipseControlsStore.isInitialized()) { countdownEngine.restore(messengerApi).catch(() => {}); groupTitleGuard.start(); }
+    if (eclipseControlsStore.isInitialized()) { countdownEngine.restore(messengerApi).catch(() => {}); groupTitleGuard.start(); nicknameLockGuard.start(); }
     console.log("[ECLIPSE LICENSE] Installation authorization restored.");
     if (!messengerConnected && !loginInProgress) loginBot();
   });
