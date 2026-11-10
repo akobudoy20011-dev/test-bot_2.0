@@ -39,7 +39,10 @@ async function executeMassSetNickname(options = {}) {
       let lockSaved = true;
       if (typeof options.saveNickname === "function") {
         try { await options.saveNickname(threadID, userID, nickname); }
-        catch (_) { lockSaved = false; }
+        catch (error) {
+          lockSaved = false;
+          console.warn("[MASS SETNN] Nickname changed but its persistent lock could not be saved:", { thread_id: threadID, user_id: userID, error: error?.message || error });
+        }
       }
       results.push({ userID, ok: true, lockSaved });
     } catch (error) {
