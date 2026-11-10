@@ -25,6 +25,10 @@ test("dashboard management key is available globally rather than hidden inside R
   const raid=html.indexOf('id="raidModePanel"');
   assert.ok(access>=0 && raid>access,"global dashboard access panel appears before feature modules");
   assert.match(html,/id="raidApiKey"/);
+  assert.match(html,/id="unlockDashboard"/);
+  assert.match(html,/id="clearDashboardKey"/);
+  assert.match(html,/async function unlockDashboard\(\)/);
+  assert.match(html,/X-ECLIPSE-DASHBOARD-KEY/);
   assert.match(html,/const ownerKey=\$\("raidApiKey"\)\?\.value\?\.trim\(\)/);
   assert.match(html,/ECLIPSE_DASHBOARD_API_KEY/);
 });
