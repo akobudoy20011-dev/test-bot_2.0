@@ -141,7 +141,6 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </nav>
   <div class="app-nav-label">SYSTEM</div>
   <nav class="app-nav" aria-label="System navigation">
-    <a href="#securityPanel"><span>◇</span>Security</a>
     <a href="#runtimePanel"><span>⌁</span>Diagnostics</a>
     <a href="#appearancePanel"><span>◐</span>Appearance</a>
   </nav>
@@ -227,13 +226,12 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </div>
 </section>
 
-<section class="card span12" id="securityPanel"><h2>Security & installations</h2><div class="metrics"><div class="metric"><label>License mode</label><strong id="securityMode">—</strong></div><div class="metric"><label>Approved installs</label><strong id="securityApproved">—</strong></div><div class="metric"><label>Install limit</label><strong id="securityLimit">—</strong></div></div><div class="field" style="margin-top:12px"><label>Maximum approved installations <input id="securityInstallLimit" type="number" min="0" max="10000" step="1" value="0"></label><button class="primary" id="saveSecurityLimit" type="button">Save limit</button><button id="refreshSecurity" type="button">Refresh security</button><button id="scanForks" type="button">Check GitHub forks</button></div><p class="hint" id="securityMessage" role="status">Unlock dashboard access to load security information. Owner-only controls require the license owner service.</p><h3 style="font-size:13px;margin:18px 0 8px">Installations</h3><div id="securityInstallations" class="log">No installation data loaded.</div><h3 style="font-size:13px;margin:18px 0 8px">Security events</h3><div id="securityEvents" class="log">No security events loaded.</div><h3 style="font-size:13px;margin:18px 0 8px">GitHub forks</h3><div id="securityForks" class="log">Fork scan has not been run.</div></section>
 <section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
 <section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
 </div><p class="footer">ECLIPSE Test Bot</p>
 </main>
-<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a><a href="#securityPanel"><span>◇</span>Security</a><a href="#appearancePanel"><span>◐</span>Theme</a></nav>
+<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a><a href="#appearancePanel"><span>◐</span>Theme</a></nav>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -465,65 +463,6 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     }catch(error){$("eventCount").textContent="Activity unavailable";$("events").textContent="Could not load events: "+error.message;}
   }
 
-  const securityText = value => value == null || value === "" ? "—" : String(value);
-  function renderSecurityInstallations(items) {
-    const root=$("securityInstallations");root.replaceChildren();
-    if(!items.length){root.textContent="No registered installations.";return;}
-    for(const item of items){
-      const row=document.createElement("div");row.style.padding="8px 0";row.style.borderBottom="1px solid #293244";
-      const details=document.createElement("div");
-      details.textContent=[item.repository||item.repo||"Unknown repository",item.installation_id||"No installation ID",item.status||"unknown","last seen "+securityText(item.last_seen_at||item.updated_at||item.created_at)].join(" · ");
-      row.append(details);
-      const id=String(item.installation_id||"");
-      if(id && item.status!=="approved"){
-        const approve=document.createElement("button");approve.type="button";approve.textContent="Approve";approve.style.margin="7px 6px 0 0";
-        approve.addEventListener("click",()=>updateInstallationStatus(id,"approve"));row.append(approve);
-      }
-      if(id && item.status==="approved"){
-        const revoke=document.createElement("button");revoke.type="button";revoke.textContent="Revoke";revoke.className="danger";revoke.style.marginTop="7px";
-        revoke.addEventListener("click",()=>updateInstallationStatus(id,"revoke"));row.append(revoke);
-      }
-      root.append(row);
-    }
-  }
-  async function updateInstallationStatus(id,action){
-    if(!confirm((action==="approve"?"Approve":"Revoke")+" this Test Bot installation?"))return;
-    try{await request("/api/dashboard/security/installations/"+encodeURIComponent(id)+"/"+action,{method:"POST",body:"{}"});$("securityMessage").textContent="Installation status updated.";await loadSecurity();}
-    catch(error){$("securityMessage").textContent="Installation update failed: "+error.message;}
-  }
-  async function loadSecurity(){
-    $("refreshSecurity").disabled=true;
-    try{
-      const [status,installations,settings,events]=await Promise.all([
-        request("/api/dashboard/security/status"),request("/api/dashboard/security/installations"),
-        request("/api/dashboard/security/license-settings"),request("/api/dashboard/security/events")
-      ]);
-      const license=status.license||{},list=installations.installations||[];
-      $("securityMode").textContent=securityText(license.mode||status.mode);
-      $("securityApproved").textContent=String(list.filter(item=>item.status==="approved").length);
-      const limit=Number(settings.settings?.max_approved_installations)||0;
-      $("securityLimit").textContent=limit===0?"Unlimited":String(limit);$("securityInstallLimit").value=String(limit);
-      renderSecurityInstallations(list);
-      const log=events.events||[];
-      $("securityEvents").textContent=log.length?log.slice(0,60).map(item=>[item.at,item.type,item.installation_id||item.repository||""].filter(Boolean).join(" · ")).join("\\n"):"No security events recorded.";
-      $("securityMessage").textContent="Security registry loaded · "+list.length+" installation(s).";
-    }catch(error){
-      $("securityMode").textContent="Unavailable";$("securityApproved").textContent="—";$("securityLimit").textContent="—";
-      $("securityMessage").textContent="Security data unavailable: "+error.message+" Owner-only controls require the license authority to be configured.";
-    }finally{$("refreshSecurity").disabled=false;}
-  }
-  async function saveSecurityLimit(){
-    const value=Number($("securityInstallLimit").value);
-    if(!Number.isInteger(value)||value<0||value>10000){$("securityMessage").textContent="Enter a whole number from 0 to 10000. Use 0 for unlimited.";return;}
-    try{await request("/api/dashboard/security/license-settings",{method:"POST",body:JSON.stringify({max_approved_installations:value})});$("securityMessage").textContent="Installation limit saved.";await loadSecurity();}
-    catch(error){$("securityMessage").textContent="Could not save installation limit: "+error.message;}
-  }
-  async function scanSecurityForks(){
-    $("scanForks").disabled=true;$("securityForks").textContent="Checking GitHub fork list…";
-    try{const data=await request("/api/dashboard/security/forks");const forks=data.forks||[];$("securityForks").textContent=forks.length?forks.map(item=>[item.full_name,item.private?"private":"public",item.updated_at||""].filter(Boolean).join(" · ")).join("\\n"):"No GitHub forks found.";}
-    catch(error){$("securityForks").textContent="Fork lookup unavailable: "+error.message;}
-    finally{$("scanForks").disabled=false;}
-  }
   const raidHeaders = () => {
     const key = $("raidApiKey").value.trim();
     return key ? { "X-ECLIPSE-DASHBOARD-KEY": key } : {};
@@ -633,7 +572,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     try{
       await request("/api/dashboard/session");
       $("dashboardAccessMessage").textContent="Dashboard controls unlocked. Session and group management are ready.";
-      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents(),loadSecurity()]);
+      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents()]);
       await raidRefreshStatus();
     }catch(error){$("dashboardAccessMessage").textContent="Access denied: "+error.message+" Check that the key matches the Test Bot Render environment."}
     finally{$("unlockDashboard").disabled=false;}
@@ -652,7 +591,6 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   setInterval(()=>{if($("raidApiKey").value.trim())raidRefreshStatus();},30000);
 
   $("eventSearch").addEventListener("input",renderEvents);$("eventType").addEventListener("change",renderEvents);$("clearEventFilters").addEventListener("click",()=>{$("eventSearch").value="";$("eventType").value="";renderEvents();});
-  $("refreshSecurity").addEventListener("click",loadSecurity);$("saveSecurityLimit").addEventListener("click",saveSecurityLimit);$("scanForks").addEventListener("click",scanSecurityForks);
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings);
