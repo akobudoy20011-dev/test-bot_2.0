@@ -18,3 +18,9 @@ test("ECLIPSE dashboard navigation points to real panels and inline script parse
   assert.match(html,/--accent:#c75a6a/);
   assert.match(html,/ECLIPSE Test Bot/);
 });
+
+test("dashboard feature modules each occupy their own full-width row",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
+  assert.match(html,/@media \(max-width: 850px\)[\s\S]*?main\.wrap > \.grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+});
