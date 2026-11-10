@@ -37,7 +37,7 @@ test("dashboard serves UI, origin-restricts normal APIs, and protects owner secu
   const base = "http://127.0.0.1:" + server.address().port;
   const page = await fetch(base + "/dashboard");
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Banat Test Bot/);
+  assert.match(await page.text(), /ECLIPSE Test Bot/);
 
   const blocked = await fetch(base + "/api/dashboard/status", { headers: { Origin: "https://wrong.example", "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" } });
   assert.equal(blocked.status, 403);
@@ -64,8 +64,13 @@ test("dashboard serves UI, origin-restricts normal APIs, and protects owner secu
   assert.equal(securityAllowed.status, 200);
   assert.equal((await securityAllowed.json()).license.mode, "owner");
 
-  const pause = await fetch(base + "/api/dashboard/bot/stop", {
+  const blockedControl = await fetch(base + "/api/dashboard/bot/stop", {
     method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: "{}"
+  });
+  assert.equal(blockedControl.status, 401);
+
+  const pause = await fetch(base + "/api/dashboard/bot/stop", {
+    method: "POST", headers: { ...headers, "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key", "Content-Type": "application/json" }, body: "{}"
   });
   assert.equal(pause.status, 200);
   assert.equal(paused, true);

@@ -29,9 +29,18 @@ const { getGroupSettings, updateGroup: updateGroupSettings, getReactionSettings,
 const { classifyBanatTarget, setBanatConversationMode, isBanatConversationModeActive } = require("./banat-targeting");
 const { createLicenseGuard } = require("./license-guard");
 const { createRaidMode } = require("./raid-mode");
+const { createEclipseControlsStore } = require("./eclipse-controls-store");
+const { createCountdownEngine } = require("./countdown-engine");
+const { createGroupTitleGuard } = require("./group-title-guard");
+const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
+const { executeMassSetNickname } = require("./mass-setnn");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
+const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
+const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
+const groupTitleGuard = createGroupTitleGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
 let licenseAuthorized = false;
+let persistentReactionSettings = null;
 
 const PORT = Number(process.env.PORT || 10000);
 const DEFAULT_ON = /^(1|true|yes|on)$/i.test(process.env.BANAT_DEFAULT_ON || "false");
@@ -347,9 +356,24 @@ function onMessage(api, event) {
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
+  const reaction = persistentReactionSettings || getReactionSettings();
+  const senderID = String(event.senderID || "");
+  if (reaction.enabled && ["incoming_messages", "both"].includes(reaction.target)) {
+    reactionAudience.isAllowed(reaction, event, api).then(allowed => {
+      const current = persistentReactionSettings || getReactionSettings();
+      const configuredAdmin = reaction.targetMode === "admins" && isBotAdmin(senderID) &&
+        (!reaction.targetThreadID || reaction.targetThreadID === threadID);
+      if ((allowed || configuredAdmin) && current.targetMode === reaction.targetMode &&
+          current.targetUserId === reaction.targetUserId &&
+          current.targetThreadID === reaction.targetThreadID &&
+          current.emoji === reaction.emoji &&
+          shouldReact(threadID, "incoming_messages")) {
+        reactToMessage(api, event, reaction.emoji);
+      }
+    }).catch(error => console.warn("[REACTION] Audience lookup failed:", error?.message || error));
+  }
   if (isQuietNow(groupSettings)) return;
   if (groupSettings.banatMode === "off") return;
-  if (shouldReact(threadID, "incoming_messages")) reactToMessage(api, event, getReactionSettings().emoji);
   const active = groupSettings.banatMode === "on" || (groupSettings.banatMode === "inherit" && (activeThreads.has(threadID) || isBanatConversationModeActive(threadID)));
   const target = classifyBanatTarget({ event, body, eclipseUserID: botUserID });
 
@@ -407,6 +431,10 @@ function start(api, generation, sessionCandidate = null) {
     if (typeof api.setOptions === "function") api.setOptions({ listenEvents: true });
   } catch (error) { console.warn("[RAID] Could not enable Messenger group events:", error?.message || error); }
   if (licenseAuthorized && raidMode.isInitialized()) raidMode.start();
+  if (licenseAuthorized && eclipseControlsStore.isInitialized()) {
+    countdownEngine.restore(api).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
+    groupTitleGuard.start();
+  }
 
   api.listenMqtt((error, event) => {
     if (generation !== activeListenerGeneration) return;
@@ -443,6 +471,8 @@ function start(api, generation, sessionCandidate = null) {
     }
     try {
       if (licenseAuthorized && event) raidMode.handleEvent(event).catch(error => console.warn("[RAID] event handler failed:", error?.message || error));
+      if (licenseAuthorized && event) countdownEngine.onMessage(api, event).catch(error => console.warn("[COUNTDOWN] event handler failed:", error?.message || error));
+      if (licenseAuthorized && event) groupTitleGuard.handleEvent(event).catch(error => console.warn("[GROUP TITLE LOCK] event handler failed:", error?.message || error));
       if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
@@ -509,6 +539,34 @@ function fetchMessengerGroups(api) {
     try {const r=api.getThreadList(100,null,[],done);if(r&&typeof r.then==="function")r.then(v=>done(null,v)).catch(done);}catch(e){done(e);}
   });
 }
+
+async function fetchMessengerGroupMembers(api, threadID) {
+  const id = String(threadID || "").trim();
+  if (!id) throw new Error("A Messenger group is required.");
+  if (!api || typeof api.getThreadInfo !== "function") throw new Error("Messenger member lookup is unavailable from this session.");
+  const info = await new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (error, value) => { if (settled) return; settled = true; error ? reject(error) : resolve(value); };
+    try {
+      const returned = api.getThreadInfo(id, done);
+      if (returned && typeof returned.then === "function") returned.then(value => done(null, value)).catch(done);
+    } catch (error) { done(error); }
+  });
+  const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
+  const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
+  const adminIDs = Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : [];
+  return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
+    userID,
+    name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
+    isAdmin: Array.isArray(info?.adminIDs) && info.adminIDs.map(String).includes(userID)
+  })).sort((a,b) => a.name.localeCompare(b.name));
+}
+
+const reactionAudience = createReactionAudience({
+  ttlMs: 120000,
+  getAdmins: async (api, threadID) => (await fetchMessengerGroupMembers(api, threadID))
+    .filter(member => member.isAdmin).map(member => member.userID)
+});
 
 function loginBot(sessionOverride = null) {
   if (!licenseAuthorized) {
@@ -646,8 +704,62 @@ try {
     getSessionStatus: () => require("./session-store").status(),
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
-    getSettings: () => require("./bot-settings").getSettings(),
-    updateReaction: input => require("./bot-settings").updateReaction(input),
+    getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
+    massSetNickname: async (threadID, userIDs, nickname) => executeMassSetNickname({
+      api: messengerApi,
+      threadID,
+      userIDs,
+      nickname,
+      getMembers: id => fetchMessengerGroupMembers(messengerApi, id),
+      delayMs: 1200
+    }),
+    countdown: {
+      getActive: () => countdownEngine.getActive(),
+      getHistory: () => eclipseControlsStore.listCountdownHistory(50),
+      getGroup: threadID => eclipseControlsStore.getGroup(threadID),
+      updateGroup: async (threadID, input) => {
+        if (input.countdownTargetId) {
+          const members = await fetchMessengerGroupMembers(messengerApi, threadID);
+          const member = members.find(item => item.userID === String(input.countdownTargetId));
+          if (!member) throw new Error("The selected countdown target is not a member of this Messenger group.");
+          input = { ...input, countdownTargetName: member.name };
+        }
+        const before = await eclipseControlsStore.getGroup(threadID);
+        const saved = await eclipseControlsStore.updateGroup(threadID, input);
+        if (!saved.countdownEnabled || String(before.countdownTargetId || "") !== String(saved.countdownTargetId || "")) {
+          await countdownEngine.cancel(threadID);
+        }
+        if (saved.autolockEnabled) {
+          try { await groupTitleGuard.repair(String(threadID), "dashboard-save"); }
+          catch (error) { console.warn("[GROUP TITLE LOCK] Initial repair failed:", error?.message || error); }
+        }
+        return saved;
+      }
+    },
+    getSettings: async () => {
+      const value = require("./bot-settings").getSettings();
+      if (persistentReactionSettings) value.reaction = persistentReactionSettings;
+      return value;
+    },
+    updateReaction: async input => {
+      const settings = require("./bot-settings");
+      const current = persistentReactionSettings || settings.getReactionSettings();
+      const requested = validateReactionTarget({ ...current, ...(input || {}) });
+      if (requested.targetMode === "member") {
+        const threadID = String(requested.targetThreadID || "").trim();
+        const userID = String(requested.targetUserId || "").trim();
+        if (!threadID || !userID) throw new Error("Choose a Messenger group and a custom reaction target.");
+        const members = await fetchMessengerGroupMembers(messengerApi, threadID);
+        const member = members.find(item => item.userID === userID);
+        if (!member) throw new Error("The selected reaction target is no longer a member of this Messenger group. Reload the member list.");
+        requested.targetUserName = member.name;
+        requested.targetThreadID = threadID;
+      }
+      const next = settings.sanitizeReaction(requested);
+      persistentReactionSettings = await eclipseControlsStore.updateReactionSettings(next);
+      settings.setRuntimeReaction(persistentReactionSettings);
+      return persistentReactionSettings;
+    },
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
     raidMode,
     isLicensed: () => licenseAuthorized,
@@ -656,6 +768,19 @@ try {
 } catch (error) {
   console.error("[BANAT] dashboard API failed:", error);
 }
+
+eclipseControlsStore.initialize().then(async ok => {
+  if (ok) {
+    console.log("[ECLIPSE CONTROLS] Neon controls store initialized.");
+    try { persistentReactionSettings = await eclipseControlsStore.getReactionSettings(); if (persistentReactionSettings) require("./bot-settings").setRuntimeReaction(persistentReactionSettings); } catch (error) { console.warn("[ECLIPSE CONTROLS] Could not load persistent reaction settings:", error?.message || error); }
+    if (messengerConnected && messengerApi) {
+      countdownEngine.restore(messengerApi).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
+      groupTitleGuard.start();
+    }
+  } else {
+    console.warn("[ECLIPSE CONTROLS] Countdown and title-lock controls unavailable:", eclipseControlsStore.getError());
+  }
+}).catch(error => console.warn("[ECLIPSE CONTROLS] initialization failed:", error?.message || error));
 
 raidMode.initialize().then(ok => {
   if (ok && messengerConnected) raidMode.start();
@@ -673,10 +798,13 @@ licenseGuard.initialize().then(ok => {
   licenseGuard.startHeartbeat(reason => {
     licenseAuthorized = false;
     raidMode.stop();
+    countdownEngine.pause();
+    groupTitleGuard.pause();
     console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
   }, () => {
     licenseAuthorized = true;
     if (raidMode.isInitialized()) raidMode.start();
+    if (eclipseControlsStore.isInitialized()) { countdownEngine.restore(messengerApi).catch(() => {}); groupTitleGuard.start(); }
     console.log("[ECLIPSE LICENSE] Installation authorization restored.");
     if (!messengerConnected && !loginInProgress) loginBot();
   });

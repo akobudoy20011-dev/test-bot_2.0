@@ -3,35 +3,159 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Banat Test Bot · Dashboard</title>
+<title>ECLIPSE Test Bot · Dashboard</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2c;--line:#293244;--text:#edf1f8;--muted:#9ba7ba;--accent:#a78bfa;--good:#55d6a3;--bad:#ff7d91;--warn:#f4c875}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#19152d 0,var(--bg) 48%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--panel2);color:var(--text);font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--accent);color:#160d2c;border-color:transparent}.danger{border-color:#663544;color:#ffb2bf}.wrap{max-width:1080px;margin:auto;padding:24px 16px 60px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#282044;color:#c7b7ff;font-size:24px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.sub{color:var(--muted);margin:2px 0 0}.status-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:3px 0}h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#171c29,#11151e);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}.span12{grid-column:span 12}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:21px;margin-top:4px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #252c39}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.hint{font-size:13px;color:var(--muted)}.setup{padding-left:20px;margin:0}.setup li{padding:5px 0}.tag{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:3px 7px;color:var(--muted)}code{background:#0b0e15;border:1px solid var(--line);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}.log{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;background:#0a0d13;padding:12px;border:1px solid var(--line);border-radius:10px}.field{display:flex;gap:8px;flex-wrap:wrap}.field input{flex:1;min-width:180px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.notice{padding:10px 12px;border-radius:10px;background:#241e13;border:1px solid #51412a;color:#f4d79b;font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:700px){.span8,.span4,.span6{grid-column:span 12}.metrics{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}.card{padding:15px}}
+:root{color-scheme:dark;--bg:#07080b;--panel:#101116;--panel2:#171920;--line:rgba(255,255,255,.085);--text:#f0f1f4;--muted:#a0a4af;--accent:#c75a6a;--good:#7db59a;--bad:#c77c87;--warn:#d3a96b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,rgba(199,90,106,.07) 0,transparent 46%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--panel2);color:var(--text);font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--accent);color:#fff;border-color:transparent}.danger{border-color:#663544;color:#ffb2bf}.wrap{max-width:1080px;margin:auto;padding:24px 16px 60px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(199,90,106,.15);color:#f7e6e9;font-size:24px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.sub{color:var(--muted);margin:2px 0 0}.status-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--bad)}h1{font-size:clamp(23px,4vw,32px);line-height:1.15;margin:3px 0}h2{font-size:17px;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#111217,#101116);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}.span12{grid-column:span 12}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:21px;margin-top:4px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #252c39}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.hint{font-size:13px;color:var(--muted)}.setup{padding-left:20px;margin:0}.setup li{padding:5px 0}.tag{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:3px 7px;color:var(--muted)}code{background:#0b0e15;border:1px solid var(--line);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}.log{font:12px/1.6 ui-monospace,SFMono-Regular,monospace;color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;background:#0a0d13;padding:12px;border:1px solid var(--line);border-radius:10px}.field{display:flex;gap:8px;flex-wrap:wrap}.field input{flex:1;min-width:180px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}.notice{padding:10px 12px;border-radius:10px;background:#241e13;border:1px solid #51412a;color:#f4d79b;font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:700px){.span8,.span4,.span6{grid-column:span 12}.metrics{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}.card{padding:15px}}
+
+button,input,select,textarea{font:inherit}
+button,input,select,textarea{ -webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(169,148,199,.75);outline-offset:2px}
+button{min-height:42px}
+@media(max-width:700px){body{padding-bottom:env(safe-area-inset-bottom)}.wrap{padding-top:max(18px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}.field select,.field input{min-width:0;max-width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* ECLIPSE control-room shell, aligned with the main dashboard navigation. */
+body{min-height:100vh}
+.app-sidebar{position:fixed;inset:0 auto 0 0;z-index:30;width:236px;padding:24px 15px;background:rgba(12,13,17,.98);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:18px}
+.app-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 20px;border-bottom:1px solid var(--line);color:var(--text);text-decoration:none}
+.app-brand-mark{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#c75a6a,#742a38);font-weight:900;font-size:18px;color:#fff}
+.app-brand strong{display:block;letter-spacing:.17em;font-size:13px}
+.app-brand small{display:block;margin-top:3px;color:var(--muted);font-size:9px;letter-spacing:.13em}
+.app-nav-label{padding:0 9px;color:#777d89;font-size:9px;font-weight:850;letter-spacing:.16em}
+.app-nav{display:grid;gap:5px}
+.app-nav a{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 11px;border:1px solid transparent;border-radius:11px;color:#a0a4af;text-decoration:none;font-size:11px;font-weight:750;transition:background .16s,border-color .16s,color .16s}
+.app-nav a:hover,.app-nav a.active{background:rgba(199,90,106,.14);border-color:rgba(199,90,106,.28);color:#f7e6e9}
+.app-nav a span{width:18px;text-align:center;color:var(--accent)}
+.app-sidebar-foot{margin-top:auto;padding:13px 10px;border:1px solid var(--line);border-radius:13px;background:#101116;color:var(--muted);font-size:10px}
+.app-sidebar-foot strong{display:block;color:var(--text);font-size:11px;margin-bottom:3px}
+.wrap{width:min(1440px,calc(100% - 270px));max-width:none;margin:0 24px 0 260px;padding:26px 18px 60px}
+.top{position:sticky;top:0;z-index:15;padding:13px 15px;margin:0 0 18px;border:1px solid var(--line);border-radius:17px;background:rgba(12,13,17,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.top .brand .logo{width:40px;height:40px;border-radius:12px}
+.top h1{font-size:clamp(21px,3vw,29px);letter-spacing:-.04em}
+.top .sub{font-size:11px}
+.card{border-radius:18px;box-shadow:0 12px 34px rgba(0,0,0,.18);scroll-margin-top:94px}
+.card h2{letter-spacing:-.02em}
+.card:target{border-color:rgba(199,90,106,.42);box-shadow:0 0 0 1px rgba(199,90,106,.10),0 14px 38px rgba(0,0,0,.22)}
+.mobile-nav{display:none}
+@media(max-width:850px){
+ .app-sidebar{width:205px;padding:20px 11px}
+ .wrap{width:calc(100% - 225px);margin-left:215px;margin-right:10px;padding:18px 10px 40px}
+}
+@media(max-width:650px){
+ .app-sidebar{display:none}
+ .wrap{width:100%;margin:0;padding:12px 11px 94px}
+ .top{top:4px;padding:11px;border-radius:15px}
+ .mobile-nav{position:fixed;z-index:50;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;gap:3px;overflow-x:auto;padding:6px;border:1px solid rgba(255,255,255,.12);border-radius:15px;background:rgba(12,13,17,.97);backdrop-filter:blur(18px);box-shadow:0 10px 35px rgba(0,0,0,.4)}
+ .mobile-nav a{flex:1 0 auto;min-width:56px;display:grid;place-items:center;gap:2px;padding:6px 7px;border-radius:10px;color:var(--muted);font-size:9px;font-weight:750;text-decoration:none}
+ .mobile-nav a span{font-size:15px;color:var(--accent)}
+ .mobile-nav a:hover,.mobile-nav a.active{background:rgba(199,90,106,.15);color:#f7e6e9}
+}
+
+
+/* Match the main ECLIPSE dashboard shell while keeping Test Bot modules independent. */
+.app-sidebar{position:sticky;top:0;inset:auto;height:100dvh;width:232px;min-width:232px;float:left;padding:24px 15px 16px;gap:18px}
+body{display:flow-root}
+.app-brand{padding:3px 9px 29px;gap:11px}
+.app-brand-mark{width:38px;height:38px;border:1px solid rgba(199,90,106,.34);border-radius:12px;background:rgba(199,90,106,.08);color:#e6a0aa}
+.app-brand strong{font-size:14px;font-weight:800}
+.app-nav{gap:4px}
+.app-nav a{min-height:42px;padding:11px 12px;border-radius:10px;font-size:12px;font-weight:600}
+.app-sidebar-foot{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:18px 10px 3px}
+.wrap{width:auto;max-width:none;margin:0 0 0 232px;padding:0;min-height:100dvh}
+.top{height:86px;position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px clamp(18px,3vw,42px);margin:0 0 18px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:rgba(7,8,11,.92)}
+.top-heading .eyebrow{margin:0 0 5px;font-size:9px;letter-spacing:.18em}
+.top-heading h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.025em}
+.top-heading .sub{margin-top:4px;font-size:11px}
+.top-actions{display:flex;align-items:center;gap:12px}
+.status-pill{border:0;background:transparent;padding:7px 2px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.top-refresh{width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:#aeb5c3;font-size:22px;line-height:1}
+.grid{padding:0 clamp(16px,2.4vw,32px) 24px}
+.card{border-radius:14px;box-shadow:none}
+.mobile-nav{display:none}
+@media(max-width:850px){
+ .app-sidebar{display:none}
+ .wrap{width:100%;margin:0;padding:0 0 calc(72px + env(safe-area-inset-bottom))}
+ .top{height:72px;padding:12px 17px;margin:0}
+ .top-heading h1{font-size:18px}
+ .top-heading .sub{display:none}
+ .grid{padding:15px 12px calc(18px + env(safe-area-inset-bottom))}
+ .mobile-nav{position:fixed;z-index:50;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;overflow:visible;padding:7px 4px max(7px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);border-radius:0;background:rgba(12,13,17,.97);box-shadow:none}
+ .mobile-nav a{display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:48px;padding:5px 0;border-radius:8px;font-size:9px}
+ .mobile-nav a span{font-size:18px}
+}
+@media(min-width:851px){.wrap{margin-left:232px}.top{z-index:15}}
+
 </style>
 </head>
-<body><main class="wrap">
-<header class="top"><div class="brand"><div class="logo">B</div><div><div class="eyebrow">Standalone edition</div><h1>Banat Test Bot</h1><p class="sub">Essentials dashboard · no RPG, economy, music, or PM mode</p></div></div><div class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></div></header>
+<body>
+<aside class="app-sidebar">
+  <a class="app-brand" href="#overview"><span class="app-brand-mark">E</span><span><strong>ECLIPSE</strong><small>MESSENGER CONTROL</small></span></a>
+  <div class="app-nav-label">WORKSPACE</div>
+  <nav class="app-nav" aria-label="Dashboard navigation">
+    <a href="#overview"><span>⌂</span>Overview</a>
+    <a href="#groupSettings"><span>▦</span>Groups</a>
+    <a href="#reactionPanel"><span>☺</span>MESS Reactions</a>
+    <a href="#countdownPanel"><span>◷</span>Countdown</a>
+    <a href="#massSetnnPanel"><span>✎</span>Mass SetNN</a>
+    <a href="#groupTitleLockPanel"><span>⌑</span>Auto-lock</a>
+    <a href="#raidModePanel"><span>◇</span>Raid Mode</a>
+    <a href="#sessionCookiePanel"><span>▣</span>Session</a>
+    <a href="#eventsPanel"><span>≋</span>Activity</a>
+  </nav>
+  <div class="app-sidebar-foot"><strong>Test Bot 2.0</strong>Independent ECLIPSE instance</div>
+</aside>
+<main class="wrap">
+<header class="top"><div class="top-heading"><p class="eyebrow">CONTROL CENTER</p><h1>Overview</h1><p class="sub">ECLIPSE Test Bot · independent instance</p></div><div class="top-actions"><span class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></span><button class="top-refresh" id="topRefreshBtn" type="button" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button></div></header>
 <div class="grid">
-<section class="card span8"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
-<section class="card span4"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
-<section class="card span6"><h2>Session setup</h2><div class="notice">Paste your Facebook session in the panel below. It is held in server memory only; no persistent disk or encryption-key environment variable is needed.</div><ol class="setup"><li>Paste a single-line cookie header or complete JSON appstate export.</li><li>Choose Save session. The bot will attempt to connect immediately.</li><li>If Render restarts, redeploys, or spins down, the session is cleared and you must paste it again.</li></ol><p class="hint">Never share your Facebook session or put it in frontend code, screenshots, or public logs.</p></section>
-<section class="card span12"><h2>Messenger cookie session</h2><p class="hint">Paste a single-line cookie header or a complete JSON appstate export. JSON arrays and appState/cookies wrapper objects are normalized and held in server memory only. Saving attempts to connect immediately; Render restarts and spin-downs clear the session, so paste it again afterward.</p><textarea id="sessionCookie" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste cookie header or complete JSON appstate export here" style="width:100%;resize:vertical;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px"></textarea><div class="actions"><button class="primary" id="saveSession">Save session</button><button class="danger" id="clearSession">Clear saved cookie</button><button id="refreshSession">Refresh session status</button></div><p class="hint" id="sessionMessage">Checking saved session…</p><div class="notice">Render Free limitation: sessions disappear after a restart, redeploy, or spin-down. You do not need a persistent disk or ECLIPSE_SESSION_ENCRYPTION_KEY. Paste your session again whenever that happens.</div></section>
-<section class="card span6"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div><p class="hint">Activation commands are sent in the Messenger group itself. This dashboard only exposes controls supported by the test bot API.</p></section>
-<section class="card span6"><h2>Banat group picker</h2><p class="hint">Load your Messenger group chats, then choose which chats can run Banat. This does not add Auto Target.</p><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Use !banat on/off in this group</option><option value="on">Banat always enabled in this group</option><option value="off">Banat disabled in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay ms <input id="groupReplyDelay" type="number" min="0" max="30000" placeholder="Default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start (PH time) <input id="quietStart" type="time"></label><label>Quiet end (PH time) <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">Load Messenger groups to begin.</p></section>
-<section class="card span6"><h2>Custom reaction emoji</h2><p class="hint">Choose the emoji used when Banat reacts to its own replies and, optionally, incoming messages.</p><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div><div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section>
+<section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
+<section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
+<section class="card span12" id="sessionCookiePanel"><h2>Messenger cookie session</h2><textarea id="sessionCookie" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste cookie header or complete JSON appstate export here" style="width:100%;resize:vertical;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px"></textarea><div class="actions"><button class="primary" id="saveSession">Save session</button><button class="danger" id="clearSession">Clear saved cookie</button><button id="refreshSession">Refresh session status</button></div><p class="hint" id="sessionMessage">Checking saved session…</p><p class="hint">Session stays in memory and is cleared on restart or spin-down. Never share it or expose it in screenshots/logs.</p></section>
+<section class="card span6" id="botControls"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div></section>
+<section class="card span6" id="groupSettings"><h2>Banat group picker</h2><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Use !banat on/off in this group</option><option value="on">Banat always enabled in this group</option><option value="off">Banat disabled in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay ms <input id="groupReplyDelay" type="number" min="0" max="30000" placeholder="Default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start (PH time) <input id="quietStart" type="time"></label><label>Quiet end (PH time) <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">Load Messenger groups to begin.</p></section>
+<section class="card span6" id="massSetnnPanel">
+  <h2>Mass SetNN</h2>
+  
+  <div class="field"><button id="loadMassMembers">Load group members</button></div>
+  <select id="massSetnnMembers" multiple size="6" aria-label="Select members for Mass SetNN" style="width:100%;margin:8px 0;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></select>
+  <label>Nickname to apply <input id="massSetnnNickname" maxlength="64" placeholder="Enter the new nickname" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
+  <div class="actions"><button class="primary" id="runMassSetnn">Apply nickname</button></div>
+  <p class="hint" id="massSetnnMessage">Select a group above, then load members.</p>
+</section>
+<section class="card span6" id="groupTitleLockPanel">
+  <h2>Auto-lock GC name</h2>
+  
+  <div class="field"><label><input id="titleLockEnabled" type="checkbox"> Enable title protection</label></div>
+  <label>Protected group name <input id="titleLockName" maxlength="100" placeholder="Enter the exact group name" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
+  <div class="actions"><button class="primary" id="saveTitleLock">Save title lock</button><button id="loadTitleLock">Load saved name</button></div>
+  <p class="hint" id="titleLockMessage">Choose a group above to configure its protected name.</p>
+</section>
+<section class="card span12" id="countdownPanel">
+  <h2>Countdown · target challenge</h2>
+  
+  <div class="field"><label><input id="countdownEnabled" type="checkbox"> Enable countdown for selected group</label></div>
+  <div class="field"><select id="countdownTargetMember" aria-label="Countdown target member"><option value="">Load a group and members first</option></select><button id="loadCountdownMembers">Load members</button><button id="loadCountdownSettings">Load countdown settings</button></div>
+  <div class="field"><label>Inactivity minutes <input id="countdownInactivity" type="number" min="1" max="60" value="5"></label><label>Number delay ms <input id="countdownDelay" type="number" min="1000" max="10000" step="500" value="2000"></label></div>
+  <div class="actions"><button class="primary" id="saveCountdown">Save countdown settings</button><button id="refreshCountdownHistory">Refresh history</button></div>
+  <p class="hint" id="countdownMessage">Select a group above, then load members.</p>
+  <div class="log" id="countdownHistory" style="max-height:180px">Countdown history will appear here.</div>
+</section>
+<section class="card span6" id="reactionPanel"><h2>MESS reaction targeting</h2><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div>
+<div class="field"><select id="reactionAudience" aria-label="Who should receive the reaction"><option value="all">Everyone</option><option value="admins">Group admins</option><option value="member">Selected member</option></select><select id="reactionMember" aria-label="Select member"><option value="">Load a group and members first</option></select><button id="loadReactionMembers">Load members</button></div>
+<div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section>
 
 <section class="card span12" id="raidModePanel">
   <h2>Raid Mode · persistent group theme</h2>
-  <p class="hint">Configure one reusable theme, preview it, select groups, then confirm activation here. Raid Mode changes group names, every member's nickname, and group photos. It sends no Messenger confirmation messages.</p>
-  <div class="notice" id="raidStatus">Enter the dashboard key and load Raid Mode status. Neon and persistent image storage must be configured before activation.</div>
-  <div class="field" style="margin-top:12px"><label style="flex:1;min-width:220px">Dashboard API key <input id="raidApiKey" type="password" autocomplete="off" placeholder="X-ECLIPSE-DASHBOARD-KEY" style="width:100%"></label><button id="raidRefresh">Load Raid Mode</button></div>
+  
+  <div class="notice" id="raidStatus">Enter the ECLIPSE dashboard key once. It authorizes dashboard management actions, including group controls. Neon is required for persistent feature settings.</div>
+  <div class="field" style="margin-top:12px"><label style="flex:1;min-width:220px">ECLIPSE dashboard key <input id="raidApiKey" type="password" autocomplete="off" placeholder="Enter ECLIPSE_DASHBOARD_API_KEY" style="width:100%"></label><button id="raidRefresh">Load Raid Mode</button></div>
   <div class="grid" style="margin-top:12px">
     <div class="card span6">
       <h2>Shared theme settings</h2>
       <label>Group chat name <input id="raidGroupTitle" maxlength="100" placeholder="Enter the enforced group name" style="width:100%;margin:6px 0 12px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
       <label>Nickname applied to every member <input id="raidNickname" maxlength="64" placeholder="Enter the enforced nickname" style="width:100%;margin:6px 0 12px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
       <label>Group profile picture <input id="raidImageFile" type="file" accept="image/png,image/jpeg,image/webp" style="display:block;margin:8px 0"></label>
-      <p class="hint">PNG, JPEG, or WebP · maximum 5 MB. The image is uploaded once to persistent object storage; its key and theme metadata are stored in Neon.</p>
+      <p class="hint">PNG, JPEG, or WebP · max 5 MB.</p>
       <div class="actions"><button id="raidSaveTheme">Save theme</button><button id="raidUploadImage">Upload photo</button></div>
       <p class="hint" id="raidThemeMessage">No theme loaded yet.</p>
     </div>
@@ -43,34 +167,42 @@
         <img id="raidPreviewImage" alt="Raid Mode group photo preview" style="display:none;max-width:100%;max-height:220px;object-fit:contain;border-radius:10px">
         <p class="hint" id="raidPreviewImageLabel">No group photo selected.</p>
       </div>
-      <p class="hint">This theme is stored once and can be reused by separately configured bot instances that point to the same Raid theme ID.</p>
+      
     </div>
     <div class="card span6">
       <h2>Select Messenger groups</h2>
       <div class="actions" style="margin-top:0"><button id="raidLoadGroups">Load groups</button><button id="raidSelectAll">Select all loaded</button><button id="raidClearGroups">Clear selection</button></div>
-      <div id="raidGroupChoices" class="log" style="max-height:220px;margin-top:10px">Load Messenger groups to choose where Raid Mode should run.</div>
+      <div id="raidGroupChoices" class="log" style="max-height:220px;margin-top:10px">No groups loaded.</div>
       <p class="hint" id="raidSelectionCount">0 groups selected.</p>
     </div>
     <div class="card span6">
       <h2>Enforcement status</h2>
       <div id="raidGroupStatus" class="log" style="max-height:220px">No status loaded.</div>
       <div class="actions"><button class="primary" id="raidActivate">Preview & activate</button><button id="raidRefreshStatus">Refresh status</button><button class="danger" id="raidEmergencyStop">Emergency stop</button></div>
-      <p class="hint" id="raidActionMessage">Activation and emergency stop are confirmed from this dashboard only.</p>
+      <p class="hint" id="raidActionMessage"></p>
     </div>
   </div>
 </section>
 
-<section class="card span12"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
-<section class="card span12"><h2>Dashboard connection</h2><p class="hint">Dashboard requests are restricted to the configured dashboard origin.</p></section>
-</div><p class="footer">Banat Test Bot dashboard · read-only status unless an explicit bot control is available. No automatic deployment is performed by this page.</p>
+<section class="card span12" id="eventsPanel"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
+
+</div><p class="footer">ECLIPSE Test Bot</p>
 </main>
+<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a></nav>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
+  document.getElementById("topRefreshBtn")?.addEventListener("click",()=>document.getElementById("refreshBtn")?.click());
+  document.querySelectorAll(".app-nav a,.mobile-nav a").forEach(link=>link.addEventListener("click",()=>{
+    const target=link.getAttribute("href");
+    document.querySelectorAll(".app-nav a,.mobile-nav a").forEach(item=>item.classList.toggle("active",item.getAttribute("href")===target));
+  }));
   const fmtDuration = seconds => { seconds=Math.max(0,Number(seconds)||0); const d=Math.floor(seconds/86400),h=Math.floor(seconds%86400/3600),m=Math.floor(seconds%3600/60); return d?d+"d "+h+"h":h?h+"h "+m+"m":m+"m"; };
   const fmtBytes = n => { n=Number(n)||0; return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"; };
   async function request(path, options={}) {
     const headers=Object.assign({"Accept":"application/json"},options.headers||{});
+    const ownerKey=$("raidApiKey")?.value?.trim();
+    if(ownerKey && !headers["X-ECLIPSE-DASHBOARD-KEY"]) headers["X-ECLIPSE-DASHBOARD-KEY"]=ownerKey;
     if(options.body) headers["Content-Type"]="application/json";
     const response=await fetch(path,Object.assign({},options,{headers,cache:"no-store"}));
     let data={}; try{data=await response.json()}catch(_){}
@@ -129,12 +261,124 @@
     catch(e){$("groupMessage").textContent="Save failed: "+e.message;}
   }
   async function loadSettings(){
-    try{const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};$("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"bot_replies";$("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;$("reactionMessage").textContent="Loaded saved emoji settings.";}
-    catch(e){$("reactionMessage").textContent="Could not load settings: "+e.message;}
+    try{
+      const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};
+      $("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"incoming_messages";$("reactionAudience").value=r.targetMode||"all";
+      $("reactionMember").dataset.userId=r.targetUserId||"";$("reactionMember").dataset.threadId=r.targetThreadID||"";
+      $("reactionMember").replaceChildren(new Option(r.targetUserName||"Select a member…",r.targetUserId||""));
+      $("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;
+      if(r.targetThreadID){
+        const groupSelect=$("groupThreadID");
+        if(![...groupSelect.options].some(option=>option.value===r.targetThreadID))await refreshGroups();
+        if([...groupSelect.options].some(option=>option.value===r.targetThreadID))groupSelect.value=r.targetThreadID;
+      }
+      $("reactionMessage").textContent="Loaded saved emoji settings.";
+      if(r.targetMode==="admins"||r.targetMode==="member")await loadReactionMembers();
+    }catch(e){$("reactionMessage").textContent="Could not load settings: "+e.message;}
+  }
+  async function loadMassMembers(){
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("massSetnnMessage").textContent="Choose a group first.";return;}
+    const button=$("loadMassMembers");button.disabled=true;
+    try{
+      const data=await request("/api/dashboard/group-members?threadID="+encodeURIComponent(threadID));
+      const select=$("massSetnnMembers");select.replaceChildren();
+      for(const m of data.members||[])select.add(new Option((m.name||"Messenger member")+(m.isAdmin?" · admin":""),m.userID));
+      $("massSetnnMessage").textContent=(data.members||[]).length+" group member(s) loaded. Select one or more.";
+    }catch(e){$("massSetnnMessage").textContent="Could not load members: "+e.message;}
+    finally{button.disabled=false;}
+  }
+  async function runMassSetnn(){
+    const threadID=$("groupThreadID").value.trim();
+    const userIDs=[...$("massSetnnMembers").selectedOptions].map(option=>option.value);
+    const nickname=$("massSetnnNickname").value.trim();
+    if(!threadID||!userIDs.length||!nickname){$("massSetnnMessage").textContent="Choose a group, select members, and enter a nickname.";return;}
+    if(!confirm("Apply the nickname \""+nickname+"\" to "+userIDs.length+" selected member(s)?"))return;
+    const button=$("runMassSetnn");button.disabled=true;
+    try{
+      const data=await request("/api/dashboard/setnn/mass",{method:"POST",body:JSON.stringify({threadID,userIDs,nickname})});
+      $("massSetnnMessage").textContent="Completed: "+data.result.succeeded+" succeeded, "+data.result.failed+" failed.";
+    }catch(e){$("massSetnnMessage").textContent="Mass SetNN failed: "+e.message;}
+    finally{button.disabled=false;}
+  }
+  async function loadTitleLock(){
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("titleLockMessage").textContent="Choose a group first.";return;}
+    try{const data=await request("/api/dashboard/countdown/group?threadID="+encodeURIComponent(threadID));const g=data.group||{};$("titleLockEnabled").checked=!!g.autolockEnabled;$("titleLockName").value=g.expectedTitle||"";$("titleLockMessage").textContent="Saved group name loaded.";}
+    catch(e){$("titleLockMessage").textContent="Could not load title lock: "+e.message;}
+  }
+  async function saveTitleLock(){
+    const threadID=$("groupThreadID").value.trim(),expectedTitle=$("titleLockName").value.trim();
+    if(!threadID){$("titleLockMessage").textContent="Choose a group first.";return;}
+    if($("titleLockEnabled").checked&&!expectedTitle){$("titleLockMessage").textContent="Enter the exact group name first.";return;}
+    try{await request("/api/dashboard/countdown/group",{method:"POST",body:JSON.stringify({threadID,autolockEnabled:$("titleLockEnabled").checked,expectedTitle})});$("titleLockMessage").textContent="Auto-lock settings saved for this group.";}
+    catch(e){$("titleLockMessage").textContent="Save failed: "+e.message;}
+  }
+  async function loadCountdownMembers(){
+    const threadID=$("groupThreadID").value.trim();
+    if(!threadID){$("countdownMessage").textContent="Choose a Messenger group first.";return;}
+    const button=$("loadCountdownMembers");button.disabled=true;
+    try{
+      const data=await request("/api/dashboard/group-members?threadID="+encodeURIComponent(threadID));
+      const select=$("countdownTargetMember"),saved=select.dataset.userId||"";
+      select.replaceChildren(new Option("Choose countdown target…",""));
+      for(const m of data.members||[])select.add(new Option((m.name||"Messenger member")+(m.isAdmin?" · admin":""),m.userID));
+      if(saved&&[...select.options].some(o=>o.value===saved))select.value=saved;
+      $("countdownMessage").textContent=(data.members||[]).length+" group member(s) loaded.";
+    }catch(e){$("countdownMessage").textContent="Could not load members: "+e.message;}
+    finally{button.disabled=false;}
+  }
+  async function loadCountdownSettings(){
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("countdownMessage").textContent="Choose a group first.";return;}
+    try{
+      const data=await request("/api/dashboard/countdown/group?threadID="+encodeURIComponent(threadID));
+      const g=data.group||{};$("countdownEnabled").checked=!!g.countdownEnabled;
+      $("countdownInactivity").value=Math.max(1,Math.round((Number(g.inactivityMs)||300000)/60000));
+      $("countdownDelay").value=Number(g.countDelayMs)||2000;
+      const select=$("countdownTargetMember");select.dataset.userId=g.countdownTargetId||"";
+      select.replaceChildren(new Option(g.countdownTargetName||"Choose countdown target…",g.countdownTargetId||""));
+      if(g.countdownTargetId)await loadCountdownMembers();
+      $("countdownMessage").textContent="Countdown settings loaded.";
+    }catch(e){$("countdownMessage").textContent="Could not load countdown settings: "+e.message;}
+  }
+  async function saveCountdown(){
+    const threadID=$("groupThreadID").value.trim(),target=$("countdownTargetMember");
+    if(!threadID){$("countdownMessage").textContent="Choose a group first.";return;}
+    if($("countdownEnabled").checked&&!target.value){$("countdownMessage").textContent="Choose a target member first.";return;}
+    try{
+      const data=await request("/api/dashboard/countdown/group",{method:"POST",body:JSON.stringify({
+        threadID,countdownEnabled:$("countdownEnabled").checked,countdownTargetId:target.value,
+        countdownTargetName:target.selectedOptions[0]?.textContent||"",
+        inactivityMs:Number($("countdownInactivity").value)*60000,countDelayMs:Number($("countdownDelay").value)
+      })});
+      $("countdownMessage").textContent="Countdown settings saved for group "+threadID+".";
+      await refreshCountdownHistory();
+    }catch(e){$("countdownMessage").textContent="Save failed: "+e.message;}
+  }
+  async function refreshCountdownHistory(){
+    try{
+      const data=await request("/api/dashboard/countdown/history");
+      const items=data.history||[];
+      $("countdownHistory").textContent=items.length?items.map(x=>new Date(x.createdAt).toLocaleString()+" · "+x.result+" · "+(x.targetName||x.targetId)+" · "+x.reason).join("\\n"):"No countdown runs recorded yet.";
+    }catch(e){$("countdownHistory").textContent="History unavailable: "+e.message;}
+  }
+  async function loadReactionMembers(){
+    const threadID=$("groupThreadID").value.trim();
+    if(!threadID){$("reactionMessage").textContent="Choose a Messenger group first.";return;}
+    const button=$("loadReactionMembers");button.disabled=true;
+    try{
+      const data=await request("/api/dashboard/group-members?threadID="+encodeURIComponent(threadID));
+      const select=$("reactionMember"),saved=select.dataset.userId||"";
+      select.replaceChildren(new Option("Choose a member…",""));
+      for(const m of data.members||[])select.add(new Option((m.name||"Messenger member")+(m.isAdmin?" · admin":""),m.userID));
+      if(saved&&[...select.options].some(o=>o.value===saved))select.value=saved;
+      $("reactionMessage").textContent=(data.members||[]).length+" member(s) loaded for this group.";
+    }catch(e){$("reactionMessage").textContent="Could not load members: "+e.message;}
+    finally{button.disabled=false;}
   }
   async function saveReaction(){
-    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim()||"😆",target:$("reactionTarget").value,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
-    try{const data=await request("/api/dashboard/settings/reaction",{method:"POST",body:JSON.stringify(body)});$("reactionMessage").textContent="Saved reaction emoji "+data.reaction.emoji+".";loadEvents();}
+    const member=$("reactionMember"),mode=$("reactionAudience").value,threadID=$("groupThreadID").value.trim();
+    if(mode==="member"&&(!threadID||!member.value)){ $("reactionMessage").textContent="Choose a group, load its members, and select one custom target.";return; }
+    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim()||"😆",target:$("reactionTarget").value,targetMode:mode,targetUserId:mode==="member"?member.value:"",targetUserName:mode==="member"?(member.selectedOptions[0]?.textContent||""):"",targetThreadID:mode==="all"?"":threadID,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
+    try{const data=await request("/api/dashboard/settings/reaction",{method:"POST",body:JSON.stringify(body)});$("reactionMessage").textContent="Saved reaction emoji "+data.reaction.emoji+" · audience: "+data.reaction.targetMode+".";loadEvents();}
     catch(e){$("reactionMessage").textContent="Save failed: "+e.message;}
   }
   async function refreshSession(){
@@ -262,6 +506,7 @@
     catch(error){$("raidActionMessage").textContent="Emergency stop failed: "+error.message;}
   }
   $("raidGroupTitle").addEventListener("input",updateRaidPreview);$("raidNickname").addEventListener("input",updateRaidPreview);$("raidImageFile").addEventListener("change",updateRaidPreview);
+  $("raidApiKey").addEventListener("change",()=>{loadSettings();refreshSession();refreshGroups();loadEvents();});
   $("raidRefresh").addEventListener("click",raidRefreshStatus);$("raidLoadGroups").addEventListener("click",raidLoadGroups);
   $("raidSelectAll").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=true);updateRaidSelectionCount();});
   $("raidClearGroups").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=false);updateRaidSelectionCount();});
@@ -274,6 +519,17 @@
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings);
+  $("loadReactionMembers").addEventListener("click",loadReactionMembers);
+  $("loadCountdownMembers").addEventListener("click",loadCountdownMembers);
+  $("loadMassMembers").addEventListener("click",loadMassMembers);
+  $("runMassSetnn").addEventListener("click",runMassSetnn);
+  $("loadTitleLock").addEventListener("click",loadTitleLock);
+  $("saveTitleLock").addEventListener("click",saveTitleLock);
+  $("loadCountdownSettings").addEventListener("click",loadCountdownSettings);
+  $("saveCountdown").addEventListener("click",saveCountdown);
+  $("refreshCountdownHistory").addEventListener("click",refreshCountdownHistory);
+  $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
+  $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   refresh(); loadEvents(); loadSettings(); refreshSession(); setInterval(refresh,15000);
 })();
 </script></body></html>

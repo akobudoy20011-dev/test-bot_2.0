@@ -100,6 +100,19 @@ The dashboard API's origin check is controlled by `ECLIPSE_DASHBOARD_ORIGIN`. Da
 Keep this branch separate until syntax checks and a real test session are verified. Do not deploy solely because the dashboard page loads. Confirm the dashboard API key, CORS origin, session login, command handling, direct targeting, thread cooldown, and pause/resume behavior before merging.
 
 
+## ECLIPSE Test Bot controls
+
+The dashboard's Countdown, Mass SetNN, Auto-lock GC name, and MESS target settings are owner-managed. Enter the same `ECLIPSE_DASHBOARD_API_KEY` configured on the Render service in the dashboard key field. Dashboard origin allowlisting is an additional browser restriction, not a replacement for the owner key.
+
+Persistent feature configuration and countdown history use Neon PostgreSQL. The controls store uses `ECLIPSE_CONTROLS_DATABASE_URL` when supplied, then falls back to `ECLIPSE_LICENSE_DATABASE_URL` or `DATABASE_URL`. No extra database is required when the existing Neon connection is available.
+
+- **Countdown:** choose a group and a member by Messenger ID. The default inactivity period is five minutes, followed by 1–100 at two-second intervals. A message from the selected member during the count cancels the run and records a loss; a completed count records a win. Active state and history are persisted so a restart can resume safely.
+- **Mass SetNN:** select up to 50 current group members and apply one nickname. Membership is revalidated server-side and changes are serialized with a delay between writes.
+- **Auto-lock GC name:** save an expected title per group. Title-change events trigger repair, with a ten-minute reconciliation fallback and a bounded repair cooldown.
+- **MESS reactions:** select everyone, group admins, or one chosen member. Custom targets are scoped to the selected Messenger group and saved in Neon.
+
+The features are independent per `test-bot` namespace. They do not alter the main bot or its dashboard. Test these controls in a group where you have permission to change nicknames and group titles before relying on them.
+
 ## Raid Mode (Test Bot instance)
 
 Raid Mode is a dashboard-only persistent group-theme enforcer. It can enforce the selected group's title, one configured nickname across current members, and the configured group photo. It does not send Messenger activation or confirmation messages.

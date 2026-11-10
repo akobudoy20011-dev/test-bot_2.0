@@ -6,7 +6,7 @@ const settings=require("../bot-settings");
 test("reaction and group settings validate and persist",t=>{
  t.after(()=>{try{fs.unlinkSync(settingsFile)}catch(_){}delete process.env.BOT_SETTINGS_PATH;});
  assert.equal(settings.getReactionSettings().emoji,"😆");
- assert.deepEqual(settings.updateReaction({enabled:true,emoji:"🔥",target:"both",probability:100,cooldownSeconds:60}),{enabled:true,emoji:"🔥",target:"both",probability:100,cooldownSeconds:60});
+ assert.deepEqual(settings.updateReaction({enabled:true,emoji:"🔥",target:"both",targetMode:"all",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:60}),{enabled:true,emoji:"🔥",target:"both",targetMode:"all",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:60});
  const g=settings.updateGroup("123456",{banatMode:"off",typingEnabled:false,replyDelayMs:1250,cooldownMs:0,quietStart:"22:00",quietEnd:"06:00"});
  assert.equal(g.banatMode,"off");assert.equal(g.typingEnabled,false);assert.equal(g.replyDelayMs,1250);
  assert.equal(settings.getGroupSettings("123456").quietStart,"22:00");
