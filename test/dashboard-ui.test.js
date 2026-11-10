@@ -33,6 +33,22 @@ test("dashboard management key is available globally rather than hidden inside R
   assert.match(html,/ECLIPSE_DASHBOARD_API_KEY/);
 });
 
+test("dashboard parity navigation and appearance controls are available on desktop and mobile",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  assert.match(html,/COMMAND CENTER/);
+  assert.match(html,/BOT MANAGEMENT/);
+  assert.match(html,/SYSTEM/);
+  assert.match(html,/id="appearancePanel"/);
+  assert.match(html,/data-theme="burgundy"/);
+  assert.match(html,/data-theme="cyan"/);
+  assert.match(html,/data-theme="gold"/);
+  assert.match(html,/id="customAccent"/);
+  assert.match(html,/id="applyCustomAccent"/);
+  assert.match(html,/href="#appearancePanel"><span>◐<\/span>Theme<\/a>/);
+  assert.match(html,/localStorage\.setItem\("eclipse-testbot-accent"/);
+  assert.doesNotMatch(html,/(?:localStorage|sessionStorage)\.setItem\([^)]*(?:raidApiKey|DASHBOARD_API_KEY)/i);
+});
+
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
