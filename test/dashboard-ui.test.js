@@ -49,6 +49,17 @@ test("dashboard parity navigation and appearance controls are available on deskt
   assert.doesNotMatch(html,/(?:localStorage|sessionStorage)\.setItem\([^)]*(?:raidApiKey|DASHBOARD_API_KEY)/i);
 });
 
+test("security navigation exposes real owner-license management controls",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  const script=[...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)].at(-1)?.[1];
+  assert.doesNotThrow(()=>new vm.Script(script));
+  for(const id of ["securityPanel","securityMode","securityApproved","securityLimit","securityInstallLimit","securityInstallations","securityEvents","securityForks","refreshSecurity","saveSecurityLimit","scanForks"]) assert.match(html,new RegExp('id="'+id+'"'));
+  assert.match(html,/api\\/dashboard\\/security\\/installations/);
+  assert.match(html,/api\\/dashboard\\/security\\/license-settings/);
+  assert.match(html,/api\\/dashboard\\/security\\/forks/);
+  assert.match(html,/href="#securityPanel"/);
+});
+
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
