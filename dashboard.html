@@ -89,7 +89,7 @@ body{display:flow-root}
 
 /* Explicit feature layout: keep every Test Bot module in its own full-width row. */
 .dashboard-access{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 clamp(16px,2.4vw,32px) 14px;padding:13px 16px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
-.dashboard-access strong{display:block;font-size:13px}.dashboard-access .hint{margin:3px 0 0;max-width:620px}.access-key-label{display:grid;gap:5px;min-width:min(340px,42%);color:var(--muted);font-size:11px;font-weight:700}.access-key-label input{width:100%;min-width:0;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}
+.dashboard-access strong{display:block;font-size:13px}.dashboard-access .hint{margin:3px 0 0;max-width:620px}.access-key-controls{min-width:min(340px,42%)}.access-key-label{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:700}.access-key-label input{width:100%;min-width:0;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}.access-key-controls .actions{margin-top:8px}.access-key-controls .hint{margin-top:6px}
 @media(max-width:650px){.dashboard-access{display:grid;gap:10px;margin:12px 12px 0;padding:12px}.access-key-label{min-width:0}}
 
 main.wrap > .grid {
@@ -138,7 +138,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
 </aside>
 <main class="wrap">
 <header class="top"><div class="top-heading"><p class="eyebrow">CONTROL CENTER</p><h1>Overview</h1><p class="sub">ECLIPSE Test Bot · independent instance</p></div><div class="top-actions"><span class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></span><button class="top-refresh" id="topRefreshBtn" type="button" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button></div></header>
-<section class="dashboard-access" aria-label="Dashboard access"><div><strong>Dashboard access</strong><p class="hint">Enter your Render <code>ECLIPSE_DASHBOARD_API_KEY</code> to unlock session, group, and bot management controls. This key is kept only in this page memory.</p></div><label class="access-key-label">Owner key<input id="raidApiKey" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="Paste dashboard API key"></label></section>
+<section class="dashboard-access" aria-label="Dashboard access"><div><strong>Dashboard access</strong><p class="hint">Enter your Render <code>ECLIPSE_DASHBOARD_API_KEY</code> to unlock session, group, and bot management controls. This key is kept only in this page memory.</p></div><div class="access-key-controls"><label class="access-key-label">Owner key<input id="raidApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste dashboard API key" aria-describedby="dashboardAccessMessage"></label><div class="actions"><button class="primary" id="unlockDashboard" type="button">Unlock controls</button><button id="clearDashboardKey" type="button">Clear key</button></div><p class="hint" id="dashboardAccessMessage" role="status">Management controls require the dashboard key.</p></div></section>
 <div class="grid">
 <section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
 <section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
@@ -538,7 +538,22 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     catch(error){$("raidActionMessage").textContent="Emergency stop failed: "+error.message;}
   }
   $("raidGroupTitle").addEventListener("input",updateRaidPreview);$("raidNickname").addEventListener("input",updateRaidPreview);$("raidImageFile").addEventListener("change",updateRaidPreview);
-  $("raidApiKey").addEventListener("change",()=>{loadSettings();refreshSession();refreshGroups();loadEvents();});
+  async function unlockDashboard(){
+    const key=$("raidApiKey").value.trim();
+    if(!key){$("dashboardAccessMessage").textContent="Enter the ECLIPSE_DASHBOARD_API_KEY from the Test Bot Render environment first.";return;}
+    $("unlockDashboard").disabled=true;$("dashboardAccessMessage").textContent="Checking dashboard access…";
+    try{
+      await request("/api/dashboard/session");
+      $("dashboardAccessMessage").textContent="Dashboard controls unlocked. Session and group management are ready.";
+      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents()]);
+      await raidRefreshStatus();
+    }catch(error){$("dashboardAccessMessage").textContent="Access denied: "+error.message+" Check that the key matches the Test Bot Render environment."}
+    finally{$("unlockDashboard").disabled=false;}
+  }
+  $("unlockDashboard").addEventListener("click",unlockDashboard);
+  $("raidApiKey").addEventListener("keydown",event=>{if(event.key==="Enter")unlockDashboard();});
+  $("raidApiKey").addEventListener("change",unlockDashboard);
+  $("clearDashboardKey").addEventListener("click",()=>{$("raidApiKey").value="";$("dashboardAccessMessage").textContent="Dashboard key cleared from this page. Management requests are locked.";});
   $("raidRefresh").addEventListener("click",raidRefreshStatus);$("raidLoadGroups").addEventListener("click",raidLoadGroups);
   $("raidSelectAll").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=true);updateRaidSelectionCount();});
   $("raidClearGroups").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=false);updateRaidSelectionCount();});
