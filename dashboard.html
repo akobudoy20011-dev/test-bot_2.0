@@ -339,7 +339,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     const button=$("runMassSetnn");button.disabled=true;
     try{
       const data=await request("/api/dashboard/setnn/mass",{method:"POST",body:JSON.stringify({threadID,userIDs,nickname})});
-      $("massSetnnMessage").textContent="Completed: "+data.result.succeeded+" succeeded, "+data.result.failed+" failed.";
+      $("massSetnnMessage").textContent="Completed: "+data.result.succeeded+" changed, "+data.result.failed+" failed. Persistent nickname locks saved for "+(data.result.lockSaved||0)+" member(s)"+(data.result.lockSaveFailed?"; "+data.result.lockSaveFailed+" lock(s) could not be saved":"")+".";
     }catch(e){$("massSetnnMessage").textContent="Mass SetNN failed: "+e.message;}
     finally{button.disabled=false;}
   }
