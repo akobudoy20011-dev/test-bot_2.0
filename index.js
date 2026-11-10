@@ -436,6 +436,7 @@ function start(api, generation, sessionCandidate = null) {
   if (licenseAuthorized && eclipseControlsStore.isInitialized()) {
     countdownEngine.restore(api).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
     groupTitleGuard.start();
+    nicknameLockGuard.start();
   }
 
   api.listenMqtt((error, event) => {
@@ -736,7 +737,9 @@ try {
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
     getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
-    massSetNickname: async (threadID, userIDs, nickname) => executeMassSetNickname({
+    massSetNickname: async (threadID, userIDs, nickname) => {
+      if (!eclipseControlsStore.isInitialized()) throw new Error("Neon nickname-lock storage is unavailable.");
+      return executeMassSetNickname({
       api: messengerApi,
       threadID,
       userIDs,
@@ -747,7 +750,8 @@ try {
         if (!eclipseControlsStore.isInitialized()) throw new Error("Neon nickname-lock storage is unavailable.");
         return eclipseControlsStore.saveNicknameLock(id, userID, value);
       }
-    }),
+      });
+    },
     countdown: {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
