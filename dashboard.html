@@ -80,7 +80,7 @@ body{display:flow-root}
  .top-heading h1{font-size:18px}
  .top-heading .sub{display:none}
  .grid{padding:15px 12px calc(18px + env(safe-area-inset-bottom))}
- .mobile-nav{position:fixed;z-index:50;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;overflow:visible;padding:7px 4px max(7px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);border-radius:0;background:rgba(12,13,17,.97);box-shadow:none}
+ .mobile-nav{position:fixed;z-index:50;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;overflow:visible;padding:7px 4px max(7px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);border-radius:0;background:rgba(12,13,17,.97);box-shadow:none}
  .mobile-nav a{display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:48px;padding:5px 0;border-radius:8px;font-size:9px}
  .mobile-nav a span{font-size:18px}
 }
@@ -88,6 +88,10 @@ body{display:flow-root}
 
 
 /* Explicit feature layout: keep every Test Bot module in its own full-width row. */
+.dashboard-access{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 clamp(16px,2.4vw,32px) 14px;padding:13px 16px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.dashboard-access strong{display:block;font-size:13px}.dashboard-access .hint{margin:3px 0 0;max-width:620px}.access-key-controls{min-width:min(340px,42%)}.access-key-label{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:700}.access-key-label input{width:100%;min-width:0;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}.access-key-controls .actions{margin-top:8px}.access-key-controls .hint{margin-top:6px}
+@media(max-width:650px){.dashboard-access{display:grid;gap:10px;margin:12px 12px 0;padding:12px}.access-key-label{min-width:0}}
+
 main.wrap > .grid {
   display: grid !important;
   grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
@@ -113,14 +117,20 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   }
 }
 
+  .app-nav-label{margin-top:4px}.app-nav a{transition:background .15s ease,color .15s ease}.app-nav a:focus-visible,.mobile-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  #appearancePanel .actions button{min-width:92px}
 </style>
 </head>
 <body>
 <aside class="app-sidebar">
   <a class="app-brand" href="#overview"><span class="app-brand-mark">E</span><span><strong>ECLIPSE</strong><small>MESSENGER CONTROL</small></span></a>
-  <div class="app-nav-label">WORKSPACE</div>
+  <div class="app-nav-label">COMMAND CENTER</div>
   <nav class="app-nav" aria-label="Dashboard navigation">
     <a href="#overview"><span>⌂</span>Overview</a>
+    <a href="#eventsPanel"><span>≋</span>Activity</a>
+  </nav>
+  <div class="app-nav-label">BOT MANAGEMENT</div>
+  <nav class="app-nav" aria-label="Bot management navigation">
     <a href="#groupSettings"><span>▦</span>Groups</a>
     <a href="#reactionPanel"><span>☺</span>MESS Reactions</a>
     <a href="#countdownPanel"><span>◷</span>Countdown</a>
@@ -128,12 +138,17 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     <a href="#groupTitleLockPanel"><span>⌑</span>Auto-lock</a>
     <a href="#raidModePanel"><span>◇</span>Raid Mode</a>
     <a href="#sessionCookiePanel"><span>▣</span>Session</a>
-    <a href="#eventsPanel"><span>≋</span>Activity</a>
+  </nav>
+  <div class="app-nav-label">SYSTEM</div>
+  <nav class="app-nav" aria-label="System navigation">
+    <a href="#runtimePanel"><span>⌁</span>Diagnostics</a>
+    <a href="#appearancePanel"><span>◐</span>Appearance</a>
   </nav>
   <div class="app-sidebar-foot"><strong>Test Bot 2.0</strong>Independent ECLIPSE instance</div>
 </aside>
 <main class="wrap">
 <header class="top"><div class="top-heading"><p class="eyebrow">CONTROL CENTER</p><h1>Overview</h1><p class="sub">ECLIPSE Test Bot · independent instance</p></div><div class="top-actions"><span class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></span><button class="top-refresh" id="topRefreshBtn" type="button" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button></div></header>
+<section class="dashboard-access" aria-label="Dashboard access"><div><strong>Dashboard access</strong><p class="hint">Enter your Render <code>ECLIPSE_DASHBOARD_API_KEY</code> to unlock session, group, and bot management controls. This key is kept only in this page memory.</p></div><div class="access-key-controls"><label class="access-key-label">Owner key<input id="raidApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste dashboard API key" aria-describedby="dashboardAccessMessage"></label><div class="actions"><button class="primary" id="unlockDashboard" type="button">Unlock controls</button><button id="clearDashboardKey" type="button">Clear key</button></div><p class="hint" id="dashboardAccessMessage" role="status">Management controls require the dashboard key.</p></div></section>
 <div class="grid">
 <section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
 <section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
@@ -175,7 +190,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   <h2>Raid Mode · persistent group theme</h2>
   
   <div class="notice" id="raidStatus">Enter the ECLIPSE dashboard key once. It authorizes dashboard management actions, including group controls. Neon is required for persistent feature settings.</div>
-  <div class="field" style="margin-top:12px"><label style="flex:1;min-width:220px">ECLIPSE dashboard key <input id="raidApiKey" type="password" autocomplete="off" placeholder="Enter ECLIPSE_DASHBOARD_API_KEY" style="width:100%"></label><button id="raidRefresh">Load Raid Mode</button></div>
+  <div class="actions" style="margin-top:12px"><button id="raidRefresh">Load Raid Mode</button></div>
   <div class="grid" style="margin-top:12px">
     <div class="card span6">
       <h2>Shared theme settings</h2>
@@ -211,11 +226,12 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </div>
 </section>
 
-<section class="card span12" id="eventsPanel"><h2>Recent dashboard events</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
+<section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
+<section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
 </div><p class="footer">ECLIPSE Test Bot</p>
 </main>
-<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a></nav>
+<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a><a href="#appearancePanel"><span>◐</span>Theme</a></nav>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -426,9 +442,25 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     try{await request("/api/dashboard/session",{method:"DELETE"});$("sessionMessage").textContent="In-memory dashboard session cleared.";await refreshSession();}
     catch(e){$("sessionMessage").textContent="Clear failed: "+e.message;}
   }
+  let dashboardEvents=[];
+  function renderEvents(){
+    const query=$("eventSearch").value.trim().toLowerCase(),type=$("eventType").value;
+    const filtered=dashboardEvents.filter(event=>{
+      const text=typeof event==="string"?event:JSON.stringify(event);
+      return (!type||(event&&event.type===type))&&(!query||text.toLowerCase().includes(query));
+    });
+    $("eventCount").textContent=filtered.length+" of "+dashboardEvents.length+" event(s)";
+    $("events").textContent=filtered.length?filtered.map(event=>typeof event==="string"?event:JSON.stringify(event)).join("\n"):"No matching dashboard events.";
+  }
   async function loadEvents(){
-    try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
-    catch(e){$("events").textContent="Could not load events: "+e.message;}
+    try{
+      const data=await request("/api/dashboard/events");dashboardEvents=Array.isArray(data.events)?data.events:[];
+      const select=$("eventType"),previous=select.value,types=[...new Set(dashboardEvents.map(event=>event&&event.type).filter(Boolean))].sort();
+      select.replaceChildren(new Option("All event types",""));
+      for(const type of types)select.add(new Option(type,type));
+      if(types.includes(previous))select.value=previous;
+      renderEvents();
+    }catch(error){$("eventCount").textContent="Activity unavailable";$("events").textContent="Could not load events: "+error.message;}
   }
 
   const raidHeaders = () => {
@@ -533,7 +565,22 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     catch(error){$("raidActionMessage").textContent="Emergency stop failed: "+error.message;}
   }
   $("raidGroupTitle").addEventListener("input",updateRaidPreview);$("raidNickname").addEventListener("input",updateRaidPreview);$("raidImageFile").addEventListener("change",updateRaidPreview);
-  $("raidApiKey").addEventListener("change",()=>{loadSettings();refreshSession();refreshGroups();loadEvents();});
+  async function unlockDashboard(){
+    const key=$("raidApiKey").value.trim();
+    if(!key){$("dashboardAccessMessage").textContent="Enter the ECLIPSE_DASHBOARD_API_KEY from the Test Bot Render environment first.";return;}
+    $("unlockDashboard").disabled=true;$("dashboardAccessMessage").textContent="Checking dashboard access…";
+    try{
+      await request("/api/dashboard/session");
+      $("dashboardAccessMessage").textContent="Dashboard controls unlocked. Session and group management are ready.";
+      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents()]);
+      await raidRefreshStatus();
+    }catch(error){$("dashboardAccessMessage").textContent="Access denied: "+error.message+" Check that the key matches the Test Bot Render environment."}
+    finally{$("unlockDashboard").disabled=false;}
+  }
+  $("unlockDashboard").addEventListener("click",unlockDashboard);
+  $("raidApiKey").addEventListener("keydown",event=>{if(event.key==="Enter")unlockDashboard();});
+  $("raidApiKey").addEventListener("change",unlockDashboard);
+  $("clearDashboardKey").addEventListener("click",()=>{$("raidApiKey").value="";$("dashboardAccessMessage").textContent="Dashboard key cleared from this page. Management requests are locked.";});
   $("raidRefresh").addEventListener("click",raidRefreshStatus);$("raidLoadGroups").addEventListener("click",raidLoadGroups);
   $("raidSelectAll").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=true);updateRaidSelectionCount();});
   $("raidClearGroups").addEventListener("click",()=>{$("raidGroupChoices").querySelectorAll("input[data-raid-thread]").forEach(input=>input.checked=false);updateRaidSelectionCount();});
@@ -543,6 +590,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("raidActivate").addEventListener("click",raidActivate);$("raidRefreshStatus").addEventListener("click",raidRefreshStatus);$("raidEmergencyStop").addEventListener("click",raidEmergencyStop);
   setInterval(()=>{if($("raidApiKey").value.trim())raidRefreshStatus();},30000);
 
+  $("eventSearch").addEventListener("input",renderEvents);$("eventType").addEventListener("change",renderEvents);$("clearEventFilters").addEventListener("click",()=>{$("eventSearch").value="";$("eventType").value="";renderEvents();});
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup); $("saveReaction").addEventListener("click",saveReaction); $("loadSettings").addEventListener("click",loadSettings);
@@ -557,6 +605,13 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("refreshCountdownHistory").addEventListener("click",refreshCountdownHistory);
   $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
+  function applyAccent(value,label){if(!/^#[0-9a-f]{6}$/i.test(value))return;document.documentElement.style.setProperty("--accent",value);try{localStorage.setItem("eclipse-testbot-accent",value);}catch(_){}$("themeMessage").textContent=label+" theme active.";$("customAccent").value=value;}
+  const presets={burgundy:"#c75a6a",cyan:"#42b8c7",gold:"#c7a45a"};
+  let savedAccent="";try{savedAccent=localStorage.getItem("eclipse-testbot-accent")||"";}catch(_){}
+  if(savedAccent&&/^#[0-9a-f]{6}$/i.test(savedAccent)){document.documentElement.style.setProperty("--accent",savedAccent);$("customAccent").value=savedAccent;$("themeMessage").textContent="Saved device accent active.";}
+  $("themeChoices").addEventListener("click",event=>{const button=event.target.closest("button[data-theme]");if(!button)return;const theme=button.dataset.theme;applyAccent(presets[theme],theme.charAt(0).toUpperCase()+theme.slice(1));});
+  $("applyCustomAccent").addEventListener("click",()=>applyAccent($("customAccent").value,"Custom"));
+  $("resetAccent").addEventListener("click",()=>{try{localStorage.removeItem("eclipse-testbot-accent");}catch(_){}document.documentElement.style.setProperty("--accent",presets.burgundy);$("customAccent").value=presets.burgundy;$("themeMessage").textContent="Default burgundy theme restored.";});
   refresh(); loadEvents(); loadSettings(); refreshSession(); setInterval(refresh,15000);
 })();
 </script></body></html>

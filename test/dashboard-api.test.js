@@ -18,6 +18,9 @@ test("dashboard serves UI, origin-restricts normal APIs, and protects owner secu
   }), {
     setPaused(value) { paused = Boolean(value); },
     getPaused() { return paused; },
+    getSessionStatus() { return { configured: true }; },
+    saveSession(cookie) { assert.equal(cookie, "test-cookie"); },
+    clearSession() {},
     licenseGuard: {
       dashboardAuthorized(req) { return req.headers["x-eclipse-dashboard-key"] === "test-dashboard-key"; },
       getStatus() { return { mode: "owner", installation_id: "owner-installation" }; }
@@ -75,7 +78,20 @@ test("dashboard serves UI, origin-restricts normal APIs, and protects owner secu
   assert.equal(pause.status, 200);
   assert.equal(paused, true);
 
+  const sessionBlocked = await fetch(base + "/api/dashboard/session", { headers });
+  assert.equal(sessionBlocked.status, 401);
+  const sessionStatus = await fetch(base + "/api/dashboard/session", { headers: { ...headers, "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key" } });
+  assert.equal(sessionStatus.status, 200);
+  assert.equal((await sessionStatus.json()).session.configured, true);
+  const sessionSaved = await fetch(base + "/api/dashboard/session", {
+    method: "POST",
+    headers: { ...headers, "X-ECLIPSE-DASHBOARD-KEY": "test-dashboard-key", "Content-Type": "application/json" },
+    body: JSON.stringify({ cookie: "test-cookie" })
+  });
+  assert.equal(sessionSaved.status, 200);
+  assert.equal((await sessionSaved.json()).saved, true);
+
   const events = await fetch(base + "/api/dashboard/events", { headers });
   assert.equal(events.status, 200);
-  assert.equal((await events.json()).events[0].type, "bot-paused");
+  assert.equal((await events.json()).events[0].type, "session-validation-started");
 });

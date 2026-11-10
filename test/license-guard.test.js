@@ -189,3 +189,24 @@ test("temporary installation mode does not activate on the license owner service
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("dashboard key validation accepts normalized header casing and surrounding whitespace only", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-dashboard-key-"));
+  try {
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: root,
+      ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_DASHBOARD_API_KEY: "  test-dashboard-key  "
+    }, async () => {
+      const guard = createLicenseGuard();
+      assert.equal(guard.dashboardAuthorized({ headers: { "x-eclipse-dashboard-key": "test-dashboard-key" } }), true);
+      assert.equal(guard.dashboardAuthorized({ headers: { "X-ECLIPSE-DASHBOARD-KEY": " test-dashboard-key " } }), true);
+      assert.equal(guard.dashboardAuthorized({ rawHeaders: ["X-ECLIPSE-DASHBOARD-KEY", "test-dashboard-key"] }), true);
+      assert.equal(guard.dashboardAuthorized({ headers: { "x-eclipse-dashboard-key": "wrong-key" } }), false);
+      assert.equal(guard.dashboardAuthorized({ headers: { "x-eclipse-dashboard-key": ["test-dashboard-key", "attacker-key"] } }), false);
+      guard.stop();
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -28,7 +28,7 @@ function createLicenseGuard(options = {}) {
   const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
   const privateKey = process.env.ECLIPSE_LICENSE_PRIVATE_KEY || "";
   const publicKey = process.env.ECLIPSE_LICENSE_PUBLIC_KEY || "";
-  const dashboardKey = process.env.ECLIPSE_DASHBOARD_API_KEY || "";
+  const dashboardKey = String(process.env.ECLIPSE_DASHBOARD_API_KEY || "").trim();
   const now = options.now || (() => Date.now());
 
   let installationId = "";
@@ -92,8 +92,29 @@ function createLicenseGuard(options = {}) {
   }
 
   function dashboardAuthorized(request) {
-    const supplied = request && request.headers && request.headers["x-eclipse-dashboard-key"];
-    return Boolean(dashboardKey && safeEqual(supplied, dashboardKey));
+    if (!dashboardKey || !request) return false;
+    const headers = request.headers || {};
+    // Node normally lowercases incoming header names, but test adapters and
+    // proxy wrappers may preserve their original casing.
+    let supplied = headers["x-eclipse-dashboard-key"];
+    if (supplied === undefined) {
+      const key = Object.keys(headers).find(name => name.toLowerCase() === "x-eclipse-dashboard-key");
+      if (key) supplied = headers[key];
+    }
+    if (supplied === undefined && Array.isArray(request.rawHeaders)) {
+      for (let i = 0; i < request.rawHeaders.length - 1; i += 2) {
+        if (String(request.rawHeaders[i]).toLowerCase() === "x-eclipse-dashboard-key") {
+          supplied = request.rawHeaders[i + 1];
+          break;
+        }
+      }
+    }
+    if (Array.isArray(supplied)) {
+      if (supplied.length !== 1) return false;
+      supplied = supplied[0];
+    }
+    if (typeof supplied !== "string") return false;
+    return safeEqual(supplied.trim(), dashboardKey);
   }
 
   function getStatus() {
