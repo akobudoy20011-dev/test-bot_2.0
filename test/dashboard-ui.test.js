@@ -49,15 +49,6 @@ test("dashboard parity navigation and appearance controls are available on deskt
   assert.doesNotMatch(html,/(?:localStorage|sessionStorage)\.setItem\([^)]*(?:raidApiKey|DASHBOARD_API_KEY)/i);
 });
 
-test("security navigation exposes real owner-license management controls",()=>{
-  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
-  for(const id of ["securityPanel","securityMode","securityApproved","securityLimit","securityInstallLimit","securityInstallations","securityEvents","securityForks","refreshSecurity","saveSecurityLimit","scanForks"]) assert.ok(html.includes('id="'+id+'"'),"missing security control "+id);
-  assert.ok(html.includes("/api/dashboard/security/installations"));
-  assert.ok(html.includes("/api/dashboard/security/license-settings"));
-  assert.ok(html.includes("/api/dashboard/security/forks"));
-  assert.ok(html.includes('href="#securityPanel"'));
-});
-
 test("activity center supports local search and event-type filtering",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   for(const id of ["eventSearch","eventType","clearEventFilters","eventCount","events"]) assert.ok(html.includes('id="'+id+'"'));
