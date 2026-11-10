@@ -21,7 +21,7 @@
 const fs = require("fs");
 const path = require("path");
 const { login } = require("ws3-fca");
-const { getBanatConversationReply } = require("./triggers");
+const { getTriggerReply, getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
 const { isBotAdmin } = require("./admin-access");
