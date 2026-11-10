@@ -36,7 +36,7 @@ async function executeMassSetNickname(options = {}) {
     const userID = selected[i];
     try {
       await invokeNicknameChange(api, nickname, threadID, userID);
-      let lockSaved = true;
+      let lockSaved = typeof options.saveNickname === "function";
       if (typeof options.saveNickname === "function") {
         try { await options.saveNickname(threadID, userID, nickname); }
         catch (error) {
