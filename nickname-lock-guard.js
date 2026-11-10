@@ -80,7 +80,7 @@ function createNicknameLockGuard(options = {}) {
     catch (error) { console.warn("[NICKNAME LOCK] Event repair failed:", error?.message || error); }
   }
 
-  async function reconcile() {
+  async function reconcile(reason = "periodic-reconcile") {
     if (stopped || !store?.isInitialized?.()) return;
     try {
       const locks = await store.listNicknameLocks();
