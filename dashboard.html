@@ -229,7 +229,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
 
 <section class="card span12" id="securityPanel"><h2>Security & installations</h2><div class="metrics"><div class="metric"><label>License mode</label><strong id="securityMode">—</strong></div><div class="metric"><label>Approved installs</label><strong id="securityApproved">—</strong></div><div class="metric"><label>Install limit</label><strong id="securityLimit">—</strong></div></div><div class="field" style="margin-top:12px"><label>Maximum approved installations <input id="securityInstallLimit" type="number" min="0" max="10000" step="1" value="0"></label><button class="primary" id="saveSecurityLimit" type="button">Save limit</button><button id="refreshSecurity" type="button">Refresh security</button><button id="scanForks" type="button">Check GitHub forks</button></div><p class="hint" id="securityMessage" role="status">Unlock dashboard access to load security information. Owner-only controls require the license owner service.</p><h3 style="font-size:13px;margin:18px 0 8px">Installations</h3><div id="securityInstallations" class="log">No installation data loaded.</div><h3 style="font-size:13px;margin:18px 0 8px">Security events</h3><div id="securityEvents" class="log">No security events loaded.</div><h3 style="font-size:13px;margin:18px 0 8px">GitHub forks</h3><div id="securityForks" class="log">Fork scan has not been run.</div></section>
 <section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
-<section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="actions" style="margin-top:0;margin-bottom:10px"><button id="eventsBtn">Reload events</button><span class="hint" id="eventCount">No events loaded</span></div><div class="log" id="events">No events loaded yet.</div></section>
+<section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
 </div><p class="footer">ECLIPSE Test Bot</p>
 </main>
@@ -444,9 +444,25 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     try{await request("/api/dashboard/session",{method:"DELETE"});$("sessionMessage").textContent="In-memory dashboard session cleared.";await refreshSession();}
     catch(e){$("sessionMessage").textContent="Clear failed: "+e.message;}
   }
+  let dashboardEvents=[];
+  function renderEvents(){
+    const query=$("eventSearch").value.trim().toLowerCase(),type=$("eventType").value;
+    const filtered=dashboardEvents.filter(event=>{
+      const text=typeof event==="string"?event:JSON.stringify(event);
+      return (!type||(event&&event.type===type))&&(!query||text.toLowerCase().includes(query));
+    });
+    $("eventCount").textContent=filtered.length+" of "+dashboardEvents.length+" event(s)";
+    $("events").textContent=filtered.length?filtered.map(event=>typeof event==="string"?event:JSON.stringify(event)).join("\n"):"No matching dashboard events.";
+  }
   async function loadEvents(){
-    try {const data=await request("/api/dashboard/events"); const events=Array.isArray(data.events)?data.events:[]; $("eventCount").textContent=events.length+" event(s)"; $("events").textContent=events.length?events.map(e=>typeof e==="string"?e:JSON.stringify(e)).join("\n"):"No dashboard events recorded."; }
-    catch(e){$("events").textContent="Could not load events: "+e.message;}
+    try{
+      const data=await request("/api/dashboard/events");dashboardEvents=Array.isArray(data.events)?data.events:[];
+      const select=$("eventType"),previous=select.value,types=[...new Set(dashboardEvents.map(event=>event&&event.type).filter(Boolean))].sort();
+      select.replaceChildren(new Option("All event types",""));
+      for(const type of types)select.add(new Option(type,type));
+      if(types.includes(previous))select.value=previous;
+      renderEvents();
+    }catch(error){$("eventCount").textContent="Activity unavailable";$("events").textContent="Could not load events: "+error.message;}
   }
 
   const securityText = value => value == null || value === "" ? "—" : String(value);
@@ -635,6 +651,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("raidActivate").addEventListener("click",raidActivate);$("raidRefreshStatus").addEventListener("click",raidRefreshStatus);$("raidEmergencyStop").addEventListener("click",raidEmergencyStop);
   setInterval(()=>{if($("raidApiKey").value.trim())raidRefreshStatus();},30000);
 
+  $("eventSearch").addEventListener("input",renderEvents);$("eventType").addEventListener("change",renderEvents);$("clearEventFilters").addEventListener("click",()=>{$("eventSearch").value="";$("eventType").value="";renderEvents();});
   $("refreshSecurity").addEventListener("click",loadSecurity);$("saveSecurityLimit").addEventListener("click",saveSecurityLimit);$("scanForks").addEventListener("click",scanSecurityForks);
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
