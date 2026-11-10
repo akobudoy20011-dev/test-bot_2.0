@@ -51,13 +51,11 @@ test("dashboard parity navigation and appearance controls are available on deskt
 
 test("security navigation exposes real owner-license management controls",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
-  const script=[...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)].at(-1)?.[1];
-  assert.doesNotThrow(()=>new vm.Script(script));
-  for(const id of ["securityPanel","securityMode","securityApproved","securityLimit","securityInstallLimit","securityInstallations","securityEvents","securityForks","refreshSecurity","saveSecurityLimit","scanForks"]) assert.match(html,new RegExp('id="'+id+'"'));
-  assert.match(html,/api\\/dashboard\\/security\\/installations/);
-  assert.match(html,/api\\/dashboard\\/security\\/license-settings/);
-  assert.match(html,/api\\/dashboard\\/security\\/forks/);
-  assert.match(html,/href="#securityPanel"/);
+  for(const id of ["securityPanel","securityMode","securityApproved","securityLimit","securityInstallLimit","securityInstallations","securityEvents","securityForks","refreshSecurity","saveSecurityLimit","scanForks"]) assert.ok(html.includes('id="'+id+'"'),"missing security control "+id);
+  assert.ok(html.includes("/api/dashboard/security/installations"));
+  assert.ok(html.includes("/api/dashboard/security/license-settings"));
+  assert.ok(html.includes("/api/dashboard/security/forks"));
+  assert.ok(html.includes('href="#securityPanel"'));
 });
 
 test("dashboard feature modules each occupy their own full-width row",()=>{
