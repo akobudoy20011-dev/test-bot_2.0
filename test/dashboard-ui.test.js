@@ -58,6 +58,12 @@ test("security navigation exposes real owner-license management controls",()=>{
   assert.ok(html.includes('href="#securityPanel"'));
 });
 
+test("activity center supports local search and event-type filtering",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  for(const id of ["eventSearch","eventType","clearEventFilters","eventCount","events"]) assert.ok(html.includes('id="'+id+'"'));
+  assert.ok(html.includes("function renderEvents()"));
+  assert.ok(html.includes('addEventListener("input",renderEvents)'));
+});
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
