@@ -32,3 +32,13 @@ test("nickname guard does not overwrite nicknames when Messenger does not expose
   assert.equal(changed,0);
   guard.stop();
 });
+
+test("nickname guard ignores its own restoration event once the expected nickname is present",async()=>{
+  let changed=0;
+  const store={isInitialized:()=>true,async getNicknameLocks(){return [{threadID:"g",userID:"u1",expectedNickname:"Locked name"}];},async deleteNicknameLock(){},async listNicknameLocks(){return [];}};
+  const api={getThreadInfo(_id,cb){cb(null,{participantIDs:["u1"],nicknames:{u1:"Locked name"}});},changeNickname(){changed++;}};
+  const guard=createNicknameLockGuard({store,getApi:()=>api});
+  await guard.handleEvent({threadID:"g",logMessageType:"log:thread-nickname",logMessageData:{participant_id:"u1"}});
+  assert.equal(changed,0);
+  guard.stop();
+});
