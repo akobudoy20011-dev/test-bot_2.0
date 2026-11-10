@@ -93,5 +93,5 @@ test("dashboard serves UI, origin-restricts normal APIs, and protects owner secu
 
   const events = await fetch(base + "/api/dashboard/events", { headers });
   assert.equal(events.status, 200);
-  assert.equal((await events.json()).events[0].type, "bot-paused");
+  assert.equal((await events.json()).events[0].type, "session-validation-started");
 });
