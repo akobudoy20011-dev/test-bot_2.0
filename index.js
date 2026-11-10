@@ -32,6 +32,7 @@ const { createRaidMode } = require("./raid-mode");
 const { createEclipseControlsStore } = require("./eclipse-controls-store");
 const { createCountdownEngine } = require("./countdown-engine");
 const { createGroupTitleGuard } = require("./group-title-guard");
+const { createNicknameLockGuard } = require("./nickname-lock-guard");
 const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
 const licenseGuard = createLicenseGuard();
@@ -39,6 +40,7 @@ const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-b
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
 const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
 const groupTitleGuard = createGroupTitleGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
+const nicknameLockGuard = createNicknameLockGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
 let licenseAuthorized = false;
 let persistentReactionSettings = null;
 
@@ -434,6 +436,7 @@ function start(api, generation, sessionCandidate = null) {
   if (licenseAuthorized && eclipseControlsStore.isInitialized()) {
     countdownEngine.restore(api).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
     groupTitleGuard.start();
+    nicknameLockGuard.start();
   }
 
   api.listenMqtt((error, event) => {
@@ -473,6 +476,7 @@ function start(api, generation, sessionCandidate = null) {
       if (licenseAuthorized && event) raidMode.handleEvent(event).catch(error => console.warn("[RAID] event handler failed:", error?.message || error));
       if (licenseAuthorized && event) countdownEngine.onMessage(api, event).catch(error => console.warn("[COUNTDOWN] event handler failed:", error?.message || error));
       if (licenseAuthorized && event) groupTitleGuard.handleEvent(event).catch(error => console.warn("[GROUP TITLE LOCK] event handler failed:", error?.message || error));
+      if (licenseAuthorized && event) nicknameLockGuard.handleEvent(event).catch(error => console.warn("[NICKNAME LOCK] event handler failed:", error?.message || error));
       if (DEFAULT_ON && event?.threadID && event?.senderID && String(event.senderID) !== botUserID) {
         const key = String(event.threadID);
         if (!activeThreads.has(key)) {
@@ -553,13 +557,41 @@ async function fetchMessengerGroupMembers(api, threadID) {
     } catch (error) { done(error); }
   });
   const ids = Array.isArray(info?.participantIDs) ? info.participantIDs : Array.isArray(info?.participants) ? info.participants.map(p => p.id || p.userID || p.uid).filter(Boolean) : [];
-  const names = info?.userInfo && typeof info.userInfo === "object" ? info.userInfo : {};
-  const adminIDs = Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : [];
-  return [...new Set(ids.map(String).filter(Boolean))].map(userID => ({
-    userID,
-    name: String(names[userID]?.name || names[userID]?.firstName || "Messenger member").slice(0, 100),
-    isAdmin: Array.isArray(info?.adminIDs) && info.adminIDs.map(String).includes(userID)
-  })).sort((a,b) => a.name.localeCompare(b.name));
+  const userIDs = [...new Set(ids.map(String).filter(Boolean))];
+  const names = new Map();
+  const addUserInfo = value => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const id = String(item?.id || item?.userID || item?.uid || "");
+        if (id) names.set(id, item);
+      }
+    } else if (value && typeof value === "object") {
+      for (const [id, item] of Object.entries(value)) if (item && typeof item === "object") names.set(String(id), item);
+    }
+  };
+  addUserInfo(info?.userInfo);
+  const missingNames = userIDs.filter(id => !String(names.get(id)?.name || names.get(id)?.firstName || names.get(id)?.fullName || "").trim());
+  if (missingNames.length && typeof api.getUserInfo === "function") {
+    try {
+      const fetched = await new Promise((resolve, reject) => {
+        let settled = false;
+        const done = (error, value) => { if (settled) return; settled = true; error ? reject(error) : resolve(value); };
+        try {
+          const returned = api.getUserInfo(missingNames, done);
+          if (returned && typeof returned.then === "function") returned.then(value => done(null, value)).catch(done);
+        } catch (error) { done(error); }
+      });
+      addUserInfo(fetched);
+    } catch (error) {
+      console.warn("[DASHBOARD] Could not resolve some Messenger member names:", error?.message || error);
+    }
+  }
+  const adminIDs = new Set(Array.isArray(info?.adminIDs) ? info.adminIDs.map(String) : []);
+  return userIDs.map(userID => {
+    const person = names.get(userID) || {};
+    const name = person.name || person.fullName || person.firstName || person.vanity || "";
+    return { userID, name: String(name || "Unknown member (" + userID.slice(-5) + ")").slice(0, 100), isAdmin: adminIDs.has(userID), nameResolved: Boolean(name) };
+  }).sort((a,b) => a.name.localeCompare(b.name));
 }
 
 const reactionAudience = createReactionAudience({
@@ -705,14 +737,21 @@ try {
     clearSession: () => require("./session-store").clear(),
     getGroups: () => fetchMessengerGroups(messengerApi),
     getGroupMembers: threadID => fetchMessengerGroupMembers(messengerApi, threadID),
-    massSetNickname: async (threadID, userIDs, nickname) => executeMassSetNickname({
+    massSetNickname: async (threadID, userIDs, nickname) => {
+      if (!eclipseControlsStore.isInitialized()) throw new Error("Neon nickname-lock storage is unavailable.");
+      return executeMassSetNickname({
       api: messengerApi,
       threadID,
       userIDs,
       nickname,
       getMembers: id => fetchMessengerGroupMembers(messengerApi, id),
-      delayMs: 1200
-    }),
+      delayMs: 1200,
+      saveNickname: (id, userID, value) => {
+        if (!eclipseControlsStore.isInitialized()) throw new Error("Neon nickname-lock storage is unavailable.");
+        return eclipseControlsStore.saveNicknameLock(id, userID, value);
+      }
+      });
+    },
     countdown: {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
@@ -776,6 +815,7 @@ eclipseControlsStore.initialize().then(async ok => {
     if (messengerConnected && messengerApi) {
       countdownEngine.restore(messengerApi).catch(error => console.warn("[COUNTDOWN] restore failed:", error?.message || error));
       groupTitleGuard.start();
+      nicknameLockGuard.start();
     }
   } else {
     console.warn("[ECLIPSE CONTROLS] Countdown and title-lock controls unavailable:", eclipseControlsStore.getError());
@@ -800,11 +840,12 @@ licenseGuard.initialize().then(ok => {
     raidMode.stop();
     countdownEngine.pause();
     groupTitleGuard.pause();
+    nicknameLockGuard.pause();
     console.error("[ECLIPSE LICENSE] Authorization revoked; message processing disabled:", reason);
   }, () => {
     licenseAuthorized = true;
     if (raidMode.isInitialized()) raidMode.start();
-    if (eclipseControlsStore.isInitialized()) { countdownEngine.restore(messengerApi).catch(() => {}); groupTitleGuard.start(); }
+    if (eclipseControlsStore.isInitialized()) { countdownEngine.restore(messengerApi).catch(() => {}); groupTitleGuard.start(); nicknameLockGuard.start(); }
     console.log("[ECLIPSE LICENSE] Installation authorization restored.");
     if (!messengerConnected && !loginInProgress) loginBot();
   });

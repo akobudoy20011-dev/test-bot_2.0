@@ -61,6 +61,14 @@ function createEclipseControlsStore(options = {}) {
         );
         CREATE INDEX IF NOT EXISTS eclipse_test_countdown_history_recent
           ON eclipse_test_countdown_history (bot_namespace, created_at DESC);
+        CREATE TABLE IF NOT EXISTS eclipse_test_nickname_locks (
+          bot_namespace TEXT NOT NULL,
+          thread_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          expected_nickname TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (bot_namespace, thread_id, user_id)
+        );
         CREATE TABLE IF NOT EXISTS eclipse_test_reaction_settings (
           bot_namespace TEXT PRIMARY KEY,
           settings JSONB NOT NULL,
@@ -122,6 +130,48 @@ function createEclipseControlsStore(options = {}) {
        expectedTitle || null]
     );
     return result.rows[0];
+  }
+
+
+  async function saveNicknameLock(threadID, userID, nickname) {
+    assertReady();
+    const group = String(threadID || "").trim();
+    const user = String(userID || "").trim();
+    const expected = String(nickname || "").trim();
+    if (!group || !user || !expected) throw new Error("A group, member, and nickname are required to save a nickname lock.");
+    if (group.length > 128 || user.length > 128 || expected.length > 64) throw new Error("Nickname lock values exceed the supported limits.");
+    const result = await pool.query(
+      `INSERT INTO eclipse_test_nickname_locks (bot_namespace,thread_id,user_id,expected_nickname,updated_at)
+       VALUES ($1,$2,$3,$4,NOW())
+       ON CONFLICT (bot_namespace,thread_id,user_id) DO UPDATE SET expected_nickname=EXCLUDED.expected_nickname,updated_at=NOW()
+       RETURNING thread_id AS "threadID",user_id AS "userID",expected_nickname AS "expectedNickname"`,
+      [namespace, group, user, expected]
+    );
+    return result.rows[0];
+  }
+
+  async function getNicknameLocks(threadID) {
+    assertReady();
+    const result = await pool.query(
+      'SELECT thread_id AS "threadID",user_id AS "userID",expected_nickname AS "expectedNickname" FROM eclipse_test_nickname_locks WHERE bot_namespace=$1 AND thread_id=$2 ORDER BY updated_at DESC',
+      [namespace, String(threadID)]
+    );
+    return result.rows;
+  }
+
+  async function listNicknameLocks() {
+    assertReady();
+    const result = await pool.query(
+      'SELECT thread_id AS "threadID",user_id AS "userID",expected_nickname AS "expectedNickname" FROM eclipse_test_nickname_locks WHERE bot_namespace=$1 ORDER BY thread_id,user_id',
+      [namespace]
+    );
+    return result.rows;
+  }
+
+  async function deleteNicknameLock(threadID, userID) {
+    assertReady();
+    await pool.query("DELETE FROM eclipse_test_nickname_locks WHERE bot_namespace=$1 AND thread_id=$2 AND user_id=$3",
+      [namespace, String(threadID), String(userID)]);
   }
 
   async function getReactionSettings() {
@@ -200,7 +250,7 @@ function createEclipseControlsStore(options = {}) {
 
   return {
     initialize, isInitialized: () => initialized, getError: () => initError,
-    getGroup, updateGroup, listProtectedGroups, getReactionSettings, updateReactionSettings, saveCountdownState, deleteCountdownState,
+    getGroup, updateGroup, listProtectedGroups, saveNicknameLock, getNicknameLocks, listNicknameLocks, deleteNicknameLock, getReactionSettings, updateReactionSettings, saveCountdownState, deleteCountdownState,
     loadCountdownStates, recordCountdownResult, listCountdownHistory
   };
 }

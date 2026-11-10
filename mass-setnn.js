@@ -36,7 +36,15 @@ async function executeMassSetNickname(options = {}) {
     const userID = selected[i];
     try {
       await invokeNicknameChange(api, nickname, threadID, userID);
-      results.push({ userID, ok: true });
+      let lockSaved = typeof options.saveNickname === "function";
+      if (typeof options.saveNickname === "function") {
+        try { await options.saveNickname(threadID, userID, nickname); }
+        catch (error) {
+          lockSaved = false;
+          console.warn("[MASS SETNN] Nickname changed but its persistent lock could not be saved:", { thread_id: threadID, user_id: userID, error: error?.message || error });
+        }
+      }
+      results.push({ userID, ok: true, lockSaved });
     } catch (error) {
       results.push({ userID, ok: false, error: String(error?.message || error).slice(0, 180) });
     }
@@ -46,6 +54,8 @@ async function executeMassSetNickname(options = {}) {
     total: selected.length,
     succeeded: results.filter(item => item.ok).length,
     failed: results.filter(item => !item.ok).length,
+    lockSaved: results.filter(item => item.ok && item.lockSaved !== false).length,
+    lockSaveFailed: results.filter(item => item.ok && item.lockSaved === false).length,
     results
   };
 }
