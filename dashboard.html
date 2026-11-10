@@ -475,7 +475,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       details.textContent=[item.repository||item.repo||"Unknown repository",item.installation_id||"No installation ID",item.status||"unknown","last seen "+securityText(item.last_seen_at||item.updated_at||item.created_at)].join(" · ");
       row.append(details);
       const id=String(item.installation_id||"");
-      if(id && item.status!=="approved" && item.status!=="revoked"){
+      if(id && item.status!=="approved"){
         const approve=document.createElement("button");approve.type="button";approve.textContent="Approve";approve.style.margin="7px 6px 0 0";
         approve.addEventListener("click",()=>updateInstallationStatus(id,"approve"));row.append(approve);
       }
