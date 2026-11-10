@@ -5,6 +5,7 @@ function createNicknameLockGuard(options = {}) {
   const getApi = options.getApi || (() => null);
   const cooldownMs = Math.max(30000, Number(options.cooldownMs) || 120000);
   const lastRepair = new Map();
+  const lastUserRepair = new Map();
   const inFlight = new Set();
   let timer = null;
   let stopped = false;
@@ -30,6 +31,10 @@ function createNicknameLockGuard(options = {}) {
     if (stopped || !id || inFlight.has(id)) return { skipped: true };
     const now = Date.now();
     if (now - Number(lastRepair.get(id) || 0) < cooldownMs && !forcedUserID) return { skipped: true, cooldown: true };
+    if (forcedUserID && forcedUserID !== "*") {
+      const key = id + ":" + String(forcedUserID);
+      if (now - Number(lastUserRepair.get(key) || 0) < cooldownMs) return { skipped: true, cooldown: true };
+    }
     const locks = await store.getNicknameLocks(id);
     if (!locks.length) return { skipped: true };
     const api = getApi();
@@ -42,15 +47,17 @@ function createNicknameLockGuard(options = {}) {
       const results = [];
       for (const lock of locks) {
         const userID = String(lock.userID);
-        if (forcedUserID && userID !== String(forcedUserID)) continue;
+        if (forcedUserID && forcedUserID !== "*" && userID !== String(forcedUserID)) continue;
         if (participantIDs && !participantIDs.has(userID)) {
           await store.deleteNicknameLock(id, userID);
           continue;
         }
         const current = nicknames ? String(nicknames[userID] || "") : null;
         if (current === String(lock.expectedNickname)) continue;
-        if (current === null && !forcedUserID) continue;
+        const forceThisUser = forcedUserID === "*" || forcedUserID === userID;
+        if (current === null && !forceThisUser) continue;
         await invoke(api, "changeNickname", [String(lock.expectedNickname), id, userID]);
+        lastUserRepair.set(id + ":" + userID, now);
         results.push(userID);
       }
       if (results.length) {
@@ -78,8 +85,9 @@ function createNicknameLockGuard(options = {}) {
     try {
       const locks = await store.listNicknameLocks();
       const groups = [...new Set(locks.map(item => String(item.threadID)).filter(Boolean))];
+      const reconnect = reason === "reconnect";
       for (const id of groups) {
-        try { await restoreGroup(id, "periodic-reconcile"); }
+        try { await restoreGroup(id, reason, reconnect ? "*" : ""); }
         catch (error) { console.warn("[NICKNAME LOCK] Reconcile failed:", { thread_id: id, error: error?.message || error }); }
       }
     } catch (error) {
@@ -89,7 +97,7 @@ function createNicknameLockGuard(options = {}) {
 
   function start() {
     if (stopped) return;
-    void reconcile();
+    void reconcile("reconnect");
     if (timer) return;
     timer = setInterval(() => void reconcile(), 10 * 60 * 1000);
     if (typeof timer.unref === "function") timer.unref();
