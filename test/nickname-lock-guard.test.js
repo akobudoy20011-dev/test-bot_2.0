@@ -42,3 +42,13 @@ test("nickname guard ignores its own restoration event once the expected nicknam
   assert.equal(changed,0);
   guard.stop();
 });
+
+test("nickname guard restores saved values once on reconnect even if current values are unavailable",async()=>{
+  const changed=[];
+  const store={isInitialized:()=>true,async getNicknameLocks(){return [{threadID:"g",userID:"u1",expectedNickname:"One"},{threadID:"g",userID:"u2",expectedNickname:"Two"}];},async deleteNicknameLock(){},async listNicknameLocks(){return [{threadID:"g",userID:"u1"},{threadID:"g",userID:"u2"}];}};
+  const api={getThreadInfo(_id,cb){cb(null,{participantIDs:["u1","u2"]});},changeNickname(name,thread,user,cb){changed.push({name,thread,user});cb(null);}};
+  const guard=createNicknameLockGuard({store,getApi:()=>api});
+  await guard.reconcile("reconnect");
+  assert.deepEqual(changed,[{name:"One",thread:"g",user:"u1"},{name:"Two",thread:"g",user:"u2"}]);
+  guard.stop();
+});
