@@ -1,8 +1,7 @@
 "use strict";
 
-const MIN_INTERVAL_SECONDS = 6;
+const MIN_INTERVAL_SECONDS = 2;
 const MAX_INTERVAL_SECONDS = 3600;
-const MAX_MESSAGES = 100;
 
 function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {}) {
   const runs = new Map();
@@ -14,7 +13,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     run.stopped = true;
     if (run.timer) clearTimeout(run.timer);
     runs.delete(key);
-    console.log(`[SPAM MODE] stopped thread=${key} sent=${run.sent}/${run.maxMessages}`);
+    console.log(`[SPAM MODE] stopped thread=${key} sent=${run.sent}`);
     return { stopped: true, threadID: key, sent: run.sent };
   }
 
@@ -29,7 +28,6 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     return [...runs.values()].map(run => ({
       threadID: run.threadID,
       intervalSeconds: run.intervalSeconds,
-      maxMessages: run.maxMessages,
       sent: run.sent,
       nextSendAt: run.nextSendAt,
       startedAt: run.startedAt
@@ -39,7 +37,6 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
   async function tick(run) {
     if (run.stopped || runs.get(run.threadID) !== run) return;
     if (!isAuthorized()) return stop(run.threadID);
-    if (run.sent >= run.maxMessages) return stop(run.threadID);
     const api = typeof getApi === "function" ? getApi() : null;
     if (!api || typeof sendMessage !== "function") {
       console.warn(`[SPAM MODE] send skipped: Messenger API unavailable for ${run.threadID}`);
@@ -49,8 +46,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
       await sendMessage(api, run.message, run.threadID);
       if (run.stopped || runs.get(run.threadID) !== run) return;
       run.sent++;
-      console.log(`[SPAM MODE] sent ${run.sent}/${run.maxMessages} to ${run.threadID}`);
-      if (run.sent >= run.maxMessages) return stop(run.threadID);
+      console.log(`[SPAM MODE] sent ${run.sent} to ${run.threadID}`);
       run.nextSendAt = new Date(Date.now() + run.intervalSeconds * 1000).toISOString();
       run.timer = setTimeout(() => tick(run), run.intervalSeconds * 1000);
       run.timer.unref?.();
@@ -64,27 +60,23 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     const threadID = String(input.threadID || "").trim();
     const message = String(input.message || "").trim();
     const intervalSeconds = Number(input.intervalSeconds);
-    const maxMessages = Number(input.maxMessages);
     if (!threadID || threadID.length > 128) throw new Error("Choose a valid Messenger group.");
     if (!message || message.length > 1000) throw new Error("Enter a message between 1 and 1000 characters.");
     if (!Number.isInteger(intervalSeconds) || intervalSeconds < MIN_INTERVAL_SECONDS || intervalSeconds > MAX_INTERVAL_SECONDS) {
-      throw new Error("Spam Mode interval must be between 6 and 3600 seconds.");
-    }
-    if (!Number.isInteger(maxMessages) || maxMessages < 1 || maxMessages > MAX_MESSAGES) {
-      throw new Error("Spam Mode is limited to 1–100 messages per run.");
+      throw new Error("Spam Mode interval must be between 2 and 3600 seconds.");
     }
     if (!isAuthorized()) throw new Error("Bot must be connected, licensed, and running to start Spam Mode.");
     if (runs.has(threadID)) throw new Error("Spam Mode is already running in this group. Stop it before starting another run.");
-    const run = { threadID, message, intervalSeconds, maxMessages, sent: 0, stopped: false, timer: null, startedAt: new Date().toISOString(), nextSendAt: null };
+    const run = { threadID, message, intervalSeconds, sent: 0, stopped: false, timer: null, startedAt: new Date().toISOString(), nextSendAt: null };
     runs.set(threadID, run);
     run.nextSendAt = new Date(Date.now() + intervalSeconds * 1000).toISOString();
     run.timer = setTimeout(() => tick(run), intervalSeconds * 1000);
     run.timer.unref?.();
-    console.log(`[SPAM MODE] started thread=${threadID} interval=${intervalSeconds}s max=${maxMessages}; first send delayed by interval`);
-    return { threadID, intervalSeconds, maxMessages, firstSendInSeconds: intervalSeconds };
+    console.log(`[SPAM MODE] started thread=${threadID} interval=${intervalSeconds}s unlimited; first send delayed by interval`);
+    return { threadID, intervalSeconds, unlimited: true, firstSendInSeconds: intervalSeconds };
   }
 
   return { start, stop, stopAll, getStatus };
 }
 
-module.exports = { createSpamMode, MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES };
+module.exports = { createSpamMode, MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS };
