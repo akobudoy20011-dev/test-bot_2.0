@@ -8,7 +8,7 @@ test("reaction and group settings validate and persist",t=>{
  assert.equal(settings.getReactionSettings().emoji,"😆");
  assert.deepEqual(settings.updateReaction({enabled:true,emoji:"🔥",target:"both",targetMode:"all",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:60}),{enabled:true,emoji:"🔥",target:"both",targetMode:"all",targetUserId:"",targetUserName:"",targetThreadID:"",probability:100,cooldownSeconds:60});
  const g=settings.updateGroup("123456",{banatMode:"off",typingEnabled:false,replyDelayMs:1250,cooldownMs:0,quietStart:"22:00",quietEnd:"06:00"});
- assert.equal(g.banatMode,"off");assert.equal(g.typingEnabled,false);assert.equal(g.replyDelayMs,1250);
+ assert.equal(g.banatMode,"off");assert.equal(g.typingEnabled,false);assert.equal(g.replyDelayMs,1250);assert.equal(g.spamIntervalSeconds,6);assert.equal(g.spamMaxMessages,20);
  assert.equal(settings.getGroupSettings("123456").quietStart,"22:00");
  assert.equal(settings.isQuietNow(g,new Date("2026-01-01T17:30:00.000Z")),true);
  assert.equal(settings.isQuietNow(g,new Date("2026-01-01T08:00:00.000Z")),false);

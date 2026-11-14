@@ -35,12 +35,20 @@ const { createGroupTitleGuard } = require("./group-title-guard");
 const { createNicknameLockGuard } = require("./nickname-lock-guard");
 const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
+const { createSpamMode } = require("./spam-mode");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
 const countdownEngine = createCountdownEngine({ store: eclipseControlsStore, getApi: () => messengerApi });
 const groupTitleGuard = createGroupTitleGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
 const nicknameLockGuard = createNicknameLockGuard({ store: eclipseControlsStore, getApi: () => messengerApi });
+const spamMode = createSpamMode({
+  getApi: () => messengerApi,
+  isAuthorized: () => licenseAuthorized && !botPaused && messengerConnected,
+  sendMessage: (api, message, threadID) => new Promise((resolve, reject) => {
+    trafficSendMessage(api, message, threadID, (error, info) => error ? reject(error) : resolve(info));
+  })
+});
 let licenseAuthorized = false;
 let persistentReactionSettings = null;
 
@@ -443,6 +451,7 @@ function start(api, generation, sessionCandidate = null) {
     if (generation !== activeListenerGeneration) return;
     if (error) {
       messengerConnected = false;
+      spamMode.stopAll("messenger-disconnected");
       lastDisconnectedAt = new Date().toISOString();
       lastListenerError = getFacebookLoginErrorMessage(error);
       messengerApi = null;
@@ -726,7 +735,7 @@ try {
     updated_at: new Date().toISOString(),
     license: { ...licenseGuard.getStatus(), authorized: licenseAuthorized }
   }), {
-    setPaused: (paused) => { botPaused = paused; },
+    setPaused: (paused) => { botPaused = paused; if (paused) spamMode.stopAll("bot-paused"); },
     getPaused: () => botPaused || !licenseAuthorized,
     saveSession: value => {
       const candidate = require("./session-store").normalizeSessionInput(value);
@@ -800,6 +809,23 @@ try {
       return persistentReactionSettings;
     },
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
+    spamMode: {
+      start: async input => {
+        const threadID = String(input.threadID || "").trim();
+        const groups = await fetchMessengerGroups(messengerApi);
+        if (!groups.some(group => String(group.threadID) === threadID)) {
+          throw new Error("Choose a group from the Messenger group list; this thread is not available to the bot.");
+        }
+        const group = require("./bot-settings").getGroupSettings(threadID);
+        const message = String(input.message ?? group.spamMessage ?? "").trim();
+        const intervalSeconds = input.intervalSeconds ?? group.spamIntervalSeconds;
+        const maxMessages = input.maxMessages ?? group.spamMaxMessages;
+        return spamMode.start({ threadID, message, intervalSeconds, maxMessages });
+      },
+      stop: threadID => spamMode.stop(threadID),
+      stopAll: reason => spamMode.stopAll(reason),
+      getStatus: () => spamMode.getStatus()
+    },
     raidMode,
     isLicensed: () => licenseAuthorized,
     licenseGuard
@@ -837,6 +863,7 @@ licenseGuard.initialize().then(ok => {
   }
   licenseGuard.startHeartbeat(reason => {
     licenseAuthorized = false;
+    spamMode.stopAll("license-revoked");
     raidMode.stop();
     countdownEngine.pause();
     groupTitleGuard.pause();
