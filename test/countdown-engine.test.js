@@ -66,10 +66,27 @@ test("countdown completes all 100 numbers and records a WIN",async()=>{
   await engine.onMessage(api,{type:"message",threadID:"g-win",senderID:"target"});
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.deepEqual(messages.slice(0,100),Array.from({length:100},(_,i)=>String(i+1)));
-  assert.match(messages[100],/WIN: HEV/);
+  assert.match(messages[100],/WIN: TEST BOT/);
   assert.equal(results.length,1);
   assert.equal(results[0].result,"WIN");
   assert.equal(engine.getActive().length,0);
+  engine.stop();
+});
+
+test("countdown completion uses the separately configured Test Bot receipt identity and reason",async()=>{
+  const messages=[];
+  const store={
+    isInitialized:()=>true,
+    async getGroup(){return {countdownEnabled:true,countdownTargetId:"target",countdownTargetName:"Target",inactivityMs:1,countDelayMs:1};},
+    async getCountdownReceiptSettings(){return {winnerName:"MY TEST ACCOUNT",reason:"CUSTOM TEST RECEIPT"};},
+    async saveCountdownState(){},async deleteCountdownState(){},async loadCountdownStates(){return [];},async recordCountdownResult(){}
+  };
+  const api={sendMessage(message,_thread,callback){messages.push(String(message));callback(null,true);}};
+  const engine=createCountdownEngine({store,getApi:()=>api});
+  await engine.onMessage(api,{type:"message",threadID:"g-custom-receipt",senderID:"target"});
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.match(messages[100],/WIN: MY TEST ACCOUNT/);
+  assert.match(messages[100],/REASON: CUSTOM TEST RECEIPT/);
   engine.stop();
 });
 
@@ -110,7 +127,7 @@ test("restores an interrupted countdown from its next unsent number",async()=>{
   await engine.restore(api);
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.deepEqual(messages.slice(0,97),Array.from({length:97},(_,i)=>String(i+4)));
-  assert.match(messages[97],/WIN: HEV/);
+  assert.match(messages[97],/WIN: TEST BOT/);
   assert.equal(results[0].result,"WIN");
   engine.stop();
 });

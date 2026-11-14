@@ -764,6 +764,8 @@ try {
     countdown: {
       getActive: () => countdownEngine.getActive(),
       getHistory: () => eclipseControlsStore.listCountdownHistory(50),
+      getReceiptSettings: () => eclipseControlsStore.getCountdownReceiptSettings(),
+      updateReceiptSettings: input => eclipseControlsStore.updateCountdownReceiptSettings(input),
       getGroup: threadID => eclipseControlsStore.getGroup(threadID),
       updateGroup: async (threadID, input) => {
         if (input.countdownTargetId) {

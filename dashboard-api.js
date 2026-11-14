@@ -301,6 +301,14 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       if (!countdown) return send(res, 503, { ok: false, error: "Countdown controls are unavailable." });
       if (typeof controls.isLicensed === "function" && !controls.isLicensed()) return send(res, 403, { ok: false, error: "This installation is not authorized." });
       try {
+        if (req.method === "GET" && url.pathname === "/api/dashboard/countdown/receipt") {
+          return send(res, 200, { ok: true, settings: await countdown.getReceiptSettings() });
+        }
+        if (req.method === "POST" && url.pathname === "/api/dashboard/countdown/receipt") {
+          const body = await readJson(req);
+          const settings = await countdown.updateReceiptSettings(body);
+          return send(res, 200, { ok: true, settings });
+        }
         if (req.method === "GET" && url.pathname === "/api/dashboard/countdown/status") {
           return send(res, 200, { ok: true, active: countdown.getActive() });
         }
