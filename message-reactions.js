@@ -48,7 +48,7 @@ function dispatchMessageReaction(api, emoji, messageID, threadID, options = {}) 
   const fallback = error => {
     if (fallbackStarted) return;
     fallbackStarted = true;
-    if (error) onStatus("failed", { error, method: "mqtt" });
+    if (error) onStatus("fallback", { error, method: "mqtt" });
     if (typeof api?.setMessageReaction !== "function") {
       if (!error) onStatus("failed", { error: new Error("No supported reaction API is available."), method: null });
       return;
