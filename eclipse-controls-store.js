@@ -74,6 +74,11 @@ function createEclipseControlsStore(options = {}) {
           settings JSONB NOT NULL,
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+        CREATE TABLE IF NOT EXISTS eclipse_test_countdown_receipt_settings (
+          bot_namespace TEXT PRIMARY KEY,
+          settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
       `);
       initialized = true;
       initError = "";
@@ -132,6 +137,32 @@ function createEclipseControlsStore(options = {}) {
     return result.rows[0];
   }
 
+
+  async function getCountdownReceiptSettings() {
+    assertReady();
+    const result = await pool.query("SELECT settings FROM eclipse_test_countdown_receipt_settings WHERE bot_namespace=$1", [namespace]);
+    const saved = result.rows[0]?.settings || {};
+    return {
+      winnerName: String(saved.winnerName || "TEST BOT").trim().slice(0, 80) || "TEST BOT",
+      reason: String(saved.reason || "DI TUMAGOS SA COUNTDOWN CHALLENGE 😭").trim().slice(0, 180) || "DI TUMAGOS SA COUNTDOWN CHALLENGE 😭"
+    };
+  }
+
+  async function updateCountdownReceiptSettings(input = {}) {
+    assertReady();
+    const current = await getCountdownReceiptSettings();
+    const settings = {
+      winnerName: input.winnerName == null ? current.winnerName : String(input.winnerName).trim().slice(0, 80),
+      reason: input.reason == null ? current.reason : String(input.reason).trim().slice(0, 180)
+    };
+    if (!settings.winnerName || !settings.reason) throw new Error("Receipt winner name and reason cannot be empty.");
+    await pool.query(
+      `INSERT INTO eclipse_test_countdown_receipt_settings (bot_namespace,settings,updated_at)
+       VALUES ($1,$2::jsonb,NOW()) ON CONFLICT (bot_namespace) DO UPDATE SET settings=EXCLUDED.settings,updated_at=NOW()`,
+      [namespace, JSON.stringify(settings)]
+    );
+    return settings;
+  }
 
   async function saveNicknameLock(threadID, userID, nickname) {
     assertReady();
@@ -251,7 +282,8 @@ function createEclipseControlsStore(options = {}) {
   return {
     initialize, isInitialized: () => initialized, getError: () => initError,
     getGroup, updateGroup, listProtectedGroups, saveNicknameLock, getNicknameLocks, listNicknameLocks, deleteNicknameLock, getReactionSettings, updateReactionSettings, saveCountdownState, deleteCountdownState,
-    loadCountdownStates, recordCountdownResult, listCountdownHistory
+    loadCountdownStates, recordCountdownResult, listCountdownHistory,
+    getCountdownReceiptSettings, updateCountdownReceiptSettings
   };
 }
 
