@@ -127,7 +127,7 @@ test("restores an interrupted countdown from its next unsent number",async()=>{
   await engine.restore(api);
   await new Promise(resolve=>setTimeout(resolve,500));
   assert.deepEqual(messages.slice(0,97),Array.from({length:97},(_,i)=>String(i+4)));
-  assert.match(messages[97],/WIN: HEV/);
+  assert.match(messages[97],/WIN: TEST BOT/);
   assert.equal(results[0].result,"WIN");
   engine.stop();
 });
