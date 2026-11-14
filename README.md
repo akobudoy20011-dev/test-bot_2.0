@@ -129,3 +129,9 @@ No Cloudflare R2, S3 bucket, object-storage credentials, or separate image servi
 Activation requires a saved theme, uploaded photo, selected groups, and explicit dashboard confirmation. Event-driven repairs listen for group title/photo, nickname, and membership/admin mutations. A 10-minute reconciliation loop provides a fallback; the image is re-applied at most every 30 minutes during periodic reconciliation. Failed repairs record dashboard-visible status and use bounded backoff, with longer waits for rate-limit responses. Emergency Stop disables enforcement for all groups in this Test Bot namespace.
 
 Before activation, verify Neon connectivity, dashboard API key authorization, Messenger session permissions, and a live test group.
+
+## Reply timing and Spam Mode
+
+The group dashboard's **Reply delay seconds** is an explicit minimum wait before an automatic Banat reply begins. Enter `5` for five seconds; the backend stores milliseconds and logs the scheduled delay. An empty value uses the humanized default. The send queue's separate per-group cooldown remains independent.
+
+**Spam Mode** is an owner-controlled dashboard action for one selected Messenger group. Enter the message, interval (6–3600 seconds), and maximum sends (1–100). The first message is delayed by the configured interval, subsequent messages use the same interval, and the run stops at its message cap, on a send failure, when the Messenger connection drops, or when the bot is paused. Only one run can be active per group; use Stop to cancel it early. Spam Mode does not resume automatically after a process restart.
