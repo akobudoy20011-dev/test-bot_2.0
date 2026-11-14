@@ -349,6 +349,31 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       catch(error){return send(res,400,{ok:false,error:error.message||"Could not save group settings"});}
     }
 
+    if (url.pathname.startsWith("/api/dashboard/spam/")) {
+      const spam = controls.spamMode;
+      if (!spam) return send(res, 503, { ok: false, error: "Spam Mode is unavailable." });
+      if (typeof controls.isLicensed === "function" && !controls.isLicensed()) return send(res, 403, { ok: false, error: "This installation is not authorized." });
+      try {
+        if (req.method === "GET" && url.pathname === "/api/dashboard/spam/status") {
+          return send(res, 200, { ok: true, runs: spam.getStatus() });
+        }
+        if (req.method === "POST" && url.pathname === "/api/dashboard/spam/start") {
+          const body = await readJson(req);
+          const result = await spam.start(body);
+          record("spam-mode-started", { thread_id: result.threadID, interval_seconds: result.intervalSeconds, max_messages: result.maxMessages });
+          return send(res, 200, { ok: true, result });
+        }
+        if (req.method === "POST" && url.pathname === "/api/dashboard/spam/stop") {
+          const body = await readJson(req);
+          const result = spam.stop(body.threadID);
+          record("spam-mode-stopped", { thread_id: String(body.threadID || "") });
+          return send(res, 200, { ok: true, result });
+        }
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Spam Mode request failed." });
+      }
+    }
+
     if (req.method === "POST" && url.pathname === "/api/dashboard/bot/start") {
       if (typeof controls.setPaused !== "function") return send(res, 501, { ok: false, error: "Bot start control is unavailable" });
       controls.setPaused(false);
