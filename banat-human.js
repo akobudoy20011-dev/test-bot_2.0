@@ -67,8 +67,10 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
             const reactionSettings = getReactionSettings();
             if (!id) {
               console.warn("[REACTION] SELF_REACTION_SKIPPED: send succeeded but no message ID was returned.");
+            } else if (!reactionSettings.enabled || !["bot_replies", "both"].includes(reactionSettings.target)) {
+              console.log(`[REACTION] SELF_REACTION_SKIPPED: dashboard target is ${reactionSettings.target}; choose Bot replies or Both.`);
             } else if (!shouldReact(threadID, "bot_replies")) {
-              console.log("[REACTION] SELF_REACTION_SKIPPED: bot_replies is disabled, filtered, or cooling down.");
+              console.log("[REACTION] SELF_REACTION_SKIPPED: probability or per-group cooldown filtered this reply.");
             } else {
               dispatchMessageReaction(api, reactionSettings.emoji, id, String(threadID), {
                 onStatus: (status, detail) => {
