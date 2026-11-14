@@ -47,13 +47,18 @@ function prepareBanatReply(threadID, message, incomingText = "") {
   };
 }
 
+function resolveReplyDelayMs(configuredDelay, fallbackDelay) {
+  const configured = configuredDelay == null ? Number.NaN : Number(configuredDelay);
+  const fallback = Number(fallbackDelay) || REPLY_DELAY_MS;
+  return Math.max(120, Number.isFinite(configured) ? configured : fallback);
+}
+
 function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = null, dependencies = {}) {
   const send = dependencies.trafficSendMessage;
   if (typeof send !== "function") return Promise.resolve(false);
 
   const prepared = prepareBanatReply(threadID, message, dependencies.incomingText || "");
-  const configuredDelay = dependencies.replyDelayMs == null ? prepared.reactionMs : Number(dependencies.replyDelayMs);
-  const delay = Math.max(120, Number.isFinite(configuredDelay) ? configuredDelay : prepared.reactionMs);
+  const delay = resolveReplyDelayMs(dependencies.replyDelayMs, prepared.reactionMs);
   console.log(`[BANAT] reply scheduled in ${delay}ms for ${String(threadID)}; configured=${dependencies.replyDelayMs == null ? "human-default" : "dashboard"}`);
 
   return new Promise(resolve => {
@@ -89,4 +94,4 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
   });
 }
 
-module.exports = { BANAT_REPLY_DELAY_MS: REPLY_DELAY_MS, BANAT_MAX_HUMAN_DELAY_MS: MAX_DELAY_MS, prepareBanatReply, sendBanatReplyWithTyping };
+module.exports = { BANAT_REPLY_DELAY_MS: REPLY_DELAY_MS, BANAT_MAX_HUMAN_DELAY_MS: MAX_DELAY_MS, prepareBanatReply, resolveReplyDelayMs, sendBanatReplyWithTyping };
