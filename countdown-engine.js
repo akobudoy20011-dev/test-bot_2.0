@@ -111,13 +111,23 @@ function createCountdownEngine(options = {}) {
     if (!valid(state, generation)) return;
     const endedAt = Date.now();
     const targetName = state.targetName || "UNKNOWN TARGET";
+    let receiptSettings = { winnerName: "TEST BOT", reason: DEFAULT_REASON };
+    try {
+      if (typeof store?.getCountdownReceiptSettings === "function") {
+        receiptSettings = { ...receiptSettings, ...(await store.getCountdownReceiptSettings()) };
+      }
+    } catch (error) {
+      console.warn("[COUNTDOWN] Could not load receipt settings; using Test Bot defaults:", error?.message || error);
+    }
+    const winnerName = String(receiptSettings.winnerName || "TEST BOT").trim().slice(0, 80) || "TEST BOT";
+    const reason = String(receiptSettings.reason || DEFAULT_REASON).trim().slice(0, 180) || DEFAULT_REASON;
     const fmt = ts => new Intl.DateTimeFormat("en-PH", {
       timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true
     }).format(new Date(ts));
     const resultMessage = [
-      "WIN: HEV",
+      "WIN: " + winnerName.toLocaleUpperCase("en-US"),
       "LOSE: " + targetName.toLocaleUpperCase("en-US"),
-      "REASON: " + DEFAULT_REASON,
+      "REASON: " + reason,
       "START: " + fmt(state.countdownStartedAt),
       "END: " + fmt(endedAt)
     ].join("\n");
@@ -132,7 +142,7 @@ function createCountdownEngine(options = {}) {
     try {
       await store.recordCountdownResult({
         threadID, targetId: state.targetId, targetName, result: "WIN",
-        startedAt: state.countdownStartedAt, endedAt, reason: DEFAULT_REASON
+        startedAt: state.countdownStartedAt, endedAt, reason
       });
       await store.deleteCountdownState(threadID);
     } catch (error) {
