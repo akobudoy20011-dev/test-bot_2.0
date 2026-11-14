@@ -6,6 +6,7 @@ const { humanize } = require("./human-mimic");
 const { calculateHumanDelay } = require("./human-delay");
 const { startTyping, stopTyping } = require("./human-typing");
 const { getReactionSettings, shouldReact } = require("./bot-settings");
+const { extractMessageID, dispatchMessageReaction } = require("./message-reactions");
 
 const REPLY_DELAY_MS = Math.max(0, Number(process.env.BANAT_REPLY_DELAY_MS || 900));
 const MAX_DELAY_MS = Math.max(2500, Number(process.env.BANAT_MAX_HUMAN_DELAY_MS || 6500));
@@ -62,14 +63,20 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
         try {
           send(api, prepared.text, threadID, (err, info) => {
             if (err) { console.error("[BANAT] send failed:", err?.message || err); finish(false); return; }
-            const id = typeof info === "string" ? info : info?.messageID || info?.messageId || info?.id;
-            try {
-              if (id && shouldReact(threadID, "bot_replies")) {
-                const emoji = getReactionSettings().emoji;
-                if (typeof api?.setMessageReactionMqtt === "function") api.setMessageReactionMqtt(emoji, String(id), String(threadID), () => {});
-                else if (typeof api?.setMessageReaction === "function") api.setMessageReaction(emoji, String(id), () => {}, true);
-              }
-            } catch (_) {}
+            const id = extractMessageID(info);
+            const reactionSettings = getReactionSettings();
+            if (!id) {
+              console.warn("[REACTION] SELF_REACTION_SKIPPED: send succeeded but no message ID was returned.");
+            } else if (!shouldReact(threadID, "bot_replies")) {
+              console.log("[REACTION] SELF_REACTION_SKIPPED: bot_replies is disabled, filtered, or cooling down.");
+            } else {
+              dispatchMessageReaction(api, reactionSettings.emoji, id, String(threadID), {
+                onStatus: (status, detail) => {
+                  if (status === "submitted") console.log(`[REACTION] SELF_REACTION_SUBMITTED: message=${id} method=${detail.method}`);
+                  else console.warn(`[REACTION] SELF_REACTION_FAILED: message=${id} reason=${detail.error?.message || detail.error || "unknown error"}`);
+                }
+              });
+            }
             finish(true);
           }, replyToMessageID || null);
         } catch (e) { console.error("[BANAT] reply error:", e); finish(false); }
