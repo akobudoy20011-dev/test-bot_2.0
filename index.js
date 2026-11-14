@@ -810,12 +810,17 @@ try {
     },
     updateGroup: (threadID,input) => require("./bot-settings").updateGroup(threadID,input),
     spamMode: {
-      start: input => {
-        const group = require("./bot-settings").getGroupSettings(input.threadID);
+      start: async input => {
+        const threadID = String(input.threadID || "").trim();
+        const groups = await fetchMessengerGroups(messengerApi);
+        if (!groups.some(group => String(group.threadID) === threadID)) {
+          throw new Error("Choose a group from the Messenger group list; this thread is not available to the bot.");
+        }
+        const group = require("./bot-settings").getGroupSettings(threadID);
         const message = String(input.message ?? group.spamMessage ?? "").trim();
         const intervalSeconds = input.intervalSeconds ?? group.spamIntervalSeconds;
         const maxMessages = input.maxMessages ?? group.spamMaxMessages;
-        return spamMode.start({ threadID: input.threadID, message, intervalSeconds, maxMessages });
+        return spamMode.start({ threadID, message, intervalSeconds, maxMessages });
       },
       stop: threadID => spamMode.stop(threadID),
       stopAll: reason => spamMode.stopAll(reason),
