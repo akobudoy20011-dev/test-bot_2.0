@@ -52,7 +52,9 @@ function sendBanatReplyWithTyping(api, message, threadID, replyToMessageID = nul
   if (typeof send !== "function") return Promise.resolve(false);
 
   const prepared = prepareBanatReply(threadID, message, dependencies.incomingText || "");
-  const delay = Math.max(120, Number(dependencies.replyDelayMs || prepared.reactionMs));
+  const configuredDelay = dependencies.replyDelayMs == null ? prepared.reactionMs : Number(dependencies.replyDelayMs);
+  const delay = Math.max(120, Number.isFinite(configuredDelay) ? configuredDelay : prepared.reactionMs);
+  console.log(`[BANAT] reply scheduled in ${delay}ms for ${String(threadID)}; configured=${dependencies.replyDelayMs == null ? "human-default" : "dashboard"}`);
 
   return new Promise(resolve => {
     setTimeout(() => {
