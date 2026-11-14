@@ -28,4 +28,8 @@ test("Spam Mode waits for the configured interval before the first send and can 
 test("Spam Mode rejects duplicate runs and unauthorized starts", () => {
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => {}, isAuthorized: () => false });
   assert.throws(() => spam.start({ threadID: "g", message: "hello", intervalSeconds: 6, maxMessages: 2 }), /must be connected/);
+  const allowed = createSpamMode({ getApi: () => ({}), sendMessage: async () => {}, isAuthorized: () => true });
+  allowed.start({ threadID: "g", message: "hello", intervalSeconds: 6, maxMessages: 2 });
+  assert.throws(() => allowed.start({ threadID: "g", message: "again", intervalSeconds: 6, maxMessages: 2 }), /already running/);
+  allowed.stopAll("test");
 });
