@@ -858,6 +858,7 @@ licenseGuard.initialize().then(ok => {
   }
   licenseGuard.startHeartbeat(reason => {
     licenseAuthorized = false;
+    spamMode.stopAll("license-revoked");
     raidMode.stop();
     countdownEngine.pause();
     groupTitleGuard.pause();
