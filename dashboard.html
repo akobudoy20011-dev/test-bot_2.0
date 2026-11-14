@@ -179,6 +179,11 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   <div class="field"><select id="countdownTargetMember" aria-label="Countdown target member"><option value="">Load a group and members first</option></select><button id="loadCountdownMembers">Load members</button><button id="loadCountdownSettings">Load countdown settings</button></div>
   <div class="field"><label>Inactivity minutes <input id="countdownInactivity" type="number" min="1" max="60" value="5"></label><label>Number delay ms <input id="countdownDelay" type="number" min="1000" max="10000" step="500" value="2000"></label></div>
   <div class="actions"><button class="primary" id="saveCountdown">Save countdown settings</button><button id="refreshCountdownHistory">Refresh history</button></div>
+  <h3 style="margin-top:18px">Completion receipt · Test Bot only</h3>
+  <div class="field"><label>WIN display name <input id="countdownReceiptWinner" maxlength="80" value="TEST BOT" placeholder="TEST BOT"></label></div>
+  <div class="field"><label style="width:100%">Receipt reason <input id="countdownReceiptReason" maxlength="180" value="DI TUMAGOS SA COUNTDOWN CHALLENGE 😭" style="width:100%"></label></div>
+  <div class="actions"><button id="loadCountdownReceipt">Load receipt settings</button><button class="primary" id="saveCountdownReceipt">Save receipt settings</button></div>
+  <p class="hint" id="countdownReceiptMessage">These receipt settings are saved separately for this Test Bot instance.</p>
   <p class="hint" id="countdownMessage">Select a group above, then load members.</p>
   <div class="log" id="countdownHistory" style="max-height:180px">Countdown history will appear here.</div>
 </section>
@@ -397,6 +402,25 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       await refreshCountdownHistory();
     }catch(e){$("countdownMessage").textContent="Save failed: "+e.message;}
   }
+  async function loadCountdownReceiptSettings(){
+    try{
+      const data=await request("/api/dashboard/countdown/receipt");
+      const settings=data.settings||{};
+      $("countdownReceiptWinner").value=settings.winnerName||"TEST BOT";
+      $("countdownReceiptReason").value=settings.reason||"DI TUMAGOS SA COUNTDOWN CHALLENGE 😭";
+      $("countdownReceiptMessage").textContent="Test Bot receipt settings loaded.";
+    }catch(e){$("countdownReceiptMessage").textContent="Could not load receipt settings: "+e.message;}
+  }
+  async function saveCountdownReceiptSettings(){
+    const winnerName=$("countdownReceiptWinner").value.trim(),reason=$("countdownReceiptReason").value.trim();
+    if(!winnerName||!reason){$("countdownReceiptMessage").textContent="Enter both the WIN display name and receipt reason.";return;}
+    try{
+      const data=await request("/api/dashboard/countdown/receipt",{method:"POST",body:JSON.stringify({winnerName,reason})});
+      $("countdownReceiptWinner").value=data.settings.winnerName;
+      $("countdownReceiptReason").value=data.settings.reason;
+      $("countdownReceiptMessage").textContent="Test Bot receipt settings saved to Neon.";
+    }catch(e){$("countdownReceiptMessage").textContent="Receipt save failed: "+e.message;}
+  }
   async function refreshCountdownHistory(){
     try{
       const data=await request("/api/dashboard/countdown/history");
@@ -591,7 +615,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     try{
       await request("/api/dashboard/session");
       $("dashboardAccessMessage").textContent="Dashboard controls unlocked. Session and group management are ready.";
-      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents()]);
+      await Promise.allSettled([loadSettings(),refreshSession(),refreshGroups(),loadEvents(),loadCountdownReceiptSettings()]);
       await raidRefreshStatus();
     }catch(error){$("dashboardAccessMessage").textContent="Access denied: "+error.message+" Check that the key matches the Test Bot Render environment."}
     finally{$("unlockDashboard").disabled=false;}
@@ -623,6 +647,8 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("loadCountdownSettings").addEventListener("click",loadCountdownSettings);
   $("saveCountdown").addEventListener("click",saveCountdown);
   $("refreshCountdownHistory").addEventListener("click",refreshCountdownHistory);
+  $("loadCountdownReceipt").addEventListener("click",loadCountdownReceiptSettings);
+  $("saveCountdownReceipt").addEventListener("click",saveCountdownReceiptSettings);
   $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   function applyAccent(value,label){if(!/^#[0-9a-f]{6}$/i.test(value))return;document.documentElement.style.setProperty("--accent",value);try{localStorage.setItem("eclipse-testbot-accent",value);}catch(_){}$("themeMessage").textContent=label+" theme active.";$("customAccent").value=value;}
