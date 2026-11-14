@@ -68,5 +68,5 @@ test("dashboard exposes seconds-based reply delay and bounded Spam Mode controls
   for(const id of ["spamMessage","spamInterval","spamMaxMessages","spamStart","spamStop","spamRefresh","spamStatus"]) assert.ok(html.includes('id="'+id+'"'),"Spam Mode control exists: "+id);
   assert.match(html,/intervalSeconds<6/);
   assert.match(html,/maxMessages>100/);
-  assert.match(html,/first send/i);
+  assert.match(html,/firstSendInSeconds/);
 });
