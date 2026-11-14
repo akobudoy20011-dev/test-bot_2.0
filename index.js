@@ -816,11 +816,9 @@ try {
         if (!groups.some(group => String(group.threadID) === threadID)) {
           throw new Error("Choose a group from the Messenger group list; this thread is not available to the bot.");
         }
-        const group = require("./bot-settings").getGroupSettings(threadID);
-        const message = String(input.message ?? group.spamMessage ?? "").trim();
-        const intervalSeconds = input.intervalSeconds ?? group.spamIntervalSeconds;
-        const maxMessages = input.maxMessages ?? group.spamMaxMessages;
-        return spamMode.start({ threadID, message, intervalSeconds, maxMessages });
+        const message = String(input.message || "").trim();
+        const intervalSeconds = input.intervalSeconds;
+        return spamMode.start({ threadID, message, intervalSeconds });
       },
       stop: threadID => spamMode.stop(threadID),
       stopAll: reason => spamMode.stopAll(reason),
