@@ -360,7 +360,7 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
         if (req.method === "POST" && url.pathname === "/api/dashboard/spam/start") {
           const body = await readJson(req);
           const result = await spam.start(body);
-          record("spam-mode-started", { thread_id: result.threadID, interval_seconds: result.intervalSeconds, max_messages: result.maxMessages });
+          record("spam-mode-started", { thread_id: result.threadID, interval_seconds: result.intervalSeconds, unlimited: true });
           return send(res, 200, { ok: true, result });
         }
         if (req.method === "POST" && url.pathname === "/api/dashboard/spam/stop") {
