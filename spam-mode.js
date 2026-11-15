@@ -2,6 +2,11 @@
 
 const MIN_INTERVAL_SECONDS = 2;
 const MAX_INTERVAL_SECONDS = 3600;
+const MAX_MESSAGES = 1000;
+
+function formatSpamMessage(message, sequence) {
+  return `${sequence}. ${message}`;
+}
 
 function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {}) {
   const runs = new Map();
@@ -43,10 +48,11 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
       return stop(run.threadID);
     }
     try {
-      await sendMessage(api, run.message, run.threadID);
+      await sendMessage(api, formatSpamMessage(run.message, run.sent + 1), run.threadID);
       if (run.stopped || runs.get(run.threadID) !== run) return;
       run.sent++;
-      console.log(`[SPAM MODE] sent ${run.sent} to ${run.threadID}`);
+      console.log(`[SPAM MODE] sent ${run.sent}/${MAX_MESSAGES} to ${run.threadID}`);
+      if (run.sent >= MAX_MESSAGES) return stop(run.threadID);
       run.nextSendAt = new Date(Date.now() + run.intervalSeconds * 1000).toISOString();
       run.timer = setTimeout(() => tick(run), run.intervalSeconds * 1000);
       run.timer.unref?.();
@@ -79,4 +85,4 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
   return { start, stop, stopAll, getStatus };
 }
 
-module.exports = { createSpamMode, MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS };
+module.exports = { createSpamMode, formatSpamMessage, MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES };
