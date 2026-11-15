@@ -59,8 +59,8 @@ test("dashboard has selected-group Banat ON and OFF controls",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   for(const id of ["banatControlPanel","banatControlGroup","banatControlStatus","banatTurnOn","banatTurnOff","banatRefreshStatus","banatControlMessage"]) assert.ok(html.includes('id="'+id+'"'),"Banat control exists: "+id);
   assert.match(html,/href="#banatControlPanel"/);
-  assert.match(html,/async function setBanatControl\\(mode\\)/);
-  assert.match(html,/\\/api\\/dashboard\\/settings\\/group/);
+  assert.ok(html.includes("async function setBanatControl(mode)"));
+  assert.ok(html.includes("/api/dashboard/settings/group"));
   assert.match(html,/banatMode:mode/);
   assert.match(html,/INHERIT · command controlled/);
   assert.match(html,/does not pause the Messenger bot or disconnect its session/);
