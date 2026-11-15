@@ -33,6 +33,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     return [...runs.values()].map(run => ({
       threadID: run.threadID,
       intervalSeconds: run.intervalSeconds,
+      maxMessages: MAX_MESSAGES,
       sent: run.sent,
       nextSendAt: run.nextSendAt,
       startedAt: run.startedAt
@@ -79,7 +80,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     run.timer = setTimeout(() => tick(run), intervalSeconds * 1000);
     run.timer.unref?.();
     console.log(`[SPAM MODE] started thread=${threadID} interval=${intervalSeconds}s unlimited; first send delayed by interval`);
-    return { threadID, intervalSeconds, unlimited: true, firstSendInSeconds: intervalSeconds };
+    return { threadID, intervalSeconds, maxMessages: MAX_MESSAGES, numbered: true, firstSendInSeconds: intervalSeconds };
   }
 
   return { start, stop, stopAll, getStatus };
