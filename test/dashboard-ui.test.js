@@ -72,13 +72,14 @@ test("dashboard feature modules each occupy their own full-width row",()=>{
   assert.match(html,/@media \(max-width: 850px\)[\s\S]*?main\.wrap > \.grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
 });
 
-test("dashboard exposes seconds-based reply delay and unlimited Spam Mode controls",()=>{
+test("dashboard exposes seconds-based reply delay and numbered Spam Mode controls",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/Reply delay seconds/);
   assert.match(html,/Number\(\$\("groupReplyDelay"\)\.value\)\*1000/);
   for(const id of ["spamMessage","spamInterval","spamStart","spamStop","spamRefresh","spamStatus"]) assert.ok(html.includes('id="'+id+'"'),"Spam Mode control exists: "+id);
   assert.match(html,/intervalSeconds<2/);
   assert.match(html,/min="2" max="3600"/);
-  assert.match(html,/unlimited Spam Mode/);
-  assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|It will send up to/);
+  assert.match(html,/numbered Spam Mode/);
+  assert.match(html,/1–1000/);
+  assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|unlimited Spam Mode/);
 });

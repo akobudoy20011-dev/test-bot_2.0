@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createSpamMode } = require("../spam-mode");
+const { createSpamMode, formatSpamMessage, MAX_MESSAGES } = require("../spam-mode");
 
 test("Spam Mode requires a valid group, custom message, and interval of at least two seconds", () => {
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => {}, isAuthorized: () => true });
@@ -12,15 +12,22 @@ test("Spam Mode requires a valid group, custom message, and interval of at least
   assert.throws(() => spam.start({ threadID: "g", message: "", intervalSeconds: 2 }), /message between 1 and 1000/);
 });
 
-test("Spam Mode is unlimited, waits before first send, and can be stopped", async () => {
+test("Spam Mode numbers each outgoing message and stops at 1000", () => {
+  assert.equal(formatSpamMessage("moka ka tanga jan", 1), "1. moka ka tanga jan");
+  assert.equal(formatSpamMessage("moka ka tanga jan", 1000), "1000. moka ka tanga jan");
+  assert.equal(MAX_MESSAGES, 1000);
+});
+
+test("Spam Mode waits before first send and can be stopped", async () => {
   let sends = 0;
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => { sends++; }, isAuthorized: () => true });
   const started = spam.start({ threadID: "group-1", message: "custom words", intervalSeconds: 2 });
   assert.equal(started.firstSendInSeconds, 2);
-  assert.equal(started.unlimited, true);
+  assert.equal(started.numbered, true);
+  assert.equal(started.maxMessages, 1000);
   assert.equal(sends, 0);
   assert.equal(spam.getStatus()[0].intervalSeconds, 2);
-  assert.equal("maxMessages" in spam.getStatus()[0], false);
+  assert.equal(spam.getStatus()[0].maxMessages, 1000);
   const stopped = spam.stop("group-1");
   assert.equal(stopped.stopped, true);
   await new Promise(resolve => setTimeout(resolve, 30));
