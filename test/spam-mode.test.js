@@ -23,10 +23,11 @@ test("Spam Mode waits before first send and can be stopped", async () => {
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => { sends++; }, isAuthorized: () => true });
   const started = spam.start({ threadID: "group-1", message: "custom words", intervalSeconds: 2 });
   assert.equal(started.firstSendInSeconds, 2);
-  assert.equal(started.unlimited, true);
+  assert.equal(started.numbered, true);
+  assert.equal(started.maxMessages, 1000);
   assert.equal(sends, 0);
   assert.equal(spam.getStatus()[0].intervalSeconds, 2);
-  assert.equal("maxMessages" in spam.getStatus()[0], false);
+  assert.equal(spam.getStatus()[0].maxMessages, 1000);
   const stopped = spam.stop("group-1");
   assert.equal(stopped.stopped, true);
   await new Promise(resolve => setTimeout(resolve, 30));
