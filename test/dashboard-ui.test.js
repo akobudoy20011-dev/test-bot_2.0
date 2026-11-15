@@ -55,6 +55,17 @@ test("activity center supports local search and event-type filtering",()=>{
   assert.ok(html.includes("function renderEvents()"));
   assert.ok(html.includes('addEventListener("input",renderEvents)'));
 });
+test("dashboard has selected-group Banat ON and OFF controls",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  for(const id of ["banatControlPanel","banatControlGroup","banatControlStatus","banatTurnOn","banatTurnOff","banatRefreshStatus","banatControlMessage"]) assert.ok(html.includes('id="'+id+'"'),"Banat control exists: "+id);
+  assert.match(html,/href="#banatControlPanel"/);
+  assert.ok(html.includes("async function setBanatControl(mode)"));
+  assert.ok(html.includes("/api/dashboard/settings/group"));
+  assert.match(html,/banatMode:mode/);
+  assert.match(html,/INHERIT · command controlled/);
+  assert.match(html,/does not pause the Messenger bot or disconnect its session/);
+});
+
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
