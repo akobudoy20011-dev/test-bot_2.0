@@ -26,14 +26,14 @@ test("compact numbered entries are parsed as separate ordered messages", () => {
 });
 
 test("newline numbered entries are parsed as separate ordered messages", () => {
-  assert.deepEqual(parseSpamInput("1. lah\\n2. oo\\n3. sige"), {
+  assert.deepEqual(parseSpamInput("1. lah\n2. oo\n3. sige"), {
     mode: "sequence",
     messages: ["lah", "oo", "sige"]
   });
 });
 
 test("plain multiline entries are sent as a finite sequence", () => {
-  assert.deepEqual(parseSpamInput("lah\\noo\\nsige"), {
+  assert.deepEqual(parseSpamInput("lah\noo\nsige"), {
     mode: "sequence",
     messages: ["lah", "oo", "sige"]
   });
