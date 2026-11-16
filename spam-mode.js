@@ -5,8 +5,9 @@ const MAX_INTERVAL_SECONDS = 3600;
 const MAX_MESSAGES = 1000;
 const MAX_INPUT_LENGTH = 1000000;
 
-function formatSpamMessage(message, sequence) {
-  return `${sequence}. ${message}`;
+function formatSpamMessage(message) {
+  // Numbering is only an input aid; never include list markers in sent messages.
+  return String(message ?? "").trim();
 }
 
 // Accept both newline-separated lists and compact input such as
