@@ -11,10 +11,10 @@ function formatSpamMessage(message, sequence) {
 // Accept both newline-separated lists and compact input such as
 // "1. lah 2. oo 3. sige". Existing single-message input remains repeat mode.
 function parseSpamInput(input) {
-  const text = String(input ?? "").replace(/\\r\\n?/g, "\\n").trim();
+  const text = String(input ?? "").replace(/\r\n?/g, "\n").trim();
   if (!text) return { mode: "repeat", messages: [] };
 
-  const marker = /(^|\\s)(\\d{1,4})[.)]\\s+/g;
+  const marker = /(^|\s)(\d{1,4})[.)]\s+/g;
   const matches = [...text.matchAll(marker)];
   if (matches.length >= 2) {
     const first = matches[0];
@@ -29,13 +29,13 @@ function parseSpamInput(input) {
     }
   }
 
-  const lines = text.split(/\\n+/).map(line => line.trim()).filter(Boolean);
+  const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
   if (lines.length > 1) {
-    const messages = lines.map(line => line.replace(/^\\d{1,4}[.)]\\s*/, "").trim()).filter(Boolean);
+    const messages = lines.map(line => line.replace(/^\d{1,4}[.)]\s*/, "").trim()).filter(Boolean);
     if (messages.length === lines.length) return { mode: "sequence", messages };
   }
 
-  return { mode: "repeat", messages: [text.replace(/^1[.)]\\s*/, "").trim()] };
+  return { mode: "repeat", messages: [text.replace(/^1[.)]\s*/, "").trim()] };
 }
 
 function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout } = {}) {
@@ -123,7 +123,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     };
     runs.set(threadID, run);
     run.nextSendAt = new Date(Date.now() + intervalSeconds * 1000).toISOString();
-    run.timer = setTimeout(() => tick(run), intervalSeconds * 1000);
+    run.timer = setTimeoutFn(() => tick(run), intervalSeconds * 1000);
     run.timer.unref?.();
     console.log(`[SPAM MODE] started thread=${threadID} mode=${mode} messages=${totalMessages} interval=${intervalSeconds}s; first send delayed by interval`);
     return {
