@@ -54,6 +54,10 @@ test("numbered list supports 1000 entries and rejects more than 1000", () => {
   assert.throws(() => createSpamMode({ getApi: () => ({}), sendMessage: async () => {} }).start({
     threadID: "group-over-limit", message: overLimit, intervalSeconds: 2
   }), /between 1 and 1000 non-empty messages/);
+  const tooManyPlaceholders = Array.from({ length: 1001 }, (_, index) => (index + 1) + ". ").join("\\n");
+  assert.throws(() => createSpamMode({ getApi: () => ({}), sendMessage: async () => {} }).start({
+    threadID: "group-too-many-lines", message: tooManyPlaceholders, intervalSeconds: 2
+  }), /limited to 1000 numbered lines/);
 });
 
 test("plain multiline entries are sent as a finite sequence", () => {
