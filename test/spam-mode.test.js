@@ -33,11 +33,11 @@ test("newline numbered entries are parsed as separate ordered messages", () => {
 });
 
 test("numbered template skips unfilled lines and preserves the filled order", () => {
-  assert.deepEqual(parseSpamInput("1. lah\\n2. \\n3. sige\\n4. \\n5. tara"), {
+  assert.deepEqual(parseSpamInput(["1. lah", "2. ", "3. sige", "4. ", "5. tara"].join("\n")), {
     mode: "sequence",
     messages: ["lah", "sige", "tara"]
   });
-  assert.deepEqual(parseSpamInput("1. \\n2. \\n3. \\n4. \\n5. "), {
+  assert.deepEqual(parseSpamInput(["1. ", "2. ", "3. ", "4. ", "5. "].join("\n")), {
     mode: "sequence",
     messages: []
   });
