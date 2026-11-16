@@ -9,7 +9,7 @@ test("Spam Mode requires a valid group, custom message, and interval of at least
   assert.throws(() => spam.start({ threadID: "g", message: "hello", intervalSeconds: 1 }), /between 2 and 3600/);
   assert.throws(() => spam.start({ threadID: "g", message: "hello", intervalSeconds: 3601 }), /between 2 and 3600/);
   assert.throws(() => spam.start({ threadID: "", message: "hello", intervalSeconds: 2 }), /valid Messenger group/);
-  assert.throws(() => spam.start({ threadID: "g", message: "", intervalSeconds: 2 }), /message between 1 and 1000/);
+  assert.throws(() => spam.start({ threadID: "g", message: "", intervalSeconds: 2 }), /list between 1 and 1,000,000 characters/);
 });
 
 test("Spam Mode formats outgoing messages with increasing numbers", () => {
