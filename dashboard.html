@@ -233,11 +233,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </div>
 </section>
 
-<section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">Paste a numbered list (for example, “1. lah 2. oo 3. sige”) and each entry will be sent as its own message, in order, once. Plain multi-line entries work too. A single message repeats with increasing numbers up to 1000. Use Stop to end a run early; a failed send or safety shutdown also ends it.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="8" style="width:100%;resize:vertical">1. 
-2. 
-3. 
-4. 
-5. </textarea><div class="actions"><button type="button" id="spamAddNumbers">Add 5 numbers</button><span class="hint" id="spamNumberCount">5 / 1000 lines</span></div><span class="hint">Put your banats on each number. Add lines in batches of five, up to 1,000. Empty lines are skipped; each filled line is sent separately and in order.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label></div><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section>
+<section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">A 1,000-line numbered list is loaded automatically. Fill in the banats beside the numbers you want to send. Leave unused lines blank; each filled line is sent as its own message, in order, once. Use Stop to end a run early; a failed send or safety shutdown also ends it.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="12" style="width:100%;resize:vertical" spellcheck="false" autocomplete="off"></textarea><div class="actions"><span class="hint" id="spamNumberCount">1,000 numbered lines loaded</span></div><span class="hint">Example: write after “1.”, “2.”, “3.” and so on. Empty numbered lines are skipped. Maximum: 1,000 messages.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label></div><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section>
 <section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
 <section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
@@ -480,21 +476,14 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   }
   function updateSpamNumberCount(){
     const lines=$("spamMessage").value.replace(/\r\n?/g,"\n").split("\n").length;
-    $("spamNumberCount").textContent=Math.min(lines,1000)+" / 1000 lines";
-    $("spamAddNumbers").disabled=lines>=1000;
+    $("spamNumberCount").textContent=Math.min(lines,1000).toLocaleString()+" / 1,000 numbered lines";
   }
-  function addSpamNumbers(){
-    const input=$("spamMessage");
-    const lines=input.value.replace(/\r\n?/g,"\n").split("\n");
-    if(lines.length>=1000){updateSpamNumberCount();return;}
-    const end=Math.min(lines.length+5,1000);
-    for(let number=lines.length+1;number<=end;number++)lines.push(number+". ");
-    input.value=lines.join("\n");
+  function loadSpamNumberedLines(){
+    $("spamMessage").value=Array.from({length:1000},(_,index)=>(index+1)+". ").join("\n");
     updateSpamNumberCount();
   }
-  $("spamAddNumbers").addEventListener("click",addSpamNumbers);
   $("spamMessage").addEventListener("input",updateSpamNumberCount);
-  updateSpamNumberCount();
+  loadSpamNumberedLines();
 
   async function spamAction(action){
     const threadID=$("groupThreadID").value.trim();
