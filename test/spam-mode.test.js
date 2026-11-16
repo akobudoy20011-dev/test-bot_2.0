@@ -59,6 +59,32 @@ test("Spam Mode sequence reports its finite message count and can be stopped", a
   assert.deepEqual(spam.getStatus(), []);
 });
 
+test("numbered list sends one entry per tick in order and stops at the end", async () => {
+  const timers = [];
+  const sent = [];
+  const spam = createSpamMode({
+    getApi: () => ({}),
+    sendMessage: async (_api, message) => { sent.push(message); },
+    isAuthorized: () => true,
+    setTimeoutFn: (fn, delay) => { const timer = { fn, delay, unref() {} }; timers.push(timer); return timer; },
+    clearTimeoutFn: () => {}
+  });
+  const started = spam.start({ threadID: "group-list", message: "1. lah 2. oo 3. sige", intervalSeconds: 2 });
+  assert.equal(started.totalMessages, 3);
+  // Capture and execute the first delayed send, then each scheduled next send.
+
+  assert.equal(sent.length, 0);
+  assert.equal(timers.length, 1);
+  await timers.shift().fn();
+  assert.deepEqual(sent, ["1. lah"]);
+  assert.equal(spam.getStatus()[0].sent, 1);
+  await timers.shift().fn();
+  assert.deepEqual(sent, ["1. lah", "2. oo"]);
+  await timers.shift().fn();
+  assert.deepEqual(sent, ["1. lah", "2. oo", "3. sige"]);
+  assert.deepEqual(spam.getStatus(), []);
+});
+
 test("Spam Mode single message waits before first send and can be stopped", async () => {
   let sends = 0;
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => { sends++; }, isAuthorized: () => true });
