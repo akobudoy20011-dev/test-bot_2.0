@@ -16,7 +16,7 @@ function parseSpamInput(input) {
 
   const marker = /(^|\s)(\d{1,4})[.)]\s+/g;
   const matches = [...text.matchAll(marker)];
-  if (matches.length >= 2) {
+  if (matches.length >= 2 && !text.includes("\n")) {
     const first = matches[0];
     const prefix = text.slice(0, first.index + first[1].length).trim();
     if (!prefix) {
