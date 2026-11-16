@@ -29,6 +29,12 @@ function parseSpamInput(input) {
     }
   }
 
+  const numberedLines = text.split(/\n+/).map(line => line.trim());
+  if (numberedLines.length > 1 && numberedLines.every(line => /^\d{1,4}[.)](?:\\s+.*)?$/.test(line))) {
+    const messages = numberedLines.map(line => line.replace(/^\d{1,4}[.)]\\s*/, "").trim()).filter(Boolean);
+    return { mode: "sequence", messages };
+  }
+
   const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
   if (lines.length > 1) {
     const messages = lines.map(line => line.replace(/^\d{1,4}[.)]\s*/, "").trim()).filter(Boolean);
