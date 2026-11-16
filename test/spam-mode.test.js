@@ -12,9 +12,10 @@ test("Spam Mode requires a valid group, custom message, and interval of at least
   assert.throws(() => spam.start({ threadID: "g", message: "", intervalSeconds: 2 }), /list between 1 and 1,000,000 characters/);
 });
 
-test("Spam Mode formats outgoing messages with increasing numbers", () => {
-  assert.equal(formatSpamMessage("moka ka tanga jan", 1), "1. moka ka tanga jan");
-  assert.equal(formatSpamMessage("moka ka tanga jan", 1000), "1000. moka ka tanga jan");
+test("Spam Mode sends insult text without numbered input markers", () => {
+  assert.equal(formatSpamMessage("moka ka tanga jan", 1), "moka ka tanga jan");
+  assert.equal(formatSpamMessage("  wala na  ", 2), "wala na");
+  assert.equal(formatSpamMessage("moka ka tanga jan", 1000), "moka ka tanga jan");
   assert.equal(MAX_MESSAGES, 1000);
 });
 
@@ -104,12 +105,12 @@ test("numbered list sends one entry per tick in order and stops at the end", asy
   assert.equal(sent.length, 0);
   assert.equal(timers.length, 1);
   await timers.shift().fn();
-  assert.deepEqual(sent, ["1. lah"]);
+  assert.deepEqual(sent, ["lah"]);
   assert.equal(spam.getStatus()[0].sent, 1);
   await timers.shift().fn();
-  assert.deepEqual(sent, ["1. lah", "2. oo"]);
+  assert.deepEqual(sent, ["lah", "oo"]);
   await timers.shift().fn();
-  assert.deepEqual(sent, ["1. lah", "2. oo", "3. sige"]);
+  assert.deepEqual(sent, ["lah", "oo", "sige"]);
   assert.deepEqual(spam.getStatus(), []);
 });
 
