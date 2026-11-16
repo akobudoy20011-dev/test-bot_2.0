@@ -38,7 +38,7 @@ function parseSpamInput(input) {
   return { mode: "repeat", messages: [text.replace(/^1[.)]\\s*/, "").trim()] };
 }
 
-function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {}) {
+function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout } = {}) {
   const runs = new Map();
 
   function stop(threadID) {
@@ -46,7 +46,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
     const run = runs.get(key);
     if (!run) return { stopped: false, threadID: key };
     run.stopped = true;
-    if (run.timer) clearTimeout(run.timer);
+    if (run.timer) clearTimeoutFn(run.timer);
     runs.delete(key);
     console.log(`[SPAM MODE] stopped thread=${key} sent=${run.sent}`);
     return { stopped: true, threadID: key, sent: run.sent };
@@ -88,7 +88,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true } = {})
       console.log(`[SPAM MODE] sent ${run.sent}/${run.totalMessages} to ${run.threadID}`);
       if (run.sent >= run.totalMessages) return stop(run.threadID);
       run.nextSendAt = new Date(Date.now() + run.intervalSeconds * 1000).toISOString();
-      run.timer = setTimeout(() => tick(run), run.intervalSeconds * 1000);
+      run.timer = setTimeoutFn(() => tick(run), run.intervalSeconds * 1000);
       run.timer.unref?.();
     } catch (error) {
       console.error(`[SPAM MODE] stopped after send failure in ${run.threadID}:`, error?.message || error);
