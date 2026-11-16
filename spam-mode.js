@@ -3,6 +3,7 @@
 const MIN_INTERVAL_SECONDS = 2;
 const MAX_INTERVAL_SECONDS = 3600;
 const MAX_MESSAGES = 1000;
+const MAX_INPUT_LENGTH = 1000000;
 
 function formatSpamMessage(message, sequence) {
   return `${sequence}. ${message}`;
@@ -107,7 +108,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     const rawMessage = String(input.message || "").trim();
     const intervalSeconds = Number(input.intervalSeconds);
     if (!threadID || threadID.length > 128) throw new Error("Choose a valid Messenger group.");
-    if (!rawMessage || rawMessage.length > 1000) throw new Error("Enter a message between 1 and 1000 characters.");
+    if (!rawMessage || rawMessage.length > MAX_INPUT_LENGTH) throw new Error("Enter a list between 1 and 1,000,000 characters.");
     if (!Number.isInteger(intervalSeconds) || intervalSeconds < MIN_INTERVAL_SECONDS || intervalSeconds > MAX_INTERVAL_SECONDS) {
       throw new Error("Spam Mode interval must be between 2 and 3600 seconds.");
     }
@@ -144,5 +145,5 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
 
 module.exports = {
   createSpamMode, formatSpamMessage, parseSpamInput,
-  MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES
+  MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES, MAX_INPUT_LENGTH
 };
