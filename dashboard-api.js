@@ -32,9 +32,9 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
     req.on("error",error=>{if(!settled){settled=true;reject(error);}});
   });
 
-  const readJson = (req) => new Promise((resolve,reject)=>{
+  const readJson = (req, maxBytes = 150 * 1024) => new Promise((resolve,reject)=>{
     let raw="";
-    req.on("data",chunk=>{raw+=chunk;if(raw.length>150*1024){reject(new Error("Request body too large"));req.destroy();}});
+    req.on("data",chunk=>{raw+=chunk;if(Buffer.byteLength(raw,"utf8")>maxBytes){reject(new Error("Request body too large"));req.destroy();}});
     req.on("end",()=>{if(!raw.trim())return resolve({});try{resolve(JSON.parse(raw));}catch(_){reject(new Error("Invalid JSON body"));}});
     req.on("error",reject);
   });
@@ -366,9 +366,9 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
           return send(res, 200, { ok: true, runs: spam.getStatus() });
         }
         if (req.method === "POST" && url.pathname === "/api/dashboard/spam/start") {
-          const body = await readJson(req);
+          const body = await readJson(req, 2 * 1024 * 1024);
           const result = await spam.start(body);
-          record("spam-mode-started", { thread_id: result.threadID, interval_seconds: result.intervalSeconds, max_messages: 1000, numbered: true });
+          record("spam-mode-started", { thread_id: result.threadID, interval_seconds: result.intervalSeconds, mode: result.mode, total_messages: result.totalMessages, numbered: true });
           return send(res, 200, { ok: true, result });
         }
         if (req.method === "POST" && url.pathname === "/api/dashboard/spam/stop") {
