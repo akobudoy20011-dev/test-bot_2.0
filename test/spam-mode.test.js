@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createSpamMode, formatSpamMessage, MAX_MESSAGES } = require("../spam-mode");
+const { createSpamMode, formatSpamMessage, parseSpamInput, MAX_MESSAGES } = require("../spam-mode");
 
 test("Spam Mode requires a valid group, custom message, and interval of at least two seconds", () => {
   const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => {}, isAuthorized: () => true });
@@ -12,23 +12,64 @@ test("Spam Mode requires a valid group, custom message, and interval of at least
   assert.throws(() => spam.start({ threadID: "g", message: "", intervalSeconds: 2 }), /message between 1 and 1000/);
 });
 
-test("Spam Mode numbers each outgoing message and stops at 1000", () => {
+test("Spam Mode formats outgoing messages with increasing numbers", () => {
   assert.equal(formatSpamMessage("moka ka tanga jan", 1), "1. moka ka tanga jan");
   assert.equal(formatSpamMessage("moka ka tanga jan", 1000), "1000. moka ka tanga jan");
   assert.equal(MAX_MESSAGES, 1000);
 });
 
-test("Spam Mode waits before first send and can be stopped", async () => {
-  let sends = 0;
-  const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => { sends++; }, isAuthorized: () => true });
-  const started = spam.start({ threadID: "group-1", message: "custom words", intervalSeconds: 2 });
+test("compact numbered entries are parsed as separate ordered messages", () => {
+  assert.deepEqual(parseSpamInput("1. lah 2. oo 3. sige"), {
+    mode: "sequence",
+    messages: ["lah", "oo", "sige"]
+  });
+});
+
+test("newline numbered entries are parsed as separate ordered messages", () => {
+  assert.deepEqual(parseSpamInput("1. lah\\n2. oo\\n3. sige"), {
+    mode: "sequence",
+    messages: ["lah", "oo", "sige"]
+  });
+});
+
+test("plain multiline entries are sent as a finite sequence", () => {
+  assert.deepEqual(parseSpamInput("lah\\noo\\nsige"), {
+    mode: "sequence",
+    messages: ["lah", "oo", "sige"]
+  });
+});
+
+test("single message keeps the existing repeat-to-1000 behavior", () => {
+  assert.deepEqual(parseSpamInput("custom words"), {
+    mode: "repeat",
+    messages: ["custom words"]
+  });
+});
+
+test("Spam Mode sequence reports its finite message count and can be stopped", async () => {
+  const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => {}, isAuthorized: () => true });
+  const started = spam.start({ threadID: "group-1", message: "1. lah 2. oo 3. sige", intervalSeconds: 2 });
   assert.equal(started.firstSendInSeconds, 2);
   assert.equal(started.numbered, true);
-  assert.equal(started.maxMessages, 1000);
+  assert.equal(started.mode, "sequence");
+  assert.equal(started.totalMessages, 3);
+  assert.equal(spam.getStatus()[0].totalMessages, 3);
+  assert.equal(spam.getStatus()[0].sent, 0);
+  assert.equal(spam.stop("group-1").stopped, true);
+  assert.deepEqual(spam.getStatus(), []);
+});
+
+test("Spam Mode single message waits before first send and can be stopped", async () => {
+  let sends = 0;
+  const spam = createSpamMode({ getApi: () => ({}), sendMessage: async () => { sends++; }, isAuthorized: () => true });
+  const started = spam.start({ threadID: "group-2", message: "custom words", intervalSeconds: 2 });
+  assert.equal(started.firstSendInSeconds, 2);
+  assert.equal(started.mode, "repeat");
+  assert.equal(started.totalMessages, 1000);
   assert.equal(sends, 0);
   assert.equal(spam.getStatus()[0].intervalSeconds, 2);
-  assert.equal(spam.getStatus()[0].maxMessages, 1000);
-  const stopped = spam.stop("group-1");
+  assert.equal(spam.getStatus()[0].totalMessages, 1000);
+  const stopped = spam.stop("group-2");
   assert.equal(stopped.stopped, true);
   await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(sends, 0);
