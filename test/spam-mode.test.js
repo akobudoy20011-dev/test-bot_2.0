@@ -43,6 +43,19 @@ test("numbered template skips unfilled lines and preserves the filled order", ()
   });
 });
 
+test("numbered list supports 1000 entries and rejects more than 1000", () => {
+  const thousand = Array.from({ length: 1000 }, (_, index) => (index + 1) + ". banat " + (index + 1)).join("\n");
+  const parsed = parseSpamInput(thousand);
+  assert.equal(parsed.mode, "sequence");
+  assert.equal(parsed.messages.length, 1000);
+  assert.equal(parsed.messages[0], "banat 1");
+  assert.equal(parsed.messages[999], "banat 1000");
+  const overLimit = Array.from({ length: 1001 }, (_, index) => (index + 1) + ". banat").join("\n");
+  assert.throws(() => createSpamMode({ getApi: () => ({}), sendMessage: async () => {} }).start({
+    threadID: "group-over-limit", message: overLimit, intervalSeconds: 2
+  }), /between 1 and 1000 non-empty messages/);
+});
+
 test("plain multiline entries are sent as a finite sequence", () => {
   assert.deepEqual(parseSpamInput("lah\noo\nsige"), {
     mode: "sequence",
