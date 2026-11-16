@@ -115,6 +115,8 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     if (!isAuthorized()) throw new Error("Bot must be connected, licensed, and running to start Spam Mode.");
     if (runs.has(threadID)) throw new Error("Spam Mode is already running in this group. Stop it before starting another run.");
 
+    if (rawMessage.split(/\r?\n/).length > MAX_MESSAGES) throw new Error("Spam Mode lists are limited to 1000 numbered lines.");
+
     const parsed = parseSpamInput(rawMessage);
     if (!parsed.messages.length || parsed.messages.some(message => !message) || parsed.messages.length > MAX_MESSAGES) {
       throw new Error("Enter between 1 and 1000 non-empty messages.");
