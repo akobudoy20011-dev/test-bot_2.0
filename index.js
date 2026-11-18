@@ -863,7 +863,7 @@ raidMode.initialize().then(ok => {
   if (!ok) console.warn("[RAID] Raid Mode is unavailable until its Neon configuration is completed.");
 }).catch(error => console.warn("[RAID] initialization failed:", error?.message || error));
 
-licenseGuard.initialize().then(ok => {
+licenseGuard.initialize().then(async ok => {
   licenseAuthorized = ok;
   if (ok) {
     console.log("[ECLIPSE LICENSE] Installation authorized:", licenseGuard.getInstallationId());
