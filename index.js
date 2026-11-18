@@ -21,6 +21,9 @@
 const fs = require("fs");
 const path = require("path");
 const { login } = require("ws3-fca");
+const { createProxyManager } = require("./proxy-config");
+const proxyManager = createProxyManager();
+const proxyStartup = proxyManager.initialize();
 const { getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
 const { isDuplicateMessage } = require("./message-dedupe");
@@ -610,6 +613,12 @@ const reactionAudience = createReactionAudience({
 });
 
 function loginBot(sessionOverride = null) {
+  const proxyStatus = proxyManager.getStatus();
+  if (!proxyStatus.ready) {
+    loginError = proxyStatus.error || "Messenger login is blocked until PROXY_URL is configured and proxy startup checks finish.";
+    console.error("[PROXY] Messenger login blocked; no direct-connection fallback is allowed.");
+    return false;
+  }
   if (!licenseAuthorized) {
     console.warn("[ECLIPSE LICENSE] Messenger login blocked because this installation is not authorized.");
     return false;
@@ -683,7 +692,7 @@ function loginBot(sessionOverride = null) {
   };
 
   try {
-    const result = login(cookie, (error, api) => {
+    const result = login(cookie, proxyManager.getLoginOptions(), (error, api) => {
       if (generation !== loginGeneration || settled) return;
       if (error || !api) return finishFailure(error || new Error("Login returned no Messenger API."));
       settled = true;
@@ -728,6 +737,7 @@ try {
     bot_running: messengerConnected && !botPaused && licenseAuthorized,
     login_in_progress: loginInProgress,
     login_error: loginError,
+    proxy: proxyManager.getStatus(),
     last_connected_at: lastConnectedAt,
     last_disconnected_at: lastDisconnectedAt,
     last_listener_error: lastListenerError,
@@ -853,10 +863,11 @@ raidMode.initialize().then(ok => {
   if (!ok) console.warn("[RAID] Raid Mode is unavailable until its Neon configuration is completed.");
 }).catch(error => console.warn("[RAID] initialization failed:", error?.message || error));
 
-licenseGuard.initialize().then(ok => {
+licenseGuard.initialize().then(async ok => {
   licenseAuthorized = ok;
   if (ok) {
     console.log("[ECLIPSE LICENSE] Installation authorized:", licenseGuard.getInstallationId());
+    await proxyStartup;
     loginBot();
   } else {
     console.error("[ECLIPSE LICENSE] Bot processing is disabled:", licenseGuard.getStatus().last_error);

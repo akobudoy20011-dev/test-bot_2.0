@@ -14,10 +14,13 @@
 | --- | --- |
 | `FB_COOKIES` | Facebook cookie/header string for the bot session. |
 | `FB_APPSTATE` | Alternative exported cookie/appstate JSON format. Use one session variable, not both. |
+| `PROXY_URL` | Required authenticated HTTP/HTTPS proxy for Messenger HTTP requests, MQTT WebSocket connections, and Node global fetch requests (including license/GitHub checks). Messenger login is blocked when missing; there is no direct fallback. |
 | `ECLIPSE_DASHBOARD_ORIGIN` | Allowed dashboard origin(s), comma-separated when more than one is needed. |
 | `BOT_ADMIN_IDS` | Comma-, semicolon-, or whitespace-separated Messenger user IDs allowed to use `!banat on`, `!banat off`, and `!banat toggle`. Required for remote state changes; leave unset to deny everyone. |
 
 Optional:
+- `PROXY_URL=http://USERNAME:PASSWORD@HOST:PORT` — configure the authenticated HTTP/HTTPS proxy. URL-encode special characters in the username/password. Do not paste the proxy URL into chat, source files, or logs; add it as a private Render environment variable.
+- The process routes Node global `fetch` calls through the configured proxy, and checks `https://ipinfo.io/json` once at startup through that same proxy. It warns if the reported egress is not Manila, Philippines. If the location service is unavailable, the bot continues using the proxy only; it never falls back to a direct Messenger connection.
 - `BOT_ADMIN_IDS=123456789,987654321` — configure the Messenger sender IDs that may change Banat state. Do not use Facebook names; use numeric Messenger user IDs.
 - `ECLIPSE_DASHBOARD_API_KEY` — long random key required for owner-only Security management endpoints; normal dashboard API access remains origin-restricted.
 - `BANAT_DEFAULT_ON=true` enables Banat automatically in threads after incoming messages.
