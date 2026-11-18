@@ -2,6 +2,13 @@
 
 const https = require("https");
 const HttpsProxyAgent = require("https-proxy-agent");
+const { ProxyAgent, setGlobalDispatcher } = require("undici");
+
+function configureGlobalFetchProxy(proxyUrl) {
+  const dispatcher = new ProxyAgent(proxyUrl);
+  setGlobalDispatcher(dispatcher);
+  return dispatcher;
+}
 
 const IPINFO_URL = "https://ipinfo.io/json";
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -106,6 +113,7 @@ function createProxyManager(options = {}) {
   const env = options.env || process.env;
   const logger = options.logger || console;
   const verifyLocation = options.verifyLocation || verifyProxyLocation;
+  const configureFetchProxy = options.configureFetchProxy || configureGlobalFetchProxy;
   let proxyUrl = null;
   let initPromise = null;
   let status = {
@@ -125,6 +133,9 @@ function createProxyManager(options = {}) {
     initPromise = (async () => {
       try {
         proxyUrl = parseProxyUrl(env.PROXY_URL);
+        // Route Node global fetch (including license-authority and GitHub fork checks)
+        // through the same proxy before any external request can run.
+        configureFetchProxy(proxyUrl);
         status = { ...status, configured: true, ready: true, error: null };
         logger.log("[PROXY] Messenger HTTP/HTTPS and MQTT WebSocket traffic will use PROXY_URL.");
       } catch (error) {
@@ -182,4 +193,4 @@ function createProxyManager(options = {}) {
   return { initialize, getStatus, getLoginOptions };
 }
 
-module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation };
+module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation, configureGlobalFetchProxy };

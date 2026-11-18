@@ -18,10 +18,12 @@ test("proxy URL requires an explicit HTTP or HTTPS proxy and port", () => {
 
 test("missing PROXY_URL fails closed and never invokes the location check", async () => {
   let checks = 0;
+  let fetchProxyConfigurations = 0;
   const logs = [];
   const manager = createProxyManager({
     env: {},
     verifyLocation: async () => { checks++; return { ok: true, country: "PH", city: "Manila" }; },
+    configureFetchProxy: () => { fetchProxyConfigurations++; },
     logger: { log() {}, warn() {}, error: message => logs.push(message) }
   });
 
@@ -29,23 +31,27 @@ test("missing PROXY_URL fails closed and never invokes the location check", asyn
   assert.equal(status.ready, false);
   assert.equal(status.configured, false);
   assert.equal(checks, 0);
+  assert.equal(fetchProxyConfigurations, 0);
   assert.throws(() => manager.getLoginOptions(), /PROXY_URL is required/);
   assert.match(logs[0], /direct fallback is disabled/);
 });
 
-test("proxy manager verifies location once and keeps proxy credentials out of status", async () => {
+test("proxy manager configures global fetch and verifies location once", async () => {
   let checks = 0;
+  const fetchProxyConfigurations = [];
   const manager = createProxyManager({
     env: { PROXY_URL: "http://user:secret@proxy.example:8080" },
     verifyLocation: async () => {
       checks++;
       return { ok: true, country: "PH", city: "Manila", region: "Metro Manila" };
     },
+    configureFetchProxy: url => fetchProxyConfigurations.push(url),
     logger: { log() {}, warn() {}, error() {} }
   });
 
   const [first, second] = await Promise.all([manager.initialize(), manager.initialize()]);
   assert.equal(checks, 1);
+  assert.deepEqual(fetchProxyConfigurations, ["http://user:secret@proxy.example:8080/"]);
   assert.equal(first.ready, true);
   assert.equal(second.locationVerified, true);
   assert.deepEqual(manager.getLoginOptions(), { proxy: "http://user:secret@proxy.example:8080/" });
@@ -57,6 +63,7 @@ test("unexpected egress location warns but does not switch to direct networking"
   const manager = createProxyManager({
     env: { PROXY_URL: "http://proxy.example:8080" },
     verifyLocation: async () => ({ ok: true, country: "US", city: "New York", region: "New York" }),
+    configureFetchProxy() {},
     logger: { log() {}, warn: message => warnings.push(message), error() {} }
   });
 
