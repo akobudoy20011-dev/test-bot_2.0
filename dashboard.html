@@ -495,7 +495,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       if(!message){$("spamStatus").textContent="Fill in at least one numbered line.";return;}
       if(!Number.isInteger(intervalSeconds)||intervalSeconds<2||intervalSeconds>3600){$("spamStatus").textContent="Interval must be a whole number between 2 and 3600 seconds.";return;}
       const isSequence = message.split(/\n+/).filter(Boolean).length > 1 || /(?:^|\s)\d{1,4}[.)]\s+[\s\S]*?(?:\s+\d{1,4}[.)]\s+)/.test(message);
-      const entryCount = isSequence ? Math.max(message.split(/\\n+/).filter(line=>/^\\d+[.)]\\s*\\S/.test(line.trim())).length, (message.match(/(?:^|\\s)\\d{1,4}[.)]\\s+\\S/g)||[]).length) : 1;
+      const entryCount = isSequence ? Math.max(message.split(/\n+/).filter(line=>/^\d+[.)]\s*\S/.test(line.trim())).length, (message.match(/(?:^|\s)\d{1,4}[.)]\s+\S/g)||[]).length) : 1;
       const confirmText = isSequence
         ? "Send each numbered/list entry as a separate message, in order, once? First send is after "+intervalSeconds+" seconds."
         : "Repeat this single message with increasing numbers, up to 1000 sends? First send is after "+intervalSeconds+" seconds.";
