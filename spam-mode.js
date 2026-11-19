@@ -3,6 +3,7 @@
 const MIN_INTERVAL_SECONDS = 2;
 const MAX_INTERVAL_SECONDS = 3600;
 const MAX_MESSAGES = 1000;
+const MAX_SEQUENCE_LOOPS = 100;
 const MAX_INPUT_LENGTH = 1000000;
 
 function formatSpamMessage(message) {
@@ -74,6 +75,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
       maxMessages: run.totalMessages,
       totalMessages: run.totalMessages,
       mode: run.mode,
+      loops: run.loops,
       sent: run.sent,
       nextSendAt: run.nextSendAt,
       startedAt: run.startedAt
@@ -126,9 +128,13 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     const messages = parsed.messages;
     // A numbered/multiline list is a finite sequence; a single message keeps
     // the established repeat-until-1000 behavior.
-    const totalMessages = mode === "sequence" ? messages.length : MAX_MESSAGES;
+    const requestedLoops = mode === "sequence" ? Number(input.loops ?? input.repetitions ?? 1) : 1;
+    if (mode === "sequence" && (!Number.isInteger(requestedLoops) || requestedLoops < 1 || requestedLoops > MAX_SEQUENCE_LOOPS)) throw new Error("Sequence loops must be between 1 and 100.");
+    if (mode === "sequence" && messages.length * requestedLoops > MAX_MESSAGES) throw new Error("Looped sequence exceeds the 1000-message safety limit.");
+    const loops = mode === "sequence" ? requestedLoops : 1;
+    const totalMessages = mode === "sequence" ? messages.length * loops : MAX_MESSAGES;
     const run = {
-      threadID, messages, mode, totalMessages, intervalSeconds, sent: 0,
+      threadID, messages, mode, totalMessages, intervalSeconds, loops, sent: 0,
       stopped: false, timer: null, startedAt: new Date().toISOString(), nextSendAt: null
     };
     runs.set(threadID, run);
@@ -138,7 +144,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     console.log(`[SPAM MODE] started thread=${threadID} mode=${mode} messages=${totalMessages} interval=${intervalSeconds}s; first send delayed by interval`);
     return {
       threadID, intervalSeconds, maxMessages: totalMessages,
-      numbered: true, mode, totalMessages,
+      numbered: true, mode, loops, totalMessages,
       firstSendInSeconds: intervalSeconds
     };
   }
@@ -148,5 +154,5 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
 
 module.exports = {
   createSpamMode, formatSpamMessage, parseSpamInput,
-  MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES, MAX_INPUT_LENGTH
+  MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS, MAX_MESSAGES, MAX_SEQUENCE_LOOPS, MAX_INPUT_LENGTH
 };

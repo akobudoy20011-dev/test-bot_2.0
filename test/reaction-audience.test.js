@@ -48,7 +48,15 @@ test("admin lookup failures fail closed",async()=>{
 
 test("custom reaction target validation rejects incomplete dashboard saves",()=>{
   const {validateReactionTarget}=require("../reaction-audience");
-  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1"}),/group and a custom reaction target/);
-  assert.throws(()=>validateReactionTarget({targetMode:"member",targetUserId:"user-1"}),/group and a custom reaction target/);
-  assert.deepEqual(validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserId:"user-1"}),{targetMode:"member",targetThreadID:"group-1",targetUserId:"user-1"});
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1"}),/at least one custom reaction target/);
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetUserId:"user-1"}),/at least one custom reaction target/);
+  assert.deepEqual(validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]}),{targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]});
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:Array.from({length:11},(_,i)=>String(i))}),/no more than 10/);
+});
+
+test("custom member audience supports up to ten selected IDs",async()=>{
+ const audience=createReactionAudience();
+ const settings={targetMode:"member",targetThreadID:"g",targetUserIds:Array.from({length:10},(_,i)=>String(i))};
+ assert.equal(await audience.isAllowed(settings,{threadID:"g",senderID:"9"}),true);
+ assert.equal(await audience.isAllowed(settings,{threadID:"g",senderID:"10"}),false);
 });

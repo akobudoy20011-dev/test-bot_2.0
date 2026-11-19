@@ -190,7 +190,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   <div class="log" id="countdownHistory" style="max-height:180px">Countdown history will appear here.</div>
 </section>
 <section class="card span6" id="reactionPanel"><h2>MESS reaction targeting</h2><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div>
-<div class="field"><select id="reactionAudience" aria-label="Who should receive the reaction"><option value="all">Everyone</option><option value="admins">Group admins</option><option value="member">Selected member</option></select><select id="reactionMember" aria-label="Select member"><option value="">Load a group and members first</option></select><button id="loadReactionMembers">Load members</button></div>
+<div class="field"><select id="reactionAudience" aria-label="Who should receive the reaction"><option value="all">Everyone</option><option value="admins">Group admins</option><option value="member">Selected member</option></select><select id="reactionMember" aria-label="Select members" multiple size="6"><option value="">Load a group and members first</option></select><button id="loadReactionMembers">Load members</button></div>
 <div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section>
 
 <section class="card span12" id="raidModePanel">
@@ -233,7 +233,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   </div>
 </section>
 
-<section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">A 1,000-line numbered list is loaded automatically. Fill in the banats beside the numbers you want to send. Leave unused lines blank; each filled line is sent as its own message, in order, once. Use Stop to end a run early; a failed send or safety shutdown also ends it.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="12" style="width:100%;resize:vertical" spellcheck="false" autocomplete="off"></textarea><div class="actions"><span class="hint" id="spamNumberCount">1,000 numbered lines loaded</span></div><span class="hint">Example: write after “1.”, “2.”, “3.” and so on. Empty numbered lines are skipped. Maximum: 1,000 messages.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label></div><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section>
+<section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">A 1,000-line numbered list is loaded automatically. Fill in the banats beside the numbers you want to send. Leave unused lines blank; each filled line is sent as its own message, in order, once. Use Stop to end a run early; a failed send or safety shutdown also ends it.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="12" style="width:100%;resize:vertical" spellcheck="false" autocomplete="off"></textarea><div class="actions"><span class="hint" id="spamNumberCount">1,000 numbered lines loaded</span></div><span class="hint">Example: write after “1.”, “2.”, “3.” and so on. Empty numbered lines are skipped. Maximum: 1,000 messages.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label><label>Sequence loops <input id="spamLoops" type="number" min="1" max="100" step="1" value="1"></label></div><span class="hint">Loops apply to numbered/list sequences only. Maximum 100 loops and 1,000 total sends per run.</span><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section>
 <section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
 <section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
@@ -338,8 +338,8 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     try{
       const data=await request("/api/dashboard/settings"),r=data.settings.reaction||{};
       $("reactionEnabled").checked=r.enabled!==false;$("reactionEmoji").value=r.emoji||"😆";$("reactionTarget").value=r.target||"incoming_messages";$("reactionAudience").value=r.targetMode||"all";
-      $("reactionMember").dataset.userId=r.targetUserId||"";$("reactionMember").dataset.threadId=r.targetThreadID||"";
-      $("reactionMember").replaceChildren(new Option(r.targetUserName||"Select a member…",r.targetUserId||""));
+      $("reactionMember").dataset.userIds=JSON.stringify(r.targetUserIds|| (r.targetUserId?[r.targetUserId]:[]));$("reactionMember").dataset.userNames=JSON.stringify(r.targetUserNames|| (r.targetUserName?[r.targetUserName]:[]));$("reactionMember").dataset.threadId=r.targetThreadID||"";
+      $("reactionMember").replaceChildren(new Option("Load group members to select targets",""));
       $("reactionProbability").value=r.probability??100;$("reactionCooldown").value=r.cooldownSeconds??0;
       if(r.targetThreadID){
         const groupSelect=$("groupThreadID");
@@ -459,18 +459,20 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     const button=$("loadReactionMembers");button.disabled=true;
     try{
       const data=await request("/api/dashboard/group-members?threadID="+encodeURIComponent(threadID));
-      const select=$("reactionMember"),saved=select.dataset.userId||"";
-      select.replaceChildren(new Option("Choose a member…",""));
+      const select=$("reactionMember");let saved=[];try{saved=JSON.parse(select.dataset.userIds||"[]");}catch(_){};
+      select.replaceChildren();
       for(const m of data.members||[])select.add(new Option((m.name||"Messenger member")+(m.isAdmin?" · admin":""),m.userID));
-      if(saved&&[...select.options].some(o=>o.value===saved))select.value=saved;
-      $("reactionMessage").textContent=(data.members||[]).length+" member(s) loaded for this group.";
+      for(const option of select.options)option.selected=saved.includes(option.value);
+      $("reactionMessage").textContent=(data.members||[]).length+" member(s) loaded. Select up to 10.";
     }catch(e){$("reactionMessage").textContent="Could not load members: "+e.message;}
     finally{button.disabled=false;}
   }
   async function saveReaction(){
-    const member=$("reactionMember"),mode=$("reactionAudience").value,threadID=$("groupThreadID").value.trim();
-    if(mode==="member"&&(!threadID||!member.value)){ $("reactionMessage").textContent="Choose a group, load its members, and select one custom target.";return; }
-    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim()||"😆",target:$("reactionTarget").value,targetMode:mode,targetUserId:mode==="member"?member.value:"",targetUserName:mode==="member"?(member.selectedOptions[0]?.textContent||""):"",targetThreadID:mode==="all"?"":threadID,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
+    const member=$("reactionMember"),mode=$("reactionAudience").value,threadID=$("groupThreadID").value.trim(),selected=[...member.selectedOptions].map(o=>o.value).filter(Boolean);
+    if(selected.length>10){$("reactionMessage").textContent="Choose no more than 10 people.";return;}
+    if(mode==="member"&&(!threadID||!selected.length)){ $("reactionMessage").textContent="Choose a group, load members, and select at least one custom target.";return; }
+    const names=selected.map(id=>member.options[[...member.options].findIndex(o=>o.value===id)]?.textContent||"");
+    const body={enabled:$("reactionEnabled").checked,emoji:$("reactionEmoji").value.trim()||"😆",target:$("reactionTarget").value,targetMode:mode,targetUserId:selected[0]||"",targetUserName:names[0]||"",targetUserIds:mode==="member"?selected:[],targetUserNames:mode==="member"?names:[],targetThreadID:mode==="all"?"":threadID,probability:Number($("reactionProbability").value),cooldownSeconds:Number($("reactionCooldown").value)};
     try{const data=await request("/api/dashboard/settings/reaction",{method:"POST",body:JSON.stringify(body)});$("reactionMessage").textContent="Saved reaction emoji "+data.reaction.emoji+" · audience: "+data.reaction.targetMode+".";loadEvents();}
     catch(e){$("reactionMessage").textContent="Save failed: "+e.message;}
   }
@@ -489,21 +491,23 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     const threadID=$("groupThreadID").value.trim();
     if(!threadID){$("spamStatus").textContent="Choose a Messenger group first.";return;}
     if(action==="start"){
-      const message=$("spamMessage").value.trim(),intervalSeconds=Number($("spamInterval").value);
+      const message=$("spamMessage").value.trim(),intervalSeconds=Number($("spamInterval").value),loops=Number($("spamLoops").value);
       if(!message){$("spamStatus").textContent="Fill in at least one numbered line.";return;}
       if(!Number.isInteger(intervalSeconds)||intervalSeconds<2||intervalSeconds>3600){$("spamStatus").textContent="Interval must be a whole number between 2 and 3600 seconds.";return;}
       const isSequence = message.split(/\n+/).filter(Boolean).length > 1 || /(?:^|\s)\d{1,4}[.)]\s+[\s\S]*?(?:\s+\d{1,4}[.)]\s+)/.test(message);
+      const entryCount = isSequence ? Math.max(message.split(/\n+/).filter(line=>/^\d+[.)]\s*\S/.test(line.trim())).length, (message.match(/(?:^|\s)\d{1,4}[.)]\s+\S/g)||[]).length) : 1;
       const confirmText = isSequence
         ? "Send each numbered/list entry as a separate message, in order, once? First send is after "+intervalSeconds+" seconds."
         : "Repeat this single message with increasing numbers, up to 1000 sends? First send is after "+intervalSeconds+" seconds.";
-      if(!confirm(confirmText))return;
-      try{const data=await request("/api/dashboard/spam/start",{method:"POST",body:JSON.stringify({threadID,message,intervalSeconds})});const result=data.result||{};$("spamStatus").textContent="Running in "+threadID+" · "+(result.mode==="sequence"?(result.totalMessages+" separate messages, in order"):"single message repeated up to 1000 sends")+" · every "+result.intervalSeconds+"s. Use Stop to end early.";}
+      if(!Number.isInteger(loops)||loops<1||loops>100){$("spamStatus").textContent="Sequence loops must be between 1 and 100.";return;}if(isSequence&&entryCount*loops>1000){$("spamStatus").textContent="That loop would exceed the 1,000-message limit. Reduce loops or filled entries.";return;}
+      if(!confirm(isSequence?("Loop this list "+loops+" time(s), for "+(message.split(/\n+/).filter(Boolean).length*loops)+" messages total? First send after "+intervalSeconds+" seconds. Maximum 1,000 sends.") :confirmText))return;
+      try{const data=await request("/api/dashboard/spam/start",{method:"POST",body:JSON.stringify({threadID,message,intervalSeconds,loops})});const result=data.result||{};$("spamStatus").textContent="Running in "+threadID+" · "+(result.mode==="sequence"?(result.totalMessages+" separate messages, in order · "+(result.loops||1)+" loop(s)"):"single message repeated up to 1000 sends")+" · every "+result.intervalSeconds+"s. Use Stop to end early.";}
       catch(error){$("spamStatus").textContent="Could not start Spam Mode: "+error.message;}
     }else if(action==="stop"){
       try{const data=await request("/api/dashboard/spam/stop",{method:"POST",body:JSON.stringify({threadID})});$("spamStatus").textContent=data.result.stopped?"Spam Mode stopped for "+threadID+".":"No active run for this group.";}
       catch(error){$("spamStatus").textContent="Could not stop Spam Mode: "+error.message;}
     }else{
-      try{const data=await request("/api/dashboard/spam/status");const runs=data.runs||[];$("spamStatus").textContent=runs.length?runs.map(run=>run.threadID+" · "+run.sent+"/"+(run.totalMessages||run.maxMessages||1000)+" sent · every "+run.intervalSeconds+"s · "+(run.mode==="sequence"?"list":"repeat")).join(" | "):"No active Spam Mode runs.";}
+      try{const data=await request("/api/dashboard/spam/status");const runs=data.runs||[];$("spamStatus").textContent=runs.length?runs.map(run=>run.threadID+" · "+run.sent+"/"+(run.totalMessages||run.maxMessages||1000)+" sent · "+(run.mode==="sequence"?(run.loops||1)+" loop(s) · ":"")+"every "+run.intervalSeconds+"s · "+(run.mode==="sequence"?"list":"repeat")).join(" | "):"No active Spam Mode runs.";}
       catch(error){$("spamStatus").textContent="Status unavailable: "+error.message;}
     }
   }
@@ -692,6 +696,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("loadCountdownReceipt").addEventListener("click",loadCountdownReceiptSettings);
   $("saveCountdownReceipt").addEventListener("click",saveCountdownReceiptSettings);
   $("reactionAudience").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
+  $("reactionMember").addEventListener("change",()=>{const select=$("reactionMember"),selected=[...select.selectedOptions];if(selected.length>10){const last=selected[selected.length-1];last.selected=false;$("reactionMessage").textContent="Maximum 10 reaction targets. The extra selection was removed.";}});
   $("groupThreadID").addEventListener("change",()=>{if($("reactionAudience").value!=="all")loadReactionMembers();});
   function applyAccent(value,label){if(!/^#[0-9a-f]{6}$/i.test(value))return;document.documentElement.style.setProperty("--accent",value);try{localStorage.setItem("eclipse-testbot-accent",value);}catch(_){}$("themeMessage").textContent=label+" theme active.";$("customAccent").value=value;}
   const presets={burgundy:"#c75a6a",cyan:"#42b8c7",gold:"#c7a45a"};

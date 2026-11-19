@@ -39,6 +39,7 @@ const { createNicknameLockGuard } = require("./nickname-lock-guard");
 const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
 const { createSpamMode } = require("./spam-mode");
+const { isTimeCheck, formatTimeCheck } = require("./time-check");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
@@ -366,6 +367,7 @@ function onMessage(api, event) {
   const body = String(event.body || "").trim();
   if (!body) return;
   if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
+  if (isTimeCheck(body)) { sendCommandReply(api, event, formatTimeCheck()); return; }
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
@@ -377,7 +379,7 @@ function onMessage(api, event) {
       const configuredAdmin = reaction.targetMode === "admins" && isBotAdmin(senderID) &&
         (!reaction.targetThreadID || reaction.targetThreadID === threadID);
       if ((allowed || configuredAdmin) && current.targetMode === reaction.targetMode &&
-          current.targetUserId === reaction.targetUserId &&
+          JSON.stringify(current.targetUserIds || (current.targetUserId ? [current.targetUserId] : [])) === JSON.stringify(reaction.targetUserIds || (reaction.targetUserId ? [reaction.targetUserId] : [])) &&
           current.targetThreadID === reaction.targetThreadID &&
           current.emoji === reaction.emoji &&
           shouldReact(threadID, "incoming_messages")) {
@@ -807,12 +809,16 @@ try {
       const requested = validateReactionTarget({ ...current, ...(input || {}) });
       if (requested.targetMode === "member") {
         const threadID = String(requested.targetThreadID || "").trim();
-        const userID = String(requested.targetUserId || "").trim();
-        if (!threadID || !userID) throw new Error("Choose a Messenger group and a custom reaction target.");
+        const userIDs = Array.isArray(requested.targetUserIds) ? requested.targetUserIds.map(String) : (requested.targetUserId ? [String(requested.targetUserId)] : []);
+        if (!threadID || !userIDs.length) throw new Error("Choose a Messenger group and at least one custom reaction target.");
+        if (userIDs.length > 10) throw new Error("Choose no more than 10 reaction targets.");
         const members = await fetchMessengerGroupMembers(messengerApi, threadID);
-        const member = members.find(item => item.userID === userID);
-        if (!member) throw new Error("The selected reaction target is no longer a member of this Messenger group. Reload the member list.");
-        requested.targetUserName = member.name;
+        const selected = [...new Set(userIDs)].map(id => members.find(item => String(item.userID) === id));
+        if (selected.some(member => !member)) throw new Error("One or more selected reaction targets are no longer group members. Reload the member list.");
+        requested.targetUserIds = selected.map(member => String(member.userID));
+        requested.targetUserNames = selected.map(member => member.name || "Messenger member");
+        requested.targetUserId = requested.targetUserIds[0] || "";
+        requested.targetUserName = requested.targetUserNames[0] || "";
         requested.targetThreadID = threadID;
       }
       const next = settings.sanitizeReaction(requested);
@@ -830,7 +836,7 @@ try {
         }
         const message = String(input.message || "").trim();
         const intervalSeconds = input.intervalSeconds;
-        return spamMode.start({ threadID, message, intervalSeconds });
+        return spamMode.start({ threadID, message, intervalSeconds, loops: input.loops ?? input.repetitions ?? 1 });
       },
       stop: threadID => spamMode.stop(threadID),
       stopAll: reason => spamMode.stopAll(reason),
