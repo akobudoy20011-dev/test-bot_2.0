@@ -88,6 +88,7 @@ test("owner service approves itself and requires explicit approval for new insta
     } finally {
       global.fetch = originalFetch;
     }
+    await owner.updateLicenseSettings({ max_approved_installations: 0 });
     const mainBotId = crypto.randomUUID();
     const mainBotPending = await owner.verifyIncomingInstallation({
       app: "mess-bot",
