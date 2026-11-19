@@ -120,6 +120,7 @@ function createProxyManager(options = {}) {
   const logger = options.logger || console;
   const verifyLocation = options.verifyLocation || verifyProxyLocation;
   const configureFetchProxy = options.configureFetchProxy || configureGlobalFetchProxy;
+  const configureFetchDirect = options.configureFetchDirect || configureGlobalFetchDirect;
   let proxyUrl = null;
   let enabled = options.initialEnabled !== false;
   const persistEnabled = options.persistEnabled || (() => {});
@@ -141,7 +142,7 @@ function createProxyManager(options = {}) {
 
     initPromise = (async () => {
       if (!enabled) {
-        configureGlobalFetchDirect();
+        configureFetchDirect();
         status = { ...status, enabled: false, ready: true, configured: false, error: null, warning: null };
         logger.log("[PROXY] Proxy disabled; direct Render connection mode is active.");
         return getStatus();
