@@ -506,7 +506,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       try{const data=await request("/api/dashboard/spam/stop",{method:"POST",body:JSON.stringify({threadID})});$("spamStatus").textContent=data.result.stopped?"Spam Mode stopped for "+threadID+".":"No active run for this group.";}
       catch(error){$("spamStatus").textContent="Could not stop Spam Mode: "+error.message;}
     }else{
-      try{const data=await request("/api/dashboard/spam/status");const runs=data.runs||[];$("spamStatus").textContent=runs.length?runs.map(run=>run.threadID+" · "+run.sent+"/"+(run.totalMessages||run.maxMessages||1000)+" sent · every "+run.intervalSeconds+"s · "+(run.mode==="sequence"?"list":"repeat")).join(" | "):"No active Spam Mode runs.";}
+      try{const data=await request("/api/dashboard/spam/status");const runs=data.runs||[];$("spamStatus").textContent=runs.length?runs.map(run=>run.threadID+" · "+run.sent+"/"+(run.totalMessages||run.maxMessages||1000)+" sent · "+(run.mode==="sequence"?(run.loops||1)+" loop(s) · ":"")+"every "+run.intervalSeconds+"s · "+(run.mode==="sequence"?"list":"repeat")).join(" | "):"No active Spam Mode runs.";}
       catch(error){$("spamStatus").textContent="Status unavailable: "+error.message;}
     }
   }
