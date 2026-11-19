@@ -75,7 +75,7 @@ A deployment that runs the protected version must have:
 - `ECLIPSE_SECURITY_DATA_DIR` (optional): local directory for its installation identity. On Render Free, the local identity file can be lost after spin-down/redeploy, which creates a new pending installation that must be approved again. This does not erase the owner registry in Neon.
 - `ECLIPSE_FORK_REPOSITORY` (optional): the fork's `owner/repository` name so the owner registry can label it.
 
-New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
+New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Approved clients persist the signed lease locally and continue running during an authority outage for up to `ECLIPSE_LICENSE_OFFLINE_GRACE_MS` after the lease expires (default 24 hours; maximum 7 days; set `0` to disable offline grace). When the authority is reachable, a pending, revoked, or invalid response blocks the client immediately and clears its cached lease. A disconnected client cannot receive a revocation until it reconnects, so the grace period is the maximum additional offline window after the signed lease expires. Keep the client data directory persistent if it must survive restarts while the authority is offline; Render Free local storage may be lost on restart/spin-down.
 
 ### Existing forks
 
