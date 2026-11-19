@@ -83,7 +83,7 @@ test("dashboard exposes seconds-based reply delay and sequential Spam Mode list 
   assert.match(html,/intervalSeconds<2/);
   assert.match(html,/min="2" max="3600"/);
   assert.match(html,/Add one message per numbered line/);
-  assert.match(html,/numbered\\/list entry/);
+  assert.ok(html.includes("numbered/list entry"));
   assert.match(html,/separate message/);
   assert.match(html,/Up to 1,000 messages/);
   assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|unlimited Spam Mode/);
