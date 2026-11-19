@@ -234,6 +234,7 @@ function createLicenseGuard(options = {}) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.status !== "approved") {
       lease = null;
+      store.clearCachedLease();
       if (result.status === "pending") {
         throw new Error("Installation is pending owner approval. Share this installation ID with the owner: " + id);
       }
@@ -246,6 +247,7 @@ function createLicenseGuard(options = {}) {
     if (!verified) {
       authorized = false;
       lease = null;
+      store.clearCachedLease();
       throw new Error("The license authority returned an invalid or expired signature.");
     }
     lease = result.token;
