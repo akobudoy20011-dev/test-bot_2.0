@@ -64,7 +64,7 @@ test("dashboard has selected-group Banat ON and OFF controls",()=>{
   assert.match(html,/banatMode:mode/);
   assert.match(html,/INHERIT · command controlled/);
   assert.match(html,/Select group, then toggle Banat/);
-  const banatHandler=html.match(/async function setBanatControl\(mode\)\{([\\s\\S]*?)\\n  \\}/)?.[1]||"";
+  const banatHandler=html.match(/async function setBanatControl\(mode\)\{([\s\S]*?)\n  \}/)?.[1]||"";
   assert.ok(banatHandler.includes("/api/dashboard/settings/group"));
   assert.doesNotMatch(banatHandler,/\\/api\\/dashboard\\/bot\\//);
 });
