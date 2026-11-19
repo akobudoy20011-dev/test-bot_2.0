@@ -22,8 +22,10 @@ function encode(value) {
 function createLicenseGuard(options = {}) {
   const store = createLicenseStore();
   const ownerMode = /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_LICENSE_SERVER_MODE || "false");
-  // Explicit, client-only escape hatch for temporary testing while installation registration is unavailable.
-  const temporaryMode = !ownerMode && /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_TEMP_INSTALLATION_MODE || "false");
+  // Client deployments run independently by default so a client never depends on the owner service being online.
+  // Set ECLIPSE_LICENSE_ENFORCEMENT=true to opt a client back into signed owner approval.
+  const enforcementEnabled = /^(1|true|yes|on)$/i.test(process.env.ECLIPSE_LICENSE_ENFORCEMENT || "false");
+  const temporaryMode = !ownerMode && !enforcementEnabled;
   const temporaryInstallationId = temporaryMode ? "temporary-" + crypto.randomUUID() : "";
   const serverUrl = String(process.env.ECLIPSE_LICENSE_SERVER_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
   const privateKey = process.env.ECLIPSE_LICENSE_PRIVATE_KEY || "";
