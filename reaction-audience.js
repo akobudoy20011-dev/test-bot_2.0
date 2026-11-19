@@ -2,9 +2,10 @@
 
 function validateReactionTarget(settings = {}) {
   if (settings.targetMode === "member") {
-    if (!String(settings.targetThreadID || "").trim() || !String(settings.targetUserId || "").trim()) {
-      throw new Error("Choose a Messenger group and a custom reaction target.");
-    }
+    const ids = Array.isArray(settings.targetUserIds) ? settings.targetUserIds : (settings.targetUserId ? [settings.targetUserId] : []);
+    const clean = [...new Set(ids.map(v => String(v || "").trim()).filter(Boolean))];
+    if (!String(settings.targetThreadID || "").trim() || !clean.length) throw new Error("Choose a Messenger group and at least one custom reaction target.");
+    if (clean.length > 10) throw new Error("Choose no more than 10 reaction targets.");
   }
   return settings;
 }
@@ -37,9 +38,8 @@ function createReactionAudience(options = {}) {
     if (!threadID || !senderID) return false;
     if (mode === "all") return true;
     if (mode === "member") {
-      return Boolean(settings.targetUserId && settings.targetThreadID &&
-        String(settings.targetThreadID) === threadID &&
-        String(settings.targetUserId) === senderID);
+      const ids = Array.isArray(settings.targetUserIds) ? settings.targetUserIds : (settings.targetUserId ? [settings.targetUserId] : []);
+      return Boolean(settings.targetThreadID && String(settings.targetThreadID) === threadID && ids.slice(0, 10).map(String).includes(senderID));
     }
     if (settings.targetThreadID && String(settings.targetThreadID) !== threadID) return false;
     try {
