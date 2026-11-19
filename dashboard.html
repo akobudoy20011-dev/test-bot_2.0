@@ -495,10 +495,11 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       if(!message){$("spamStatus").textContent="Fill in at least one numbered line.";return;}
       if(!Number.isInteger(intervalSeconds)||intervalSeconds<2||intervalSeconds>3600){$("spamStatus").textContent="Interval must be a whole number between 2 and 3600 seconds.";return;}
       const isSequence = message.split(/\n+/).filter(Boolean).length > 1 || /(?:^|\s)\d{1,4}[.)]\s+[\s\S]*?(?:\s+\d{1,4}[.)]\s+)/.test(message);
+      const entryCount = isSequence ? Math.max(message.split(/\\n+/).filter(line=>/^\\d+[.)]\\s*\\S/.test(line.trim())).length, (message.match(/(?:^|\\s)\\d{1,4}[.)]\\s+\\S/g)||[]).length) : 1;
       const confirmText = isSequence
         ? "Send each numbered/list entry as a separate message, in order, once? First send is after "+intervalSeconds+" seconds."
         : "Repeat this single message with increasing numbers, up to 1000 sends? First send is after "+intervalSeconds+" seconds.";
-      if(!Number.isInteger(loops)||loops<1||loops>100){$("spamStatus").textContent="Sequence loops must be between 1 and 100.";return;}
+      if(!Number.isInteger(loops)||loops<1||loops>100){$("spamStatus").textContent="Sequence loops must be between 1 and 100.";return;}if(isSequence&&entryCount*loops>1000){$("spamStatus").textContent="That loop would exceed the 1,000-message limit. Reduce loops or filled entries.";return;}
       if(!confirm(isSequence?("Loop this list "+loops+" time(s), for "+(message.split(/\n+/).filter(Boolean).length*loops)+" messages total? First send after "+intervalSeconds+" seconds. Maximum 1,000 sends.") :confirmText))return;
       try{const data=await request("/api/dashboard/spam/start",{method:"POST",body:JSON.stringify({threadID,message,intervalSeconds,loops})});const result=data.result||{};$("spamStatus").textContent="Running in "+threadID+" · "+(result.mode==="sequence"?(result.totalMessages+" separate messages, in order · "+(result.loops||1)+" loop(s)"):"single message repeated up to 1000 sends")+" · every "+result.intervalSeconds+"s. Use Stop to end early.";}
       catch(error){$("spamStatus").textContent="Could not start Spam Mode: "+error.message;}
