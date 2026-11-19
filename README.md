@@ -56,15 +56,17 @@ node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');cons
 
 Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
 
-### Independent client mode (default)
+### Protected client mode (default)
 
-Non-owner deployments run in independent client mode by default. They do not contact the original owner service, request approval, or send signed-lease heartbeats. Each process uses an in-memory `temporary-...` identity, so no installation ID file is written and the identity changes after restart. The dashboard reports the license status as `temporary`.
+Non-owner deployments enforce owner approval by default. Configure `ECLIPSE_LICENSE_SERVER_URL` and the matching `ECLIPSE_LICENSE_PUBLIC_KEY`; new installations must be approved before Messenger login starts. After a successful approval, the client saves the signed lease locally. If the owner service becomes unreachable, the client can restart and continue using that verified lease during the configured offline grace period. When the authority becomes reachable again, a revoked or pending response blocks the client immediately.
 
-This means client/fork deployments remain able to start even if the original owner Render service is unavailable. It also means the owner approval/revocation system is not enforced for those clients. Anyone running a copy can use it without owner approval; do not treat this mode as commercial anti-fork protection.
+This keeps remote revocation enabled without making every client depend on the owner service being online continuously. For recovery across restarts, the client's `ECLIPSE_SECURITY_DATA_DIR` must be on persistent storage. Render Free local storage can be lost after restart or spin-down, so it cannot guarantee cached-lease recovery.
 
-To opt a client back into owner approval, explicitly set `ECLIPSE_LICENSE_ENFORCEMENT=true` together with `ECLIPSE_LICENSE_SERVER_URL` and the matching `ECLIPSE_LICENSE_PUBLIC_KEY`. The original authority remains separately enabled only with `ECLIPSE_LICENSE_SERVER_MODE=true` and its private signing key/database configuration.
+### Explicit temporary mode (opt-out)
 
-Independent client mode does not disable dashboard origin checks or dashboard API-key authentication. It also does not change the required Facebook session or proxy configuration.
+Set `ECLIPSE_LICENSE_ENFORCEMENT=false` on a client only when you intentionally want to bypass owner approval and revocation. This mode does not contact the owner service, uses a temporary in-memory identity, and cannot be remotely revoked. Do not use it when you need owner-side control.
+
+The original authority remains separately enabled only with `ECLIPSE_LICENSE_SERVER_MODE=true` and its private signing key/database configuration. Neither protected nor temporary client mode disables dashboard origin checks, dashboard API-key authentication, the required Facebook session, or proxy configuration.
 
 ### Authorized client deployments
 
