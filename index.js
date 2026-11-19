@@ -39,6 +39,7 @@ const { createNicknameLockGuard } = require("./nickname-lock-guard");
 const { createReactionAudience, validateReactionTarget } = require("./reaction-audience");
 const { executeMassSetNickname } = require("./mass-setnn");
 const { createSpamMode } = require("./spam-mode");
+const { isTimeCheck, formatTimeCheck } = require("./time-check");
 const licenseGuard = createLicenseGuard();
 const raidMode = createRaidMode({ getApi: () => messengerApi, namespace: "test-bot" });
 const eclipseControlsStore = createEclipseControlsStore({ namespace: "test-bot" });
@@ -366,6 +367,7 @@ function onMessage(api, event) {
   const body = String(event.body || "").trim();
   if (!body) return;
   if (isBanatCommand(body)) { handleBanatCommand(api, event, body); return; }
+  if (isTimeCheck(body)) { sendCommandReply(api, event, formatTimeCheck()); return; }
 
   const threadID = String(event.threadID);
   const groupSettings = getGroupSettings(threadID);
@@ -377,7 +379,7 @@ function onMessage(api, event) {
       const configuredAdmin = reaction.targetMode === "admins" && isBotAdmin(senderID) &&
         (!reaction.targetThreadID || reaction.targetThreadID === threadID);
       if ((allowed || configuredAdmin) && current.targetMode === reaction.targetMode &&
-          current.targetUserId === reaction.targetUserId &&
+          JSON.stringify(current.targetUserIds || (current.targetUserId ? [current.targetUserId] : [])) === JSON.stringify(reaction.targetUserIds || (reaction.targetUserId ? [reaction.targetUserId] : [])) &&
           current.targetThreadID === reaction.targetThreadID &&
           current.emoji === reaction.emoji &&
           shouldReact(threadID, "incoming_messages")) {
