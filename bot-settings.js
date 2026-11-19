@@ -10,7 +10,9 @@ function sanitizeGroup(i={}){return {banatMode:["inherit","on","off"].includes(i
 function load(){try{const p=JSON.parse(fs.readFileSync(settingsPath,"utf8"));const groups={};for(const [id,g] of Object.entries(p.groups||{}).slice(0,500))groups[String(id).slice(0,128)]=sanitizeGroup(g);return {proxyEnabled:p.proxyEnabled!==false,reaction:sanitizeReaction(p.reaction),groups};}catch(_){return {proxyEnabled:DEFAULTS.proxyEnabled,reaction:{...DEFAULTS.reaction},groups:{}};}}
 let settings=load();
 function persist(){try{fs.mkdirSync(path.dirname(settingsPath),{recursive:true});fs.writeFileSync(settingsPath,JSON.stringify(settings,null,2)+"\n",{mode:0o600});return true;}catch(e){console.error("[SETTINGS] Could not save settings:",e.message||e);return false;}}
-function getSettings(){return JSON.parse(JSON.stringify(settings));}\nfunction getProxyEnabled(){return settings.proxyEnabled!==false;}\nfunction setProxyEnabled(enabled){settings.proxyEnabled=enabled===true;if(!persist())throw Error("Settings could not be saved to disk.");return settings.proxyEnabled;}
+function getSettings(){return JSON.parse(JSON.stringify(settings));}
+function getProxyEnabled(){return settings.proxyEnabled!==false;}
+function setProxyEnabled(enabled){settings.proxyEnabled=enabled===true;if(!persist())throw Error("Settings could not be saved to disk.");return settings.proxyEnabled;}
 function getReactionSettings(){return {...settings.reaction};}
 function getGroupSettings(id){return {...sanitizeGroup(settings.groups[String(id)]||{})};}
 function updateReaction(input){settings.reaction=sanitizeReaction({...settings.reaction,...input});if(!persist())throw Error("Settings could not be saved to disk.");return getReactionSettings();}
