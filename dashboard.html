@@ -369,7 +369,7 @@ main.wrap>.grid{flex:1 1 auto;min-height:0;height:auto;display:block!important;o
     }catch(error){$("banatControlStatus").textContent="Unavailable";$("banatControlMessage").textContent="Could not load Banat status: "+error.message;}
   }
   async function setBanatControl(mode){
-    const threadID=$("groupThreadID").value.trim();if(!threadID){$("banatControlMessage").textContent="Choose a Messenger group in the Groups panel first.";return;}
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("banatControlMessage").textContent="Select a group first.";return;}
     const buttons=["banatTurnOn","banatTurnOff","banatRefreshStatus"];buttons.forEach(id=>$(id).disabled=true);
     try{const data=await request("/api/dashboard/settings/group",{method:"POST",body:JSON.stringify({threadID,banatMode:mode})});
       $("banatControlStatus").textContent=data.group.banatMode==="on"?"ON · always enabled":"OFF · disabled";
