@@ -144,7 +144,7 @@ test("sequence looping is bounded by loop count and the 1000-send ceiling",()=>{
  const spam=createSpamMode({getApi:()=>({}),sendMessage:async()=>{},isAuthorized:()=>true});
  const run=spam.start({threadID:"loop-test",message:"1. hi 2. bye",intervalSeconds:2,loops:3});
  assert.equal(run.loops,3);assert.equal(run.totalMessages,6);spam.stop("loop-test");
- assert.throws(()=>spam.start({threadID:"over-loop",message:"1. a 2. b",intervalSeconds:2,loops:501}),/1000-message safety limit/);
+ assert.throws(()=>spam.start({threadID:"over-loop",message:"1. a 2. b 3. c 4. d 5. e 6. f 7. g 8. h 9. i 10. j 11. k",intervalSeconds:2,loops:100}),/1000-message safety limit/);
  assert.throws(()=>spam.start({threadID:"bad-loop",message:"1. a 2. b",intervalSeconds:2,loops:101}),/between 1 and 100/);
 });
 
