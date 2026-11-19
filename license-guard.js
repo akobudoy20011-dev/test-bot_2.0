@@ -276,7 +276,7 @@ function createLicenseGuard(options = {}) {
       const message = String(error && error.message || error);
       const cached = store.readCachedLease();
       const cachedPayload = cached && verifyLease(cached, true);
-      const isTransportFailure = /Could not reach the ECLIPSE license authority|ECLIPSE_LICENSE_SERVER_URL is missing/i.test(message);
+      const isTransportFailure = /Could not reach the ECLIPSE license authority/i.test(message);
       if (!ownerMode && isTransportFailure && cachedPayload && offlineGraceMs > 0) {
         lease = cached;
         authorized = true;
