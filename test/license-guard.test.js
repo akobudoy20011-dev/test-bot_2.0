@@ -88,6 +88,24 @@ test("owner service approves itself and requires explicit approval for new insta
     } finally {
       global.fetch = originalFetch;
     }
+    await owner.updateLicenseSettings({ max_approved_installations: 0 });
+    const mainBotId = crypto.randomUUID();
+    const mainBotPending = await owner.verifyIncomingInstallation({
+      app: "mess-bot",
+      installation_id: mainBotId,
+      repository: "akobudoy20011-dev/mess-bot"
+    });
+    assert.equal(mainBotPending.status, "pending");
+    await owner.updateInstallation(mainBotId, "approved");
+    const mainBotApproved = await owner.verifyIncomingInstallation({
+      app: "mess-bot",
+      installation_id: mainBotId,
+      repository: "akobudoy20011-dev/mess-bot"
+    });
+    assert.equal(mainBotApproved.status, "approved");
+    const mainBotPayload = JSON.parse(Buffer.from(mainBotApproved.token.split(".")[0], "base64url").toString("utf8"));
+    assert.equal(mainBotPayload.app, "mess-bot");
+
     owner.stop();
   });
 

@@ -3,7 +3,9 @@
 const crypto = require("crypto");
 const { createLicenseStore } = require("./license-store");
 
-const APP_ID = "test-bot_2.0";
+const DEFAULT_APP_ID = "test-bot_2.0";
+const APP_ID = String(process.env.ECLIPSE_LICENSE_APP_ID || DEFAULT_APP_ID).trim().slice(0, 80);
+const ALLOWED_APPS = new Set(String(process.env.ECLIPSE_LICENSE_ALLOWED_APPS || "test-bot_2.0,mess-bot").split(",").map(value => value.trim()).filter(Boolean));
 const UPSTREAM_REPOSITORY = "akobudoy20011-dev/test-bot_2.0";
 const HEARTBEAT_MS = Math.max(30_000, Number(process.env.ECLIPSE_LICENSE_HEARTBEAT_MS || 60_000));
 const LEASE_SAFETY_MS = 15_000;
@@ -92,9 +94,9 @@ function createLicenseGuard(options = {}) {
     }
   }
 
-  function issueLease(id, status) {
+  function issueLease(id, status, app = APP_ID) {
     const payload = {
-      app: APP_ID,
+      app,
       installation_id: id,
       status,
       iat: Math.floor(now() / 1000),
@@ -148,15 +150,17 @@ function createLicenseGuard(options = {}) {
     if (!ownerMode) return { status: "unavailable", error: "This installation is not configured as the ECLIPSE license authority." };
     await store.initialize(true);
     const id = String(body && body.installation_id || "").trim();
+    const app = String(body && body.app || DEFAULT_APP_ID).trim().slice(0, 80);
     if (!/^[a-f0-9-]{32,64}$/i.test(id)) return { status: "invalid", error: "Invalid installation identity." };
+    if (!ALLOWED_APPS.has(app)) return { status: "invalid", error: "This application is not enabled on the ECLIPSE license authority." };
 
     const registry = await store.readRegistry();
     let entry = registry.installations[id];
     if (!entry) {
       entry = {
         installation_id: id,
-        app: APP_ID,
-        repository: String(body.repository || UPSTREAM_REPOSITORY).slice(0, 200),
+        app,
+        repository: String(body.repository || (app === DEFAULT_APP_ID ? UPSTREAM_REPOSITORY : app)).slice(0, 200),
         reported_fork: String(body.fork_repository || "").slice(0, 200),
         version: String(body.version || "").slice(0, 40),
         status: id === getInstallationId() ? "approved" : "pending",
@@ -164,8 +168,9 @@ function createLicenseGuard(options = {}) {
         last_seen_at: new Date(now()).toISOString()
       };
       registry.installations[id] = entry;
-      record(registry, "installation-discovered", { installation_id: id, status: entry.status });
+      record(registry, "installation-discovered", { installation_id: id, app, status: entry.status });
     } else {
+      if (entry.app && entry.app !== app) return { status: "invalid", error: "Installation identity is already registered to a different application." };
       entry.last_seen_at = new Date(now()).toISOString();
       if (body.fork_repository) entry.reported_fork = String(body.fork_repository).slice(0, 200);
       if (body.version) entry.version = String(body.version).slice(0, 40);
@@ -173,14 +178,14 @@ function createLicenseGuard(options = {}) {
     await store.writeRegistry(registry);
 
     if (entry.status !== "approved") return { status: entry.status, installation_id: id };
-    return { status: "approved", installation_id: id, token: issueLease(id, "approved") };
+    return { status: "approved", installation_id: id, token: issueLease(id, "approved", app) };
   }
 
   async function checkWithAuthority() {
     if (ownerMode) await store.initialize(ownerMode);
     const id = getInstallationId();
     if (ownerMode) {
-      const result = await verifyIncomingInstallation({ installation_id: id, repository: UPSTREAM_REPOSITORY, version: process.version });
+      const result = await verifyIncomingInstallation({ app: APP_ID, installation_id: id, repository: UPSTREAM_REPOSITORY, version: process.version });
       if (result.status !== "approved") throw new Error(result.error || "Owner installation could not authorize itself.");
       lease = result.token || issueLease(id, "approved");
       authorized = true;
@@ -209,6 +214,7 @@ function createLicenseGuard(options = {}) {
           "X-ECLIPSE-REQUEST-ID": requestId
         },
         body: JSON.stringify({
+          app: APP_ID,
           installation_id: id,
           repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || UPSTREAM_REPOSITORY,
           fork_repository: process.env.ECLIPSE_FORK_REPOSITORY || process.env.GITHUB_REPOSITORY || "",
