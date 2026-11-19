@@ -75,6 +75,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
       maxMessages: run.totalMessages,
       totalMessages: run.totalMessages,
       mode: run.mode,
+      loops: run.loops,
       sent: run.sent,
       nextSendAt: run.nextSendAt,
       startedAt: run.startedAt
