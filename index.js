@@ -836,7 +836,7 @@ try {
         }
         const message = String(input.message || "").trim();
         const intervalSeconds = input.intervalSeconds;
-        return spamMode.start({ threadID, message, intervalSeconds });
+        return spamMode.start({ threadID, message, intervalSeconds, loops: input.loops ?? input.repetitions ?? 1 });
       },
       stop: threadID => spamMode.stop(threadID),
       stopAll: reason => spamMode.stopAll(reason),
