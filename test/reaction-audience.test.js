@@ -50,7 +50,8 @@ test("custom reaction target validation rejects incomplete dashboard saves",()=>
   const {validateReactionTarget}=require("../reaction-audience");
   assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1"}),/at least one custom reaction target/);
   assert.throws(()=>validateReactionTarget({targetMode:"member",targetUserId:"user-1"}),/at least one custom reaction target/);
-  assert.deepEqual(validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]}),{targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]});\n  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:Array.from({length:11},(_,i)=>String(i))}),/no more than 10/);
+  assert.deepEqual(validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]}),{targetMode:"member",targetThreadID:"group-1",targetUserIds:["user-1","user-2"]});
+  assert.throws(()=>validateReactionTarget({targetMode:"member",targetThreadID:"group-1",targetUserIds:Array.from({length:11},(_,i)=>String(i))}),/no more than 10/);
 });
 
 test("custom member audience supports up to ten selected IDs",async()=>{
