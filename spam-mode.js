@@ -144,7 +144,7 @@ function createSpamMode({ getApi, sendMessage, isAuthorized = () => true, setTim
     console.log(`[SPAM MODE] started thread=${threadID} mode=${mode} messages=${totalMessages} interval=${intervalSeconds}s; first send delayed by interval`);
     return {
       threadID, intervalSeconds, maxMessages: totalMessages,
-      numbered: true, mode, totalMessages,
+      numbered: true, mode, loops, totalMessages,
       firstSendInSeconds: intervalSeconds
     };
   }
