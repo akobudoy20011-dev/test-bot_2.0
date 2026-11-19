@@ -2,7 +2,7 @@
 
 const https = require("https");
 const HttpsProxyAgent = require("https-proxy-agent");
-const { ProxyAgent, setGlobalDispatcher } = require("undici");
+const { ProxyAgent, Agent, setGlobalDispatcher } = require("undici");
 
 function configureGlobalFetchProxy(proxyUrl) {
   const dispatcher = new ProxyAgent(proxyUrl);
@@ -193,4 +193,4 @@ function createProxyManager(options = {}) {
   return { initialize, getStatus, getLoginOptions };
 }
 
-module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation, configureGlobalFetchProxy };
+module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation, configureGlobalFetchProxy, configureGlobalFetchDirect };
