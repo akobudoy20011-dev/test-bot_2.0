@@ -208,7 +208,7 @@ test("an unapproved installation remains blocked", async () => {
   }
 });
 
-test("client mode skips owner approval by default and does not persist an installation identity", async () => {
+test("explicit temporary client mode skips owner approval and does not persist an installation identity", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-temporary-"));
   const originalFetch = global.fetch;
   let fetchCalls = 0;
@@ -223,7 +223,7 @@ test("client mode skips owner approval by default and does not persist an instal
       ECLIPSE_INSTALLATION_ID: null,
       ECLIPSE_LICENSE_SERVER_MODE: "false",
       ECLIPSE_TEMP_INSTALLATION_MODE: null,
-      ECLIPSE_LICENSE_ENFORCEMENT: null,
+      ECLIPSE_LICENSE_ENFORCEMENT: "false",
       ECLIPSE_LICENSE_SERVER_URL: null,
       ECLIPSE_LICENSE_PUBLIC_KEY: null,
       ECLIPSE_LICENSE_PRIVATE_KEY: null
