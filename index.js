@@ -751,6 +751,7 @@ try {
     setPaused: (paused) => { botPaused = paused; if (paused) spamMode.stopAll("bot-paused"); },
     getPaused: () => botPaused || !licenseAuthorized,
     proxyManager,
+    onProxyEnabled: () => { if (!messengerConnected && !loginInProgress) loginBot(); },
     saveSession: value => {
       const candidate = require("./session-store").normalizeSessionInput(value);
       loginBot(candidate);
