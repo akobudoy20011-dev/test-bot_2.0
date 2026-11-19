@@ -126,6 +126,9 @@ body{min-height:100dvh}
 .app-sidebar{position:fixed;float:none;inset:0 auto 0 0;height:100dvh;overflow-y:auto;overscroll-behavior:contain}
 .wrap{height:100dvh;min-height:0;margin-left:232px;display:flex;flex-direction:column;overflow:hidden}
 .top{flex:0 0 86px;z-index:5;margin:0}
+.dashboard-access{flex:0 0 auto}
+main.wrap>.grid{flex:1 1 auto;min-height:0;height:auto;display:block!important;overflow:hidden;padding:0!important}
+.workspace-page{width:100%}
 .workspace-stage{flex:1;min-height:0;overflow:hidden;position:relative}
 .workspace-page{display:none;height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:0 clamp(16px,2.4vw,32px) 28px}
 .workspace-page.active{display:block;animation:workspace-in .16s ease-out}
@@ -158,11 +161,13 @@ body{min-height:100dvh}
 .mobile-more-menu[hidden]{display:none}
 .mobile-more-menu a{display:block;padding:11px 12px;border-radius:9px;color:var(--text);font-size:12px;text-decoration:none}
 .mobile-more-menu a:hover,.mobile-more-menu a[aria-current="page"]{background:rgba(199,90,106,.15)}
+.mobile-nav a[aria-current="page"],.mobile-nav button[aria-expanded="true"]{background:rgba(199,90,106,.15);color:#f7e6e9}
 @keyframes workspace-in{from{opacity:.75;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(max-width:850px){
  .app-sidebar{display:none}
  .wrap{height:100dvh;margin:0;width:100%;padding:0 0 calc(64px + env(safe-area-inset-bottom))}
  .top{height:72px;flex-basis:72px;padding:12px 17px}
+ .dashboard-access{margin:8px 12px;padding:10px 12px}
  .workspace-page{padding:0 12px calc(18px + env(safe-area-inset-bottom))}
  .workspace-intro{padding:16px 0 13px}
  .workspace-intro h2{font-size:18px}
@@ -277,7 +282,9 @@ body{min-height:100dvh}
   const workspacePages=[...document.querySelectorAll(".workspace-page")];
   const workspaceLinks=[...document.querySelectorAll("[data-workspace-link]")];
   const workspaceTitles={"overview":"Overview","activity":"Activity Center","groups":"Groups","banat":"Banat Control","reactions":"Reaction Studio","countdown":"Countdown","mass-setnn":"Mass SetNN","auto-lock":"Auto-lock","raid":"Raid Mode","spam":"Spam Mode","connection":"Proxy & Session","diagnostics":"Diagnostics","appearance":"Appearance"};
+  const workspaceAliases={overview:"overview",eventsPanel:"activity",groupSettings:"groups",botControls:"banatControlPanel",banatControlPanel:"banat",reactionPanel:"reactions",countdownPanel:"countdown",massSetnnPanel:"mass-setnn",groupTitleLockPanel:"auto-lock",raidModePanel:"raid",spamPanel:"spam",proxyPanel:"connection",sessionCookiePanel:"connection",runtimePanel:"diagnostics",appearancePanel:"appearance"};
   function showWorkspace(key,updateHash=true){
+    key=workspaceAliases[key]||key;
     const page=workspacePages.find(item=>item.dataset.workspace===key)||workspacePages[0];
     if(!page)return;
     workspacePages.forEach(item=>{const active=item===page;item.classList.toggle("active",active);item.setAttribute("aria-hidden",String(!active));});
