@@ -76,6 +76,7 @@ test("owner service approves itself and requires explicit approval for new insta
       ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
         ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
         ECLIPSE_LICENSE_SERVER_MODE: "false",
+        ECLIPSE_LICENSE_ENFORCEMENT: "true",
         ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
         ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
         ECLIPSE_LICENSE_PRIVATE_KEY: null
@@ -113,6 +114,7 @@ test("an unapproved installation remains blocked", async () => {
       ECLIPSE_SECURITY_DATA_DIR: clientDir,
       ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
       ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_LICENSE_ENFORCEMENT: "true",
       ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
       ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
       ECLIPSE_LICENSE_PRIVATE_KEY: null
@@ -128,7 +130,7 @@ test("an unapproved installation remains blocked", async () => {
   }
 });
 
-test("temporary installation mode skips identity persistence and owner approval only when explicitly enabled", async () => {
+test("client mode skips owner approval by default and does not persist an installation identity", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-temporary-"));
   const originalFetch = global.fetch;
   let fetchCalls = 0;
@@ -142,7 +144,8 @@ test("temporary installation mode skips identity persistence and owner approval 
       ECLIPSE_INSTALLATION_ID_FILE: path.join(root, "installation-id"),
       ECLIPSE_INSTALLATION_ID: null,
       ECLIPSE_LICENSE_SERVER_MODE: "false",
-      ECLIPSE_TEMP_INSTALLATION_MODE: "true",
+      ECLIPSE_TEMP_INSTALLATION_MODE: null,
+      ECLIPSE_LICENSE_ENFORCEMENT: null,
       ECLIPSE_LICENSE_SERVER_URL: null,
       ECLIPSE_LICENSE_PUBLIC_KEY: null,
       ECLIPSE_LICENSE_PRIVATE_KEY: null
