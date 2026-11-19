@@ -809,12 +809,16 @@ try {
       const requested = validateReactionTarget({ ...current, ...(input || {}) });
       if (requested.targetMode === "member") {
         const threadID = String(requested.targetThreadID || "").trim();
-        const userID = String(requested.targetUserId || "").trim();
-        if (!threadID || !userID) throw new Error("Choose a Messenger group and a custom reaction target.");
+        const userIDs = Array.isArray(requested.targetUserIds) ? requested.targetUserIds.map(String) : (requested.targetUserId ? [String(requested.targetUserId)] : []);
+        if (!threadID || !userIDs.length) throw new Error("Choose a Messenger group and at least one custom reaction target.");
+        if (userIDs.length > 10) throw new Error("Choose no more than 10 reaction targets.");
         const members = await fetchMessengerGroupMembers(messengerApi, threadID);
-        const member = members.find(item => item.userID === userID);
-        if (!member) throw new Error("The selected reaction target is no longer a member of this Messenger group. Reload the member list.");
-        requested.targetUserName = member.name;
+        const selected = [...new Set(userIDs)].map(id => members.find(item => String(item.userID) === id));
+        if (selected.some(member => !member)) throw new Error("One or more selected reaction targets are no longer group members. Reload the member list.");
+        requested.targetUserIds = selected.map(member => String(member.userID));
+        requested.targetUserNames = selected.map(member => member.name || "Messenger member");
+        requested.targetUserId = requested.targetUserIds[0] || "";
+        requested.targetUserName = requested.targetUserNames[0] || "";
         requested.targetThreadID = threadID;
       }
       const next = settings.sanitizeReaction(requested);
