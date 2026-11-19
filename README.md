@@ -56,11 +56,15 @@ node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');cons
 
 Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
 
-### Temporary Test Bot client mode (testing only)
+### Independent client mode (default)
 
-For a short-lived test deployment that cannot yet obtain an installation ID or owner approval, set `ECLIPSE_TEMP_INSTALLATION_MODE=true` on that client service. This client-only flag skips the owner verification request and signed-lease heartbeat for that process, creates an in-memory `temporary-...` identity, and does not write an installation ID file. The temporary identity changes after a process restart. The dashboard reports the license status as `temporary` so it is not confused with an approved installation.
+Non-owner deployments run in independent client mode by default. They do not contact the original owner service, request approval, or send signed-lease heartbeats. Each process uses an in-memory `temporary-...` identity, so no installation ID file is written and the identity changes after restart. The dashboard reports the license status as `temporary`.
 
-This is an intentional licensing bypass: anyone who can set this environment variable on a copy can run it without owner approval. Use it only on the specific Test Bot test deployment, remove it when permanent registration is ready, and never enable it on the original license owner service. It does not disable dashboard origin checks or dashboard API-key authentication.
+This means client/fork deployments remain able to start even if the original owner Render service is unavailable. It also means the owner approval/revocation system is not enforced for those clients. Anyone running a copy can use it without owner approval; do not treat this mode as commercial anti-fork protection.
+
+To opt a client back into owner approval, explicitly set `ECLIPSE_LICENSE_ENFORCEMENT=true` together with `ECLIPSE_LICENSE_SERVER_URL` and the matching `ECLIPSE_LICENSE_PUBLIC_KEY`. The original authority remains separately enabled only with `ECLIPSE_LICENSE_SERVER_MODE=true` and its private signing key/database configuration.
+
+Independent client mode does not disable dashboard origin checks or dashboard API-key authentication. It also does not change the required Facebook session or proxy configuration.
 
 ### Authorized client deployments
 
