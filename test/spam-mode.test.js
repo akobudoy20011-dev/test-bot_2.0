@@ -147,3 +147,11 @@ test("sequence looping is bounded by loop count and the 1000-send ceiling",()=>{
  assert.throws(()=>spam.start({threadID:"over-loop",message:"1. a 2. b",intervalSeconds:2,loops:501}),/1000-message safety limit/);
  assert.throws(()=>spam.start({threadID:"bad-loop",message:"1. a 2. b",intervalSeconds:2,loops:101}),/between 1 and 100/);
 });
+
+test("looped sequence sends each entry in order for each bounded loop",async()=>{
+ const timers=[],sent=[];
+ const spam=createSpamMode({getApi:()=>({}),sendMessage:async(_api,msg)=>sent.push(msg),isAuthorized:()=>true,setTimeoutFn:(fn,delay)=>{const timer={fn,delay,unref(){}};timers.push(timer);return timer;},clearTimeoutFn:()=>{}});
+ spam.start({threadID:"loop-run",message:"1. A 2. B",intervalSeconds:2,loops:2});
+ while(timers.length){await timers.shift().fn();}
+ assert.deepEqual(sent,["A","B","A","B"]);assert.deepEqual(spam.getStatus(),[]);
+});
