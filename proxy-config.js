@@ -2,10 +2,16 @@
 
 const https = require("https");
 const HttpsProxyAgent = require("https-proxy-agent");
-const { ProxyAgent, setGlobalDispatcher } = require("undici");
+const { ProxyAgent, Agent, setGlobalDispatcher } = require("undici");
 
 function configureGlobalFetchProxy(proxyUrl) {
   const dispatcher = new ProxyAgent(proxyUrl);
+  setGlobalDispatcher(dispatcher);
+  return dispatcher;
+}
+
+function configureGlobalFetchDirect() {
+  const dispatcher = new Agent();
   setGlobalDispatcher(dispatcher);
   return dispatcher;
 }
@@ -114,10 +120,14 @@ function createProxyManager(options = {}) {
   const logger = options.logger || console;
   const verifyLocation = options.verifyLocation || verifyProxyLocation;
   const configureFetchProxy = options.configureFetchProxy || configureGlobalFetchProxy;
+  const configureFetchDirect = options.configureFetchDirect || configureGlobalFetchDirect;
   let proxyUrl = null;
+  let enabled = options.initialEnabled !== false;
+  const persistEnabled = options.persistEnabled || (() => {});
   let initPromise = null;
   let status = {
     ready: false,
+    enabled,
     configured: false,
     locationVerified: false,
     country: null,
@@ -131,6 +141,12 @@ function createProxyManager(options = {}) {
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
+      if (!enabled) {
+        configureFetchDirect();
+        status = { ...status, enabled: false, ready: true, configured: false, error: null, warning: null };
+        logger.log("[PROXY] Proxy disabled; direct Render connection mode is active.");
+        return getStatus();
+      }
       try {
         proxyUrl = parseProxyUrl(env.PROXY_URL);
         // Route Node global fetch (including license-authority and GitHub fork checks)
@@ -180,17 +196,35 @@ function createProxyManager(options = {}) {
   }
 
   function getStatus() {
-    return { ...status };
+    return { ...status, enabled };
+  }
+
+  function setEnabled(next) {
+    const value = next === true;
+    persistEnabled(value);
+    enabled = value;
+    if (!enabled) {
+      configureGlobalFetchDirect();
+      status = { ...status, enabled: false, ready: true, configured: false, locationVerified: false, country: null, city: null, region: null, warning: null, error: null };
+      logger.log("[PROXY] Proxy disabled. New Messenger connections will use Render direct networking.");
+    } else {
+      status = { ...status, enabled: true, ready: false, configured: false, locationVerified: false, country: null, city: null, region: null, warning: null, error: null };
+      proxyUrl = null;
+      initPromise = null;
+      logger.log("[PROXY] Proxy enabled. Proxy configuration will be revalidated before the next login.");
+    }
+    return getStatus();
   }
 
   function getLoginOptions() {
+    if (!enabled) return {};
     if (!status.ready || !proxyUrl) {
       throw new Error(status.error || "Proxy is not ready; Messenger login is blocked.");
     }
     return { proxy: proxyUrl };
   }
 
-  return { initialize, getStatus, getLoginOptions };
+  return { initialize, getStatus, getLoginOptions, setEnabled };
 }
 
-module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation, configureGlobalFetchProxy };
+module.exports = { createProxyManager, parseProxyUrl, verifyProxyLocation, configureGlobalFetchProxy, configureGlobalFetchDirect };

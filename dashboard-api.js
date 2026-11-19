@@ -242,6 +242,24 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
       }
     }
 
+    if (req.method === "GET" && url.pathname === "/api/dashboard/proxy") {
+      const manager=controls.proxyManager;
+      if(!manager)return send(res,503,{ok:false,error:"Proxy control unavailable"});
+      return send(res,200,{ok:true,proxy:manager.getStatus()});
+    }
+    if (req.method === "POST" && url.pathname === "/api/dashboard/proxy") {
+      const manager=controls.proxyManager;
+      if(!manager)return send(res,503,{ok:false,error:"Proxy control unavailable"});
+      try {
+        const body=await readJson(req);
+        if(typeof body.enabled!=="boolean")return send(res,400,{ok:false,error:"enabled must be true or false"});
+        manager.setEnabled(body.enabled);
+        if(body.enabled) { await manager.initialize(); if(typeof controls.onProxyEnabled==="function") controls.onProxyEnabled(); }
+        record("proxy-mode-updated",{enabled:body.enabled});
+        return send(res,200,{ok:true,proxy:manager.getStatus(),connection_change:"next_login"});
+      } catch(error) { return send(res,400,{ok:false,error:error.message||"Could not update proxy mode"}); }
+    }
+
     if (req.method === "GET" && url.pathname === "/api/dashboard/session") {
       if (typeof controls.getSessionStatus !== "function") return send(res,501,{ok:false,error:"Session storage unavailable"});
       try { return send(res,200,{ok:true,session:controls.getSessionStatus()}); }

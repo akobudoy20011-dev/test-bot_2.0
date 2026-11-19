@@ -153,6 +153,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
 <div class="grid">
 <section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
 <section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
+<section class="card span12" id="proxyPanel"><h2>Connection proxy</h2><div class="row"><span>Current mode</span><strong id="proxyModeStatus">Loading…</strong></div><div class="actions"><button class="primary" id="proxyOn" type="button">Proxy ON</button><button class="danger" id="proxyOff" type="button">Proxy OFF · Use Render direct</button><button id="proxyRefresh" type="button">Refresh proxy status</button></div><p class="hint" id="proxyMessage">Proxy is enabled by default. Changing the mode affects the next Messenger login/reconnection; your current connection is not forcibly dropped.</p></section>
 <section class="card span12" id="sessionCookiePanel"><h2>Messenger cookie session</h2><textarea id="sessionCookie" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste cookie header or complete JSON appstate export here" style="width:100%;resize:vertical;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px"></textarea><div class="actions"><button class="primary" id="saveSession">Save session</button><button class="danger" id="clearSession">Clear saved cookie</button><button id="refreshSession">Refresh session status</button></div><p class="hint" id="sessionMessage">Checking saved session…</p><p class="hint">Session stays in memory and is cleared on restart or spin-down. Never share it or expose it in screenshots/logs.</p></section>
 <section class="card span6" id="botControls"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div></section>
 <section class="card span12" id="banatControlPanel"><h2>Banat ON / OFF control</h2><p class="hint">Choose a Messenger group in the Groups panel, then control Banat for that group. This does not pause the Messenger bot or disconnect its session.</p><div class="row"><span>Selected group</span><strong id="banatControlGroup">Choose a group first</strong></div><div class="row"><span>Banat mode</span><strong id="banatControlStatus">Not loaded</strong></div><div class="actions"><button class="primary" id="banatTurnOn" type="button">Banat ON</button><button class="danger" id="banatTurnOff" type="button">Banat OFF</button><button id="banatRefreshStatus" type="button">Refresh status</button></div><p class="hint" id="banatControlMessage" role="status">Load Messenger groups and select a group to begin.</p></section>
@@ -511,6 +512,16 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       catch(error){$("spamStatus").textContent="Status unavailable: "+error.message;}
     }
   }
+  async function refreshProxy(){
+    try{const data=await request("/api/dashboard/proxy");const p=data.proxy||{};$("proxyModeStatus").textContent=p.enabled?"PROXY ON · "+(p.ready?"Ready":"Not ready"):"PROXY OFF · Render direct";$("proxyMessage").textContent=p.enabled?(p.error||p.warning||"Proxy enabled. New login/reconnection will use the configured proxy."):"Proxy disabled. New login/reconnection uses Render direct networking. Existing connection remains until it reconnects.";}
+    catch(e){$("proxyModeStatus").textContent="Unavailable";$("proxyMessage").textContent="Proxy settings could not load: "+e.message;}
+  }
+  async function setProxyEnabled(enabled){
+    const buttons=["proxyOn","proxyOff","proxyRefresh"];buttons.forEach(id=>$(id).disabled=true);
+    try{const data=await request("/api/dashboard/proxy",{method:"POST",body:JSON.stringify({enabled})});const p=data.proxy||{};$("proxyModeStatus").textContent=p.enabled?"PROXY ON · "+(p.ready?"Ready":"Not ready"):"PROXY OFF · Render direct";$("proxyMessage").textContent=enabled?(p.error||p.warning||"Proxy enabled. Next login will use the proxy."):"Proxy disabled. Next login will use Render direct networking. Current session is preserved.";loadEvents();}
+    catch(e){$("proxyMessage").textContent="Could not change proxy mode: "+e.message;}
+    finally{buttons.forEach(id=>$(id).disabled=false);}
+  }
   async function refreshSession(){
     try{const data=await request("/api/dashboard/session");const configured=!!data.session?.configured;
       $("sessionMessage").textContent=configured?"A session is currently held in server memory. It will be cleared when the service restarts or spins down.":"No dashboard-saved session found. The bot may still be using FB_COOKIES/FB_APPSTATE environment variables.";
@@ -679,6 +690,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
 
   $("eventSearch").addEventListener("input",renderEvents);$("eventType").addEventListener("change",renderEvents);$("clearEventFilters").addEventListener("click",()=>{$("eventSearch").value="";$("eventType").value="";renderEvents();});
   $("saveSession").addEventListener("click",saveSession); $("clearSession").addEventListener("click",clearSession); $("refreshSession").addEventListener("click",refreshSession);
+  $("proxyOn").addEventListener("click",()=>setProxyEnabled(true)); $("proxyOff").addEventListener("click",()=>setProxyEnabled(false)); $("proxyRefresh").addEventListener("click",refreshProxy);
   $("refreshBtn").addEventListener("click",refresh); $("startBtn").addEventListener("click",()=>control("start")); $("stopBtn").addEventListener("click",()=>control("stop")); $("eventsBtn").addEventListener("click",loadEvents);
   $("refreshGroups").addEventListener("click",refreshGroups); $("loadGroup").addEventListener("click",loadGroup); $("saveGroup").addEventListener("click",saveGroup);
   $("groupThreadID").addEventListener("change",refreshBanatControlStatus);
@@ -705,6 +717,6 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   $("themeChoices").addEventListener("click",event=>{const button=event.target.closest("button[data-theme]");if(!button)return;const theme=button.dataset.theme;applyAccent(presets[theme],theme.charAt(0).toUpperCase()+theme.slice(1));});
   $("applyCustomAccent").addEventListener("click",()=>applyAccent($("customAccent").value,"Custom"));
   $("resetAccent").addEventListener("click",()=>{try{localStorage.removeItem("eclipse-testbot-accent");}catch(_){}document.documentElement.style.setProperty("--accent",presets.burgundy);$("customAccent").value=presets.burgundy;$("themeMessage").textContent="Default burgundy theme restored.";});
-  refresh(); loadEvents(); loadSettings(); refreshSession(); setInterval(refresh,15000);
+  refresh(); loadEvents(); loadSettings(); refreshSession(); refreshProxy(); setInterval(refresh,15000);
 })();
 </script></body></html>

@@ -102,3 +102,37 @@ test("ipinfo lookup uses an HTTPS proxy agent and parses only location fields", 
   assert.deepEqual(result, { ok: true, country: "PH", city: "Manila", region: "Metro Manila" });
   assert.equal(JSON.stringify(result).includes("203.0.113.1"), false);
 });
+
+
+test("proxy can be disabled for direct mode and re-enabled without losing the configured URL", async () => {
+  const configured = [];
+  const direct = [];
+  const persisted = [];
+  const manager = createProxyManager({
+    env: { PROXY_URL: "http://user:secret@proxy.example:8080" },
+    initialEnabled: false,
+    persistEnabled: value => persisted.push(value),
+    configureFetchProxy: url => configured.push(url),
+    configureFetchDirect: () => direct.push("direct"),
+    verifyLocation: async () => ({ ok: true, country: "PH", city: "Manila" }),
+    logger: { log() {}, warn() {}, error() {} }
+  });
+
+  const initial = await manager.initialize();
+  assert.equal(initial.ready, true);
+  assert.equal(initial.enabled, false);
+  assert.deepEqual(manager.getLoginOptions(), {});
+  assert.equal(direct.length, 1);
+
+  const disabled = manager.setEnabled(false);
+  assert.equal(disabled.enabled, false);
+  assert.deepEqual(persisted, [false]);
+
+  manager.setEnabled(true);
+  const enabled = await manager.initialize();
+  assert.equal(enabled.ready, true);
+  assert.equal(enabled.enabled, true);
+  assert.deepEqual(manager.getLoginOptions(), { proxy: "http://user:secret@proxy.example:8080/" });
+  assert.deepEqual(configured, ["http://user:secret@proxy.example:8080/"]);
+  assert.deepEqual(persisted, [false, true]);
+});

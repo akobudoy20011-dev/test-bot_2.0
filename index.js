@@ -22,7 +22,8 @@ const fs = require("fs");
 const path = require("path");
 const { login } = require("ws3-fca");
 const { createProxyManager } = require("./proxy-config");
-const proxyManager = createProxyManager();
+const botSettings = require("./bot-settings");
+const proxyManager = createProxyManager({ initialEnabled: botSettings.getProxyEnabled(), persistEnabled: botSettings.setProxyEnabled });
 const proxyStartup = proxyManager.initialize();
 const { getBanatConversationReply } = require("./triggers");
 const { sendBanatReplyWithTyping } = require("./banat-human");
@@ -749,6 +750,8 @@ try {
   }), {
     setPaused: (paused) => { botPaused = paused; if (paused) spamMode.stopAll("bot-paused"); },
     getPaused: () => botPaused || !licenseAuthorized,
+    proxyManager,
+    onProxyEnabled: () => { if (!messengerConnected && !loginInProgress) loginBot(); },
     saveSession: value => {
       const candidate = require("./session-store").normalizeSessionInput(value);
       loginBot(candidate);
