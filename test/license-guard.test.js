@@ -76,6 +76,7 @@ test("owner service approves itself and requires explicit approval for new insta
       ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
         ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
         ECLIPSE_LICENSE_SERVER_MODE: "false",
+        ECLIPSE_LICENSE_ENFORCEMENT: "true",
         ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
         ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
         ECLIPSE_LICENSE_PRIVATE_KEY: null
@@ -91,6 +92,84 @@ test("owner service approves itself and requires explicit approval for new insta
   });
 
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+
+test("client restores a cached signed approval during an authority outage within offline grace", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-offline-cache-"));
+  const id = crypto.randomUUID();
+  const pair = crypto.generateKeyPairSync("ed25519");
+  const privateKey = pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const publicKey = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+  const now = Date.now();
+  const payload = { app: "test-bot_2.0", installation_id: id, status: "approved", iat: Math.floor(now / 1000), exp: Math.floor(now / 1000) + 600 };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const token = encoded + "." + crypto.sign(null, Buffer.from(encoded), privateKey).toString("base64url");
+  const originalFetch = global.fetch;
+  try {
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(path.join(root, "installation-id"), id);
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ status: "approved", token }) });
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: root,
+      ECLIPSE_INSTALLATION_ID_FILE: path.join(root, "installation-id"),
+      ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_LICENSE_ENFORCEMENT: "true",
+      ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
+      ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
+      ECLIPSE_LICENSE_OFFLINE_GRACE_MS: "86400000"
+    }, async () => {
+      const first = createLicenseGuard({ now: () => now });
+      assert.equal(await first.initialize(), true);
+      first.stop();
+      assert.equal(fs.existsSync(path.join(root, "license-lease")), true);
+
+      global.fetch = async () => { throw new Error("network unavailable"); };
+      const restarted = createLicenseGuard({ now: () => now + 11 * 60 * 1000 });
+      assert.equal(await restarted.initialize(), true);
+      assert.equal(restarted.getStatus().authorized, true);
+      assert.equal(restarted.getStatus().status, "offline-authorized");
+      assert.ok(restarted.getStatus().offline_grace_until);
+      restarted.stop();
+    });
+  } finally {
+    global.fetch = originalFetch;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an explicit owner revocation clears the cached lease instead of using offline grace", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-offline-revoked-"));
+  const id = crypto.randomUUID();
+  const pair = crypto.generateKeyPairSync("ed25519");
+  const publicKey = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+  const payload = { app: "test-bot_2.0", installation_id: id, status: "approved", iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 600 };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const token = encoded + "." + crypto.sign(null, Buffer.from(encoded), pair.privateKey).toString("base64url");
+  const originalFetch = global.fetch;
+  try {
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(path.join(root, "installation-id"), id);
+    fs.writeFileSync(path.join(root, "license-lease"), token);
+    global.fetch = async () => ({ ok: false, status: 403, json: async () => ({ status: "revoked" }) });
+    await withEnvironment({
+      ECLIPSE_SECURITY_DATA_DIR: root,
+      ECLIPSE_INSTALLATION_ID_FILE: path.join(root, "installation-id"),
+      ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_LICENSE_ENFORCEMENT: "true",
+      ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
+      ECLIPSE_LICENSE_PUBLIC_KEY: publicKey
+    }, async () => {
+      const client = createLicenseGuard();
+      assert.equal(await client.initialize(), false);
+      assert.equal(client.getStatus().authorized, false);
+      assert.equal(fs.existsSync(path.join(root, "license-lease")), false);
+      client.stop();
+    });
+  } finally {
+    global.fetch = originalFetch;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("an unapproved installation remains blocked", async () => {
@@ -113,6 +192,7 @@ test("an unapproved installation remains blocked", async () => {
       ECLIPSE_SECURITY_DATA_DIR: clientDir,
       ECLIPSE_INSTALLATION_ID_FILE: path.join(clientDir, "installation-id"),
       ECLIPSE_LICENSE_SERVER_MODE: "false",
+      ECLIPSE_LICENSE_ENFORCEMENT: "true",
       ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
       ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
       ECLIPSE_LICENSE_PRIVATE_KEY: null
@@ -128,7 +208,7 @@ test("an unapproved installation remains blocked", async () => {
   }
 });
 
-test("temporary installation mode skips identity persistence and owner approval only when explicitly enabled", async () => {
+test("explicit temporary client mode skips owner approval and does not persist an installation identity", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-temporary-"));
   const originalFetch = global.fetch;
   let fetchCalls = 0;
@@ -142,7 +222,8 @@ test("temporary installation mode skips identity persistence and owner approval 
       ECLIPSE_INSTALLATION_ID_FILE: path.join(root, "installation-id"),
       ECLIPSE_INSTALLATION_ID: null,
       ECLIPSE_LICENSE_SERVER_MODE: "false",
-      ECLIPSE_TEMP_INSTALLATION_MODE: "true",
+      ECLIPSE_TEMP_INSTALLATION_MODE: null,
+      ECLIPSE_LICENSE_ENFORCEMENT: "false",
       ECLIPSE_LICENSE_SERVER_URL: null,
       ECLIPSE_LICENSE_PUBLIC_KEY: null,
       ECLIPSE_LICENSE_PRIVATE_KEY: null

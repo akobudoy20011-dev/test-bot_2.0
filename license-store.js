@@ -11,6 +11,7 @@ function createLicenseStore() {
   const dataDir = path.resolve(process.env.ECLIPSE_SECURITY_DATA_DIR || path.join(process.cwd(), ".eclipse-security"));
   const identityPath = path.resolve(process.env.ECLIPSE_INSTALLATION_ID_FILE || path.join(dataDir, "installation-id"));
   const registryPath = path.resolve(process.env.ECLIPSE_LICENSE_REGISTRY_PATH || path.join(dataDir, "registry.json"));
+  const leasePath = path.resolve(process.env.ECLIPSE_LICENSE_CACHE_PATH || path.join(dataDir, "license-lease"));
   const databaseUrl = process.env.ECLIPSE_LICENSE_DATABASE_URL || process.env.DATABASE_URL || "";
   const allowFileStore = truthy(process.env.ECLIPSE_LICENSE_ALLOW_FILE_STORE);
   const configuredInstallationId = String(process.env.ECLIPSE_INSTALLATION_ID || "").trim();
@@ -184,6 +185,23 @@ function createLicenseStore() {
     fs.renameSync(temporary, registryPath);
   }
 
+  function readCachedLease() {
+    try { return fs.readFileSync(leasePath, "utf8").trim() || null; }
+    catch (error) { if (error && error.code === "ENOENT") return null; throw error; }
+  }
+
+  function writeCachedLease(token) {
+    ensureDir();
+    const temporary = leasePath + ".tmp";
+    fs.writeFileSync(temporary, String(token) + "\n", { mode: 0o600 });
+    fs.renameSync(temporary, leasePath);
+  }
+
+  function clearCachedLease() {
+    try { fs.unlinkSync(leasePath); }
+    catch (error) { if (!error || error.code !== "ENOENT") throw error; }
+  }
+
   async function close() {
     if (pool) {
       await pool.end();
@@ -191,7 +209,7 @@ function createLicenseStore() {
     }
   }
 
-  return { initialize, getInstallationId, readRegistry, writeRegistry, close };
+  return { initialize, getInstallationId, readRegistry, writeRegistry, readCachedLease, writeCachedLease, clearCachedLease, close };
 }
 
 module.exports = { createLicenseStore };

@@ -56,11 +56,17 @@ node -e "const c=require('crypto');const k=c.generateKeyPairSync('ed25519');cons
 
 Store the private key only in the original service's Render environment. Keep the matching public key for authorized client installations.
 
-### Temporary Test Bot client mode (testing only)
+### Protected client mode (default)
 
-For a short-lived test deployment that cannot yet obtain an installation ID or owner approval, set `ECLIPSE_TEMP_INSTALLATION_MODE=true` on that client service. This client-only flag skips the owner verification request and signed-lease heartbeat for that process, creates an in-memory `temporary-...` identity, and does not write an installation ID file. The temporary identity changes after a process restart. The dashboard reports the license status as `temporary` so it is not confused with an approved installation.
+Non-owner deployments enforce owner approval by default. Configure `ECLIPSE_LICENSE_SERVER_URL` and the matching `ECLIPSE_LICENSE_PUBLIC_KEY`; new installations must be approved before Messenger login starts. After a successful approval, the client saves the signed lease locally. If the owner service becomes unreachable, the client can restart and continue using that verified lease during the configured offline grace period. When the authority becomes reachable again, a revoked or pending response blocks the client immediately.
 
-This is an intentional licensing bypass: anyone who can set this environment variable on a copy can run it without owner approval. Use it only on the specific Test Bot test deployment, remove it when permanent registration is ready, and never enable it on the original license owner service. It does not disable dashboard origin checks or dashboard API-key authentication.
+This keeps remote revocation enabled without making every client depend on the owner service being online continuously. For recovery across restarts, the client's `ECLIPSE_SECURITY_DATA_DIR` must be on persistent storage. Render Free local storage can be lost after restart or spin-down, so it cannot guarantee cached-lease recovery.
+
+### Explicit temporary mode (opt-out)
+
+Set `ECLIPSE_LICENSE_ENFORCEMENT=false` on a client only when you intentionally want to bypass owner approval and revocation. This mode does not contact the owner service, uses a temporary in-memory identity, and cannot be remotely revoked. Do not use it when you need owner-side control.
+
+The original authority remains separately enabled only with `ECLIPSE_LICENSE_SERVER_MODE=true` and its private signing key/database configuration. Neither protected nor temporary client mode disables dashboard origin checks, dashboard API-key authentication, the required Facebook session, or proxy configuration.
 
 ### Authorized client deployments
 
@@ -71,7 +77,7 @@ A deployment that runs the protected version must have:
 - `ECLIPSE_SECURITY_DATA_DIR` (optional): local directory for its installation identity. On Render Free, the local identity file can be lost after spin-down/redeploy, which creates a new pending installation that must be approved again. This does not erase the owner registry in Neon.
 - `ECLIPSE_FORK_REPOSITORY` (optional): the fork's `owner/repository` name so the owner registry can label it.
 
-New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Revoked installations stop processing when the next license check is received. Signed leases are short-lived; temporary authority outages are tolerated only while a previously issued lease remains valid.
+New installations appear as pending in the owner's Security panel. The owner must approve them before Messenger login starts. Approved clients persist the signed lease locally and continue running during an authority outage for up to `ECLIPSE_LICENSE_OFFLINE_GRACE_MS` after the lease expires (default 24 hours; maximum 7 days; set `0` to disable offline grace). When the authority is reachable, a pending, revoked, or invalid response blocks the client immediately and clears its cached lease. A disconnected client cannot receive a revocation until it reconnects, so the grace period is the maximum additional offline window after the signed lease expires. Keep the client data directory persistent if it must survive restarts while the authority is offline; Render Free local storage may be lost on restart/spin-down.
 
 ### Existing forks
 
