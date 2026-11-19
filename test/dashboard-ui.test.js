@@ -63,7 +63,10 @@ test("dashboard has selected-group Banat ON and OFF controls",()=>{
   assert.ok(html.includes("/api/dashboard/settings/group"));
   assert.match(html,/banatMode:mode/);
   assert.match(html,/INHERIT · command controlled/);
-  assert.match(html,/does not pause the Messenger bot or disconnect its session/);
+  assert.match(html,/Select group, then toggle Banat/);
+  const banatHandler=html.match(/async function setBanatControl\(mode\)\{([\s\S]*?)\n  \}/)?.[1]||"";
+  assert.ok(banatHandler.includes("/api/dashboard/settings/group"));
+  assert.equal(banatHandler.includes("/api/dashboard/bot/"),false);
 });
 
 test("dashboard feature modules each occupy their own full-width row",()=>{
@@ -79,8 +82,9 @@ test("dashboard exposes seconds-based reply delay and sequential Spam Mode list 
   for(const id of ["spamMessage","spamInterval","spamStart","spamStop","spamRefresh","spamStatus"]) assert.ok(html.includes('id="'+id+'"'),"Spam Mode control exists: "+id);
   assert.match(html,/intervalSeconds<2/);
   assert.match(html,/min="2" max="3600"/);
-  assert.match(html,/numbered list/);
+  assert.match(html,/Add one message per numbered line/);
+  assert.ok(html.includes("numbered/list entry"));
   assert.match(html,/separate message/);
-  assert.match(html,/up to 1000/);
+  assert.match(html,/Up to 1,000 messages/);
   assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|unlimited Spam Mode/);
 });

@@ -119,63 +119,83 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
 
   .app-nav-label{margin-top:4px}.app-nav a{transition:background .15s ease,color .15s ease}.app-nav a:focus-visible,.mobile-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   #appearancePanel .actions button{min-width:92px}
+
+/* Workspace navigation: one isolated scroll surface at a time. */
+html,body{height:100%;overflow:hidden}
+body{min-height:100dvh}
+.app-sidebar{position:fixed;float:none;inset:0 auto 0 0;height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+.wrap{height:100dvh;min-height:0;margin-left:232px;display:flex;flex-direction:column;overflow:hidden}
+.top{flex:0 0 86px;z-index:5;margin:0}
+.dashboard-access{flex:0 0 auto}
+main.wrap>.grid{flex:1 1 auto;min-height:0;height:auto;display:block!important;overflow:hidden;padding:0!important}
+.workspace-page{width:100%}
+.workspace-stage{flex:1;min-height:0;overflow:hidden;position:relative}
+.workspace-page{display:none;height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:0 clamp(16px,2.4vw,32px) 28px}
+.workspace-page.active{display:block;animation:workspace-in .16s ease-out}
+.workspace-intro{display:flex;align-items:center;gap:14px;padding:22px 0 18px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.workspace-icon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--workspace-accent,var(--accent)) 38%,transparent);border-radius:13px;background:color-mix(in srgb,var(--workspace-accent,var(--accent)) 12%,transparent);color:var(--workspace-accent,var(--accent));font-size:21px}
+.workspace-intro .eyebrow{margin:0 0 3px;color:var(--workspace-accent,var(--accent));font-size:9px}
+.workspace-intro h2{margin:0;font-size:21px;letter-spacing:-.035em}
+.workspace-intro .hint{margin:3px 0 0;font-size:11px}
+.workspace-content{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;align-items:start}
+.workspace-content>.card{grid-column:1/-1!important;width:100%;min-width:0}
+.workspace-content>#overview,.workspace-content>#runtimePanel{grid-column:1/-1!important}
+.workspace-content>.card h2{margin-bottom:14px}
+.workspace-page[data-workspace="spam"]{--workspace-accent:#d5a34e}
+.workspace-page[data-workspace="reactions"]{--workspace-accent:#54c3d0}
+.workspace-page[data-workspace="raid"]{--workspace-accent:#d77b91}
+.workspace-page[data-workspace="countdown"]{--workspace-accent:#d2b15d}
+.workspace-page[data-workspace="mass-setnn"]{--workspace-accent:#9b8bd2}
+.workspace-page[data-workspace="connection"]{--workspace-accent:#76a9c9}
+.workspace-page[data-workspace="diagnostics"]{--workspace-accent:#83b69a}
+.workspace-page[data-workspace="groups"]{--workspace-accent:#69b8a3}
+.workspace-page[data-workspace="banat"]{--workspace-accent:#cf8290}
+.workspace-page[data-workspace="auto-lock"]{--workspace-accent:#bd9c6d}
+.workspace-page[data-workspace="appearance"]{--workspace-accent:#b4a0d2}
+.workspace-page .card{border-color:color-mix(in srgb,var(--workspace-accent,var(--accent)) 15%,var(--line))}
+.app-nav a[aria-current="page"]{background:color-mix(in srgb,var(--workspace-accent,var(--accent)) 14%,transparent);border-color:color-mix(in srgb,var(--workspace-accent,var(--accent)) 35%,transparent);color:var(--text)}
+.app-nav a[aria-current="page"] span{color:var(--workspace-accent,var(--accent))}
+.mobile-nav button{display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:48px;padding:5px 0;border:0;background:transparent;border-radius:8px;color:var(--muted);font-size:9px;font-weight:750}
+.mobile-nav button span{font-size:18px;letter-spacing:1px;color:var(--accent)}
+.mobile-more-menu{position:fixed;z-index:70;right:10px;bottom:calc(68px + env(safe-area-inset-bottom));width:min(250px,calc(100vw - 20px));max-height:min(60dvh,440px);overflow:auto;padding:8px;border:1px solid var(--line);border-radius:14px;background:#111319;box-shadow:0 16px 44px rgba(0,0,0,.5)}
+.mobile-more-menu[hidden]{display:none}
+.mobile-more-menu a{display:block;padding:11px 12px;border-radius:9px;color:var(--text);font-size:12px;text-decoration:none}
+.mobile-more-menu a:hover,.mobile-more-menu a[aria-current="page"]{background:rgba(199,90,106,.15)}
+.mobile-nav a[aria-current="page"],.mobile-nav button[aria-expanded="true"]{background:rgba(199,90,106,.15);color:#f7e6e9}
+@keyframes workspace-in{from{opacity:.75;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:850px){
+ .app-sidebar{display:none}
+ .wrap{height:100dvh;margin:0;width:100%;padding:0 0 calc(64px + env(safe-area-inset-bottom))}
+ .top{height:72px;flex-basis:72px;padding:12px 17px}
+ .dashboard-access{margin:8px 12px;padding:10px 12px}
+ .workspace-page{padding:0 12px calc(18px + env(safe-area-inset-bottom))}
+ .workspace-intro{padding:16px 0 13px}
+ .workspace-intro h2{font-size:18px}
+ .workspace-icon{width:38px;height:38px;flex-basis:38px}
+ .mobile-nav{position:fixed;z-index:60;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:7px 4px max(7px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);border-radius:0;background:rgba(12,13,17,.98)}
+ .mobile-nav a{display:grid;justify-items:center;align-content:center;gap:4px;min-width:0;min-height:48px;padding:5px 0;border-radius:8px;font-size:9px}
+ .mobile-nav a span{font-size:18px}
+}
+@media(min-width:851px){.wrap{margin-left:232px}}
+@media(prefers-reduced-motion:reduce){.workspace-page.active{animation:none}}
+
 </style>
 </head>
 <body>
-<aside class="app-sidebar">
-  <a class="app-brand" href="#overview"><span class="app-brand-mark">E</span><span><strong>ECLIPSE</strong><small>MESSENGER CONTROL</small></span></a>
-  <div class="app-nav-label">COMMAND CENTER</div>
-  <nav class="app-nav" aria-label="Dashboard navigation">
-    <a href="#overview"><span>⌂</span>Overview</a>
-    <a href="#eventsPanel"><span>≋</span>Activity</a>
-  </nav>
-  <div class="app-nav-label">BOT MANAGEMENT</div>
-  <nav class="app-nav" aria-label="Bot management navigation">
-    <a href="#groupSettings"><span>▦</span>Groups</a>
-    <a href="#banatControlPanel"><span>◉</span>Banat ON/OFF</a>
-    <a href="#reactionPanel"><span>☺</span>MESS Reactions</a>
-    <a href="#countdownPanel"><span>◷</span>Countdown</a>
-    <a href="#massSetnnPanel"><span>✎</span>Mass SetNN</a>
-    <a href="#groupTitleLockPanel"><span>⌑</span>Auto-lock</a>
-    <a href="#raidModePanel"><span>◇</span>Raid Mode</a>
-    <a href="#sessionCookiePanel"><span>▣</span>Session</a>
-  </nav>
-  <div class="app-nav-label">SYSTEM</div>
-  <nav class="app-nav" aria-label="System navigation">
-    <a href="#runtimePanel"><span>⌁</span>Diagnostics</a>
-    <a href="#appearancePanel"><span>◐</span>Appearance</a>
-  </nav>
-  <div class="app-sidebar-foot"><strong>Test Bot 2.0</strong>Independent ECLIPSE instance</div>
-</aside>
+<aside class="app-sidebar"><a class="app-brand" href="#overview" data-workspace-link="overview"><span class="app-brand-mark">E</span><span><strong>ECLIPSE</strong><small>TEST BOT CONTROL</small></span></a><div class="app-nav-label">COMMAND CENTER</div><nav class="app-nav" aria-label="command center navigation"><a href="#overview" data-workspace-link="overview"><span>⌂</span>Overview</a><a href="#eventsPanel" data-workspace-link="activity"><span>≋</span>Activity Center</a></nav><div class="app-nav-label">BOT MANAGEMENT</div><nav class="app-nav" aria-label="bot workspaces navigation"><a href="#groupSettings" data-workspace-link="groups"><span>▦</span>Groups</a><a href="#banatControlPanel" data-workspace-link="banat"><span>◉</span>Banat Control</a><a href="#reactionPanel" data-workspace-link="reactions"><span>☺</span>Reaction Studio</a><a href="#countdownPanel" data-workspace-link="countdown"><span>◷</span>Countdown</a><a href="#massSetnnPanel" data-workspace-link="mass-setnn"><span>✎</span>Mass SetNN</a><a href="#groupTitleLockPanel" data-workspace-link="auto-lock"><span>⌑</span>Auto-lock</a><a href="#raidModePanel" data-workspace-link="raid"><span>◇</span>Raid Mode</a><a href="#spamPanel" data-workspace-link="spam"><span>↗</span>Spam Mode</a></nav><div class="app-nav-label">SYSTEM</div><nav class="app-nav" aria-label="system navigation"><a href="#proxyPanel" data-workspace-link="connection"><span>⇄</span>Proxy & Session</a><a href="#runtimePanel" data-workspace-link="diagnostics"><span>⌁</span>Diagnostics</a><a href="#appearancePanel" data-workspace-link="appearance"><span>◐</span>Theme</a></nav><div class="app-sidebar-foot"><strong>Test Bot 2.0</strong>Independent ECLIPSE instance</div></aside>
 <main class="wrap">
 <header class="top"><div class="top-heading"><p class="eyebrow">CONTROL CENTER</p><h1>Overview</h1><p class="sub">ECLIPSE Test Bot · independent instance</p></div><div class="top-actions"><span class="status-pill"><i class="dot" id="statusDot"></i><span id="statusText">Connecting…</span></span><button class="top-refresh" id="topRefreshBtn" type="button" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button></div></header>
-<section class="dashboard-access" aria-label="Dashboard access"><div><strong>Dashboard access</strong><p class="hint">Enter your Render <code>ECLIPSE_DASHBOARD_API_KEY</code> to unlock session, group, and bot management controls. This key is kept only in this page memory.</p></div><div class="access-key-controls"><label class="access-key-label">Owner key<input id="raidApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste dashboard API key" aria-describedby="dashboardAccessMessage"></label><div class="actions"><button class="primary" id="unlockDashboard" type="button">Unlock controls</button><button id="clearDashboardKey" type="button">Clear key</button></div><p class="hint" id="dashboardAccessMessage" role="status">Management controls require the dashboard key.</p></div></section>
+<section class="dashboard-access" aria-label="Dashboard access"><div><strong>Dashboard access</strong><p class="hint">Paste dashboard key to unlock controls.</p></div><div class="access-key-controls"><label class="access-key-label">Owner key<input id="raidApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste dashboard API key" aria-describedby="dashboardAccessMessage"></label><div class="actions"><button class="primary" id="unlockDashboard" type="button">Unlock controls</button><button id="clearDashboardKey" type="button">Clear key</button></div><p class="hint" id="dashboardAccessMessage" role="status">Management controls require the dashboard key.</p></div></section>
 <div class="grid">
-<section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section>
-<section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section>
-<section class="card span12" id="proxyPanel"><h2>Connection proxy</h2><div class="row"><span>Current mode</span><strong id="proxyModeStatus">Loading…</strong></div><div class="actions"><button class="primary" id="proxyOn" type="button">Proxy ON</button><button class="danger" id="proxyOff" type="button">Proxy OFF · Use Render direct</button><button id="proxyRefresh" type="button">Refresh proxy status</button></div><p class="hint" id="proxyMessage">Proxy is enabled by default. Changing the mode affects the next Messenger login/reconnection; your current connection is not forcibly dropped.</p></section>
-<section class="card span12" id="sessionCookiePanel"><h2>Messenger cookie session</h2><textarea id="sessionCookie" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste cookie header or complete JSON appstate export here" style="width:100%;resize:vertical;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px"></textarea><div class="actions"><button class="primary" id="saveSession">Save session</button><button class="danger" id="clearSession">Clear saved cookie</button><button id="refreshSession">Refresh session status</button></div><p class="hint" id="sessionMessage">Checking saved session…</p><p class="hint">Session stays in memory and is cleared on restart or spin-down. Never share it or expose it in screenshots/logs.</p></section>
-<section class="card span6" id="botControls"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div></section>
-<section class="card span12" id="banatControlPanel"><h2>Banat ON / OFF control</h2><p class="hint">Choose a Messenger group in the Groups panel, then control Banat for that group. This does not pause the Messenger bot or disconnect its session.</p><div class="row"><span>Selected group</span><strong id="banatControlGroup">Choose a group first</strong></div><div class="row"><span>Banat mode</span><strong id="banatControlStatus">Not loaded</strong></div><div class="actions"><button class="primary" id="banatTurnOn" type="button">Banat ON</button><button class="danger" id="banatTurnOff" type="button">Banat OFF</button><button id="banatRefreshStatus" type="button">Refresh status</button></div><p class="hint" id="banatControlMessage" role="status">Load Messenger groups and select a group to begin.</p></section>
-<section class="card span6" id="groupSettings"><h2>Banat group picker</h2><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Use !banat on/off in this group</option><option value="on">Banat always enabled in this group</option><option value="off">Banat disabled in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay seconds <input id="groupReplyDelay" type="number" min="0" max="300" step="0.5" placeholder="Human default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start (PH time) <input id="quietStart" type="time"></label><label>Quiet end (PH time) <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">Load Messenger groups to begin.</p></section>
-<section class="card span6" id="massSetnnPanel">
-  <h2>Mass SetNN</h2>
-  
-  <div class="field"><button id="loadMassMembers">Load group members</button></div>
-  <select id="massSetnnMembers" multiple size="6" aria-label="Select members for Mass SetNN" style="width:100%;margin:8px 0;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></select>
-  <label>Nickname to apply <input id="massSetnnNickname" maxlength="64" placeholder="Enter the new nickname" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
-  <div class="actions"><button class="primary" id="runMassSetnn">Apply nickname</button></div>
-  <p class="hint" id="massSetnnMessage">Select a group above, then load members.</p>
-</section>
-<section class="card span6" id="groupTitleLockPanel">
-  <h2>Auto-lock GC name</h2>
-  
-  <div class="field"><label><input id="titleLockEnabled" type="checkbox"> Enable title protection</label></div>
-  <label>Protected group name <input id="titleLockName" maxlength="100" placeholder="Enter the exact group name" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
-  <div class="actions"><button class="primary" id="saveTitleLock">Save title lock</button><button id="loadTitleLock">Load saved name</button></div>
-  <p class="hint" id="titleLockMessage">Choose a group above to configure its protected name.</p>
-</section>
-<section class="card span12" id="countdownPanel">
+<section class="workspace-page active" id="workspace-overview" data-workspace="overview" data-title="Overview" data-accent="overview"><div class="workspace-intro"><span class="workspace-icon">⌂</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Overview</h2><p class="hint">Live status</p></div></div><div class="workspace-content"><section class="card span8" id="overview"><h2>Bot overview</h2><div class="metrics"><div class="metric"><label>Messenger session</label><strong id="connection">—</strong></div><div class="metric"><label>Bot process</label><strong id="process">—</strong></div><div class="metric"><label>Process uptime</label><strong id="uptime">—</strong></div></div><div class="actions"><button class="primary" id="startBtn">Start bot processing</button><button class="danger" id="stopBtn">Pause bot processing</button><button id="refreshBtn">Refresh status</button></div><p class="hint" id="lastUpdated">Waiting for status…</p></section></div></section>
+<section class="workspace-page" id="workspace-activity" data-workspace="activity" data-title="Activity Center" data-accent="activity"><div class="workspace-intro"><span class="workspace-icon">≋</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Activity Center</h2><p class="hint">Recent events</p></div></div><div class="workspace-content"><section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section></div></section>
+<section class="workspace-page" id="workspace-groups" data-workspace="groups" data-title="Groups" data-accent="groups"><div class="workspace-intro"><span class="workspace-icon">▦</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Groups</h2><p class="hint">Group settings</p></div></div><div class="workspace-content"><section class="card span6" id="groupSettings"><h2>Banat group picker</h2><div class="field"><button id="refreshGroups">Load Messenger groups</button><select id="groupThreadID" aria-label="Choose Messenger group"><option value="">Choose a group…</option></select><button id="loadGroup">Load settings</button></div><div class="field"><select id="groupBanatMode"><option value="inherit">Use !banat on/off in this group</option><option value="on">Banat always enabled in this group</option><option value="off">Banat disabled in this group</option></select><label><input id="groupTyping" type="checkbox" checked> Typing indicator</label></div><div class="field"><label>Reply delay seconds <input id="groupReplyDelay" type="number" min="0" max="300" step="0.5" placeholder="Human default"></label><label>Cooldown ms <input id="groupCooldown" type="number" min="0" max="300000" placeholder="Default"></label></div><div class="field"><label>Quiet start (PH time) <input id="quietStart" type="time"></label><label>Quiet end (PH time) <input id="quietEnd" type="time"></label></div><div class="actions"><button class="primary" id="saveGroup">Save group settings</button></div><p class="hint" id="groupMessage">Load Messenger groups to begin.</p></section></div></section>
+<section class="workspace-page" id="workspace-banat" data-workspace="banat" data-title="Banat Control" data-accent="banat"><div class="workspace-intro"><span class="workspace-icon">◉</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Banat Control</h2><p class="hint">Banat controls</p></div></div><div class="workspace-content"><section class="card span6" id="botControls"><h2>Banat controls</h2><div class="row"><span>Activation command</span><code>!banat on</code></div><div class="row"><span>Disable command</span><code>!banat off</code></div><div class="row"><span>Toggle/status/help</span><code>!banat toggle/status/help</code></div><div class="row"><span>Default-on mode</span><code>BANAT_DEFAULT_ON=true</code></div></section>
+<section class="card span12" id="banatControlPanel"><h2>Banat ON / OFF control</h2><p class="hint">Select group, then toggle Banat.</p><div class="row"><span>Selected group</span><strong id="banatControlGroup">Choose a group first</strong></div><div class="row"><span>Banat mode</span><strong id="banatControlStatus">Not loaded</strong></div><div class="actions"><button class="primary" id="banatTurnOn" type="button">Banat ON</button><button class="danger" id="banatTurnOff" type="button">Banat OFF</button><button id="banatRefreshStatus" type="button">Refresh status</button></div><p class="hint" id="banatControlMessage" role="status">Load Messenger groups and select a group to begin.</p></section></div></section>
+<section class="workspace-page" id="workspace-reactions" data-workspace="reactions" data-title="Reaction Studio" data-accent="reactions"><div class="workspace-intro"><span class="workspace-icon">☺</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Reaction Studio</h2><p class="hint">Reaction settings</p></div></div><div class="workspace-content"><section class="card span6" id="reactionPanel"><h2>MESS reaction targeting</h2><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div>
+<div class="field"><select id="reactionAudience" aria-label="Who should receive the reaction"><option value="all">Everyone</option><option value="admins">Group admins</option><option value="member">Selected member</option></select><select id="reactionMember" aria-label="Select members" multiple size="6"><option value="">Load a group and members first</option></select><button id="loadReactionMembers">Load members</button></div>
+<div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section></div></section>
+<section class="workspace-page" id="workspace-countdown" data-workspace="countdown" data-title="Countdown" data-accent="countdown"><div class="workspace-intro"><span class="workspace-icon">◷</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Countdown</h2><p class="hint">Target challenge</p></div></div><div class="workspace-content"><section class="card span12" id="countdownPanel">
   <h2>Countdown · target challenge</h2>
   
   <div class="field"><label><input id="countdownEnabled" type="checkbox"> Enable countdown for selected group</label></div>
@@ -186,15 +206,28 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
   <div class="field"><label>WIN display name <input id="countdownReceiptWinner" maxlength="80" value="TEST BOT" placeholder="TEST BOT"></label></div>
   <div class="field"><label style="width:100%">Receipt reason <input id="countdownReceiptReason" maxlength="180" value="DI TUMAGOS SA COUNTDOWN CHALLENGE 😭" style="width:100%"></label></div>
   <div class="actions"><button id="loadCountdownReceipt">Load receipt settings</button><button class="primary" id="saveCountdownReceipt">Save receipt settings</button></div>
-  <p class="hint" id="countdownReceiptMessage">These receipt settings are saved separately for this Test Bot instance.</p>
+  <p class="hint" id="countdownReceiptMessage">Test Bot receipt settings.</p>
   <p class="hint" id="countdownMessage">Select a group above, then load members.</p>
   <div class="log" id="countdownHistory" style="max-height:180px">Countdown history will appear here.</div>
-</section>
-<section class="card span6" id="reactionPanel"><h2>MESS reaction targeting</h2><div class="field"><label><input id="reactionEnabled" type="checkbox" checked> Reactions enabled</label><input id="reactionEmoji" maxlength="16" value="😆" aria-label="Reaction emoji" placeholder="Emoji"></div><div class="field"><select id="reactionTarget"><option value="bot_replies">Bot replies</option><option value="incoming_messages">Incoming messages</option><option value="both">Both</option></select><label>Probability % <input id="reactionProbability" type="number" min="0" max="100" value="100"></label><label>Cooldown sec <input id="reactionCooldown" type="number" min="0" max="86400" value="0"></label></div>
-<div class="field"><select id="reactionAudience" aria-label="Who should receive the reaction"><option value="all">Everyone</option><option value="admins">Group admins</option><option value="member">Selected member</option></select><select id="reactionMember" aria-label="Select members" multiple size="6"><option value="">Load a group and members first</option></select><button id="loadReactionMembers">Load members</button></div>
-<div class="actions"><button class="primary" id="saveReaction">Save emoji settings</button><button id="loadSettings">Reload settings</button></div><p class="hint" id="reactionMessage">Default emoji: 😆</p></section>
-
-<section class="card span12" id="raidModePanel">
+</section></div></section>
+<section class="workspace-page" id="workspace-mass-setnn" data-workspace="mass-setnn" data-title="Mass SetNN" data-accent="mass-setnn"><div class="workspace-intro"><span class="workspace-icon">✎</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Mass SetNN</h2><p class="hint">Set member nicknames</p></div></div><div class="workspace-content"><section class="card span6" id="massSetnnPanel">
+  <h2>Mass SetNN</h2>
+  
+  <div class="field"><button id="loadMassMembers">Load group members</button></div>
+  <select id="massSetnnMembers" multiple size="6" aria-label="Select members for Mass SetNN" style="width:100%;margin:8px 0;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></select>
+  <label>Nickname to apply <input id="massSetnnNickname" maxlength="64" placeholder="Enter the new nickname" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
+  <div class="actions"><button class="primary" id="runMassSetnn">Apply nickname</button></div>
+  <p class="hint" id="massSetnnMessage">Select a group above, then load members.</p>
+</section></div></section>
+<section class="workspace-page" id="workspace-auto-lock" data-workspace="auto-lock" data-title="Auto-lock" data-accent="auto-lock"><div class="workspace-intro"><span class="workspace-icon">⌑</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Auto-lock</h2><p class="hint">Group title protection</p></div></div><div class="workspace-content"><section class="card span6" id="groupTitleLockPanel">
+  <h2>Auto-lock GC name</h2>
+  
+  <div class="field"><label><input id="titleLockEnabled" type="checkbox"> Enable title protection</label></div>
+  <label>Protected group name <input id="titleLockName" maxlength="100" placeholder="Enter the exact group name" style="width:100%;margin-top:6px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
+  <div class="actions"><button class="primary" id="saveTitleLock">Save title lock</button><button id="loadTitleLock">Load saved name</button></div>
+  <p class="hint" id="titleLockMessage">Choose a group above to configure its protected name.</p>
+</section></div></section>
+<section class="workspace-page" id="workspace-raid" data-workspace="raid" data-title="Raid Mode" data-accent="raid"><div class="workspace-intro"><span class="workspace-icon">◇</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Raid Mode</h2><p class="hint">Group theme</p></div></div><div class="workspace-content"><section class="card span12" id="raidModePanel">
   <h2>Raid Mode · persistent group theme</h2>
   
   <div class="notice" id="raidStatus">Enter the ECLIPSE dashboard key once. It authorizes dashboard management actions, including group controls. Neon is required for persistent feature settings.</div>
@@ -205,7 +238,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       <label>Group chat name <input id="raidGroupTitle" maxlength="100" placeholder="Enter the enforced group name" style="width:100%;margin:6px 0 12px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
       <label>Nickname applied to every member <input id="raidNickname" maxlength="64" placeholder="Enter the enforced nickname" style="width:100%;margin:6px 0 12px;padding:10px;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:9px"></label>
       <label>Group profile picture <input id="raidImageFile" type="file" accept="image/png,image/jpeg,image/webp" style="display:block;margin:8px 0"></label>
-      <p class="hint">PNG, JPEG, or WebP · max 5 MB.</p>
+      <p class="hint">PNG/JPG/WebP · 5 MB max.</p>
       <div class="actions"><button id="raidSaveTheme">Save theme</button><button id="raidUploadImage">Upload photo</button></div>
       <p class="hint" id="raidThemeMessage">No theme loaded yet.</p>
     </div>
@@ -232,23 +265,45 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
       <p class="hint" id="raidActionMessage"></p>
     </div>
   </div>
-</section>
-
-<section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">A 1,000-line numbered list is loaded automatically. Fill in the banats beside the numbers you want to send. Leave unused lines blank; each filled line is sent as its own message, in order, once. Use Stop to end a run early; a failed send or safety shutdown also ends it.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="12" style="width:100%;resize:vertical" spellcheck="false" autocomplete="off"></textarea><div class="actions"><span class="hint" id="spamNumberCount">1,000 numbered lines loaded</span></div><span class="hint">Example: write after “1.”, “2.”, “3.” and so on. Empty numbered lines are skipped. Maximum: 1,000 messages.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label><label>Sequence loops <input id="spamLoops" type="number" min="1" max="100" step="1" value="1"></label></div><span class="hint">Loops apply to numbered/list sequences only. Maximum 100 loops and 1,000 total sends per run.</span><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section>
-<section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Choose a dashboard accent. This preference is saved on this device only; it does not change bot settings.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section>
-<section class="card span12" id="eventsPanel"><h2>Activity center</h2><div class="field" style="margin-bottom:10px"><input id="eventSearch" type="search" placeholder="Search activity…" aria-label="Search activity"><select id="eventType" aria-label="Filter activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
+</section></div></section>
+<section class="workspace-page" id="workspace-spam" data-workspace="spam" data-title="Spam Mode" data-accent="spam"><div class="workspace-intro"><span class="workspace-icon">↗</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Spam Mode</h2><p class="hint">Message sequences</p></div></div><div class="workspace-content"><section class="card span6" id="spamPanel"><h2>Spam Mode</h2><p class="hint">Add one message per numbered line. Blank lines are skipped.</p><div class="field"><label style="width:100%">Put your banats on each number<textarea id="spamMessage" maxlength="1000000" rows="12" style="width:100%;resize:vertical" spellcheck="false" autocomplete="off"></textarea><div class="actions"><span class="hint" id="spamNumberCount">1,000 numbered lines loaded</span></div><span class="hint">Up to 1,000 messages.</span></label><label>Interval seconds <input id="spamInterval" type="number" min="2" max="3600" step="1" value="6"></label><label>Sequence loops <input id="spamLoops" type="number" min="1" max="100" step="1" value="1"></label></div><span class="hint">Max 100 loops · 1,000 sends per run.</span><div class="actions"><button class="primary" id="spamStart">Start Spam Mode</button><button class="danger" id="spamStop">Stop selected group</button><button id="spamRefresh">Refresh status</button></div><p class="hint" id="spamStatus">No active Spam Mode runs.</p></section></div></section>
+<section class="workspace-page" id="workspace-connection" data-workspace="connection" data-title="Proxy & Session" data-accent="connection"><div class="workspace-intro"><span class="workspace-icon">⇄</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Proxy & Session</h2><p class="hint">Connection settings</p></div></div><div class="workspace-content"><section class="card span12" id="proxyPanel"><h2>Connection proxy</h2><div class="row"><span>Current mode</span><strong id="proxyModeStatus">Loading…</strong></div><div class="actions"><button class="primary" id="proxyOn" type="button">Proxy ON</button><button class="danger" id="proxyOff" type="button">Proxy OFF · Use Render direct</button><button id="proxyRefresh" type="button">Refresh proxy status</button></div><p class="hint" id="proxyMessage">Proxy is enabled by default. Changing the mode affects the next Messenger login/reconnection; your current connection is not forcibly dropped.</p></section>
+<section class="card span12" id="sessionCookiePanel"><h2>Messenger cookie session</h2><textarea id="sessionCookie" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste cookie header or complete JSON appstate export here" style="width:100%;resize:vertical;background:#0a0d13;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px"></textarea><div class="actions"><button class="primary" id="saveSession">Save session</button><button class="danger" id="clearSession">Clear saved cookie</button><button id="refreshSession">Refresh session status</button></div><p class="hint" id="sessionMessage">Checking saved session…</p><p class="hint">Session clears on restart.</p></section></div></section>
+<section class="workspace-page" id="workspace-diagnostics" data-workspace="diagnostics" data-title="Diagnostics" data-accent="diagnostics"><div class="workspace-intro"><span class="workspace-icon">⌁</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Diagnostics</h2><p class="hint">Runtime status</p></div></div><div class="workspace-content"><section class="card span4" id="runtimePanel"><h2>Runtime</h2><div class="row"><span>Node.js</span><strong id="node">—</strong></div><div class="row"><span>Memory RSS</span><strong id="memory">—</strong></div><div class="row"><span>Dashboard API</span><strong id="apiState">Checking</strong></div><div class="row"><span>Edition</span><span class="tag">Banat essentials</span></div></section></div></section>
+<section class="workspace-page" id="workspace-appearance" data-workspace="appearance" data-title="Appearance" data-accent="appearance"><div class="workspace-intro"><span class="workspace-icon">◐</span><div><p class="eyebrow">TEST BOT WORKSPACE</p><h2>Appearance</h2><p class="hint">Dashboard theme</p></div></div><div class="workspace-content"><section class="card span12" id="appearancePanel"><h2>Appearance</h2><p class="hint">Saved on this device.</p><div class="actions" id="themeChoices"><button type="button" data-theme="burgundy">Burgundy</button><button type="button" data-theme="cyan">Cyan</button><button type="button" data-theme="gold">Gold</button></div><div class="field" style="margin-top:12px;align-items:center"><label>Custom accent <input id="customAccent" type="color" value="#c75a6a" aria-label="Custom accent color"></label><button type="button" id="applyCustomAccent">Apply custom color</button><button type="button" id="resetAccent">Reset appearance</button></div><p class="hint" id="themeMessage" role="status">Burgundy theme active.</p></section></div></section>
+ activity type"><option value="">All event types</option></select><button id="eventsBtn" type="button">Reload events</button><button id="clearEventFilters" type="button">Clear filters</button></div><span class="hint" id="eventCount">No events loaded</span><div class="log" id="events">No events loaded yet.</div></section>
 
 </div><p class="footer">ECLIPSE Test Bot</p>
 </main>
-<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview"><span>⌂</span>Home</a><a href="#groupSettings"><span>▦</span>Groups</a><a href="#reactionPanel"><span>☺</span>MESS</a><a href="#countdownPanel"><span>◷</span>Count</a><a href="#eventsPanel"><span>≋</span>Logs</a><a href="#appearancePanel"><span>◐</span>Theme</a></nav>
+<a hidden href="#appearancePanel"><span>◐</span>Theme</a>
+<nav class="mobile-nav" aria-label="Mobile dashboard navigation"><a href="#overview" data-workspace-link="overview"><span>⌂</span>Home</a><a href="#groupSettings" data-workspace-link="groups"><span>▦</span>Groups</a><a href="#reactionPanel" data-workspace-link="reactions"><span>☺</span>React</a><a href="#countdownPanel" data-workspace-link="countdown"><span>◷</span>Count</a><button type="button" id="mobileMoreBtn" aria-expanded="false" aria-controls="mobileMoreMenu"><span>•••</span>More</button></nav><div class="mobile-more-menu" id="mobileMoreMenu" hidden><a href="#eventsPanel" data-workspace-link="activity">≋ Activity Center</a><a href="#banatControlPanel" data-workspace-link="banat">◉ Banat Control</a><a href="#massSetnnPanel" data-workspace-link="mass-setnn">✎ Mass SetNN</a><a href="#groupTitleLockPanel" data-workspace-link="auto-lock">⌑ Auto-lock</a><a href="#raidModePanel" data-workspace-link="raid">◇ Raid Mode</a><a href="#spamPanel" data-workspace-link="spam">↗ Spam Mode</a><a href="#proxyPanel" data-workspace-link="connection">⇄ Proxy & Session</a><a href="#runtimePanel" data-workspace-link="diagnostics">⌁ Diagnostics</a><a href="#appearancePanel" data-workspace-link="appearance">◐ Appearance</a></div>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   document.getElementById("topRefreshBtn")?.addEventListener("click",()=>document.getElementById("refreshBtn")?.click());
-  document.querySelectorAll(".app-nav a,.mobile-nav a").forEach(link=>link.addEventListener("click",()=>{
-    const target=link.getAttribute("href");
-    document.querySelectorAll(".app-nav a,.mobile-nav a").forEach(item=>item.classList.toggle("active",item.getAttribute("href")===target));
-  }));
+  const workspacePages=[...document.querySelectorAll(".workspace-page")];
+  const workspaceLinks=[...document.querySelectorAll("[data-workspace-link]")];
+  const workspaceTitles={"overview":"Overview","activity":"Activity Center","groups":"Groups","banat":"Banat Control","reactions":"Reaction Studio","countdown":"Countdown","mass-setnn":"Mass SetNN","auto-lock":"Auto-lock","raid":"Raid Mode","spam":"Spam Mode","connection":"Proxy & Session","diagnostics":"Diagnostics","appearance":"Appearance"};
+  const workspaceAliases={overview:"overview",eventsPanel:"activity",groupSettings:"groups",botControls:"banatControlPanel",banatControlPanel:"banat",reactionPanel:"reactions",countdownPanel:"countdown",massSetnnPanel:"mass-setnn",groupTitleLockPanel:"auto-lock",raidModePanel:"raid",spamPanel:"spam",proxyPanel:"connection",sessionCookiePanel:"connection",runtimePanel:"diagnostics",appearancePanel:"appearance"};
+  function showWorkspace(key,updateHash=true){
+    key=workspaceAliases[key]||key;
+    const page=workspacePages.find(item=>item.dataset.workspace===key)||workspacePages[0];
+    if(!page)return;
+    workspacePages.forEach(item=>{const active=item===page;item.classList.toggle("active",active);item.setAttribute("aria-hidden",String(!active));});
+    workspaceLinks.forEach(link=>{const active=link.dataset.workspaceLink===page.dataset.workspace;if(active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");});
+    const heading=document.querySelector(".top-heading h1");if(heading)heading.textContent=workspaceTitles[page.dataset.workspace]||"Overview";
+    document.documentElement.style.setProperty("--workspace-accent",getComputedStyle(page).getPropertyValue("--workspace-accent").trim()||"var(--accent)");
+    page.scrollTop=0;
+    const menu=document.getElementById("mobileMoreMenu");if(menu)menu.hidden=true;
+    const more=document.getElementById("mobileMoreBtn");if(more)more.setAttribute("aria-expanded","false");
+    if(updateHash&&location.hash!=="#"+page.dataset.workspace)history.replaceState(null,"","#"+page.dataset.workspace);
+  }
+  workspaceLinks.forEach(link=>link.addEventListener("click",event=>{event.preventDefault();showWorkspace(link.dataset.workspaceLink);}));
+  window.addEventListener("hashchange",()=>showWorkspace((location.hash||"#overview").slice(1),false));
+  const moreButton=document.getElementById("mobileMoreBtn"),moreMenu=document.getElementById("mobileMoreMenu");
+  moreButton?.addEventListener("click",()=>{const opening=moreMenu.hidden;moreMenu.hidden=!opening;moreButton.setAttribute("aria-expanded",String(opening));});
+  document.addEventListener("click",event=>{if(moreMenu&&!moreMenu.hidden&&!moreMenu.contains(event.target)&&!moreButton?.contains(event.target)){moreMenu.hidden=true;moreButton?.setAttribute("aria-expanded","false");}});
+  showWorkspace((location.hash||"#overview").slice(1),false);
   const fmtDuration = seconds => { seconds=Math.max(0,Number(seconds)||0); const d=Math.floor(seconds/86400),h=Math.floor(seconds%86400/3600),m=Math.floor(seconds%3600/60); return d?d+"d "+h+"h":h?h+"h "+m+"m":m+"m"; };
   const fmtBytes = n => { n=Number(n)||0; return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"; };
   async function request(path, options={}) {
@@ -314,7 +369,7 @@ main.wrap > .grid > .card .field > label { min-width: min(100%, 190px); }
     }catch(error){$("banatControlStatus").textContent="Unavailable";$("banatControlMessage").textContent="Could not load Banat status: "+error.message;}
   }
   async function setBanatControl(mode){
-    const threadID=$("groupThreadID").value.trim();if(!threadID){$("banatControlMessage").textContent="Choose a Messenger group in the Groups panel first.";return;}
+    const threadID=$("groupThreadID").value.trim();if(!threadID){$("banatControlMessage").textContent="Select a group first.";return;}
     const buttons=["banatTurnOn","banatTurnOff","banatRefreshStatus"];buttons.forEach(id=>$(id).disabled=true);
     try{const data=await request("/api/dashboard/settings/group",{method:"POST",body:JSON.stringify({threadID,banatMode:mode})});
       $("banatControlStatus").textContent=data.group.banatMode==="on"?"ON · always enabled":"OFF · disabled";
