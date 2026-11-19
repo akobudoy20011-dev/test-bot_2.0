@@ -7,6 +7,8 @@ const APP_ID = "test-bot_2.0";
 const UPSTREAM_REPOSITORY = "akobudoy20011-dev/test-bot_2.0";
 const HEARTBEAT_MS = Math.max(30_000, Number(process.env.ECLIPSE_LICENSE_HEARTBEAT_MS || 60_000));
 const LEASE_SAFETY_MS = 15_000;
+const DEFAULT_OFFLINE_GRACE_MS = 24 * 60 * 60 * 1000;
+const MAX_OFFLINE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 const LICENSE_REQUEST_TIMEOUT_MS = Math.min(60_000, Math.max(5_000, Number(process.env.ECLIPSE_LICENSE_REQUEST_TIMEOUT_MS || 30_000)));
 
 function safeEqual(a, b) {
@@ -32,6 +34,10 @@ function createLicenseGuard(options = {}) {
   const publicKey = process.env.ECLIPSE_LICENSE_PUBLIC_KEY || "";
   const dashboardKey = String(process.env.ECLIPSE_DASHBOARD_API_KEY || "").trim();
   const now = options.now || (() => Date.now());
+  const configuredGrace = Number(process.env.ECLIPSE_LICENSE_OFFLINE_GRACE_MS);
+  const offlineGraceMs = Number.isFinite(configuredGrace)
+    ? Math.min(MAX_OFFLINE_GRACE_MS, Math.max(0, configuredGrace))
+    : DEFAULT_OFFLINE_GRACE_MS;
 
   let installationId = "";
   let lease = null;
@@ -66,7 +72,7 @@ function createLicenseGuard(options = {}) {
     return encoded + "." + signature;
   }
 
-  function verifyLease(token) {
+  function verifyLease(token, allowOfflineGrace = false) {
     if (!publicKey || typeof token !== "string") return null;
     const parts = token.split(".");
     if (parts.length !== 2) return null;
@@ -75,7 +81,10 @@ function createLicenseGuard(options = {}) {
       if (!crypto.verify(null, Buffer.from(parts[0]), publicKey, signature)) return null;
       const payload = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
       if (payload.app !== APP_ID || payload.installation_id !== getInstallationId()) return null;
-      if (!Number.isFinite(payload.exp) || payload.exp * 1000 <= now() + LEASE_SAFETY_MS) return null;
+      if (payload.status !== "approved" || !Number.isFinite(payload.exp)) return null;
+      const expiresAt = payload.exp * 1000;
+      const deadline = expiresAt + (allowOfflineGrace ? offlineGraceMs : 0);
+      if (deadline <= now() + (allowOfflineGrace ? 0 : LEASE_SAFETY_MS)) return null;
       return payload;
     } catch (_) {
       return null;
@@ -125,7 +134,10 @@ function createLicenseGuard(options = {}) {
       mode: ownerMode ? "owner" : temporaryMode ? "temporary" : "client",
       installation_id: temporaryMode ? temporaryInstallationId : installationId || null,
       authorized,
-      status: temporaryMode && authorized ? "temporary" : authorized ? "authorized" : "blocked",
+      status: temporaryMode && authorized ? "temporary" : authorized ? (lastError ? "offline-authorized" : "authorized") : "blocked",
+      offline_grace_until: lease && offlineGraceMs > 0 && verifyLease(lease, true)
+        ? new Date(verifyLease(lease, true).exp * 1000 + offlineGraceMs).toISOString()
+        : null,
       last_check_at: lastCheckAt,
       last_error: lastError
     };
@@ -237,6 +249,7 @@ function createLicenseGuard(options = {}) {
       throw new Error("The license authority returned an invalid or expired signature.");
     }
     lease = result.token;
+    store.writeCachedLease(lease);
     authorized = true;
     lastError = null;
     lastCheckAt = new Date(now()).toISOString();
@@ -258,8 +271,21 @@ function createLicenseGuard(options = {}) {
       await checkWithAuthority();
       return true;
     } catch (error) {
+      const message = String(error && error.message || error);
+      const cached = store.readCachedLease();
+      const cachedPayload = cached && verifyLease(cached, true);
+      const isTransportFailure = /Could not reach the ECLIPSE license authority|ECLIPSE_LICENSE_SERVER_URL is missing/i.test(message);
+      if (!ownerMode && isTransportFailure && cachedPayload && offlineGraceMs > 0) {
+        lease = cached;
+        authorized = true;
+        lastCheckAt = new Date(now()).toISOString();
+        lastError = "License authority unreachable; using the last signed approval until " + new Date(cachedPayload.exp * 1000 + offlineGraceMs).toISOString() + ".";
+        console.warn("[ECLIPSE LICENSE] Offline grace active; cached signed approval remains valid until its grace deadline.");
+        return true;
+      }
+      if (!ownerMode && !isTransportFailure) store.clearCachedLease();
       authorized = false;
-      lastError = String(error && error.message || error).slice(0, 300);
+      lastError = message.slice(0, 300);
       lastCheckAt = new Date(now()).toISOString();
       return false;
     }
@@ -278,11 +304,12 @@ function createLicenseGuard(options = {}) {
       } catch (error) {
         const message = String(error && error.message || error);
         const explicitDenial = /not approved|revoked|invalid signature|missing/i.test(message);
-        const stillLeased = verifyLease(lease);
+        const stillLeased = verifyLease(lease, true);
         lastError = message.slice(0, 300);
         if (explicitDenial || !stillLeased) {
           const wasAuthorized = authorized;
           authorized = false;
+          if (explicitDenial) store.clearCachedLease();
           if (wasAuthorized && onRevoked) onRevoked(lastError);
         }
       }
