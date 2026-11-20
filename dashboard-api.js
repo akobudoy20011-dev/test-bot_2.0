@@ -220,6 +220,20 @@ module.exports = function startDashboardApi(port, getStatus, controls = {}) {
         return send(res, 400, { ok: false, error: error.message || "Could not update license settings." });
       }
     }
+    if (req.method === "GET" && url.pathname === "/api/dashboard/security/license-override") {
+      try { return send(res, 200, { ok: true, override: await licenseGuard.getTemporaryOverride() }); }
+      catch (error) { return send(res, 503, { ok: false, error: error.message || "Override status unavailable." }); }
+    }
+    if (req.method === "POST" && url.pathname === "/api/dashboard/security/license-override") {
+      try {
+        const body = await readJson(req);
+        if (typeof body.enabled !== "boolean") return send(res, 400, { ok: false, error: "enabled must be true or false." });
+        const override = await licenseGuard.setTemporaryOverride(body);
+        return send(res, 200, { ok: true, override });
+      } catch (error) {
+        return send(res, 400, { ok: false, error: error.message || "Could not change temporary license override." });
+      }
+    }
     if (req.method === "GET" && url.pathname === "/api/dashboard/security/installations") {
       try { return send(res, 200, { ok: true, installations: await licenseGuard.listInstallations() }); }
       catch (error) { return send(res, 503, { ok: false, error: error.message || "Installation registry unavailable." }); }

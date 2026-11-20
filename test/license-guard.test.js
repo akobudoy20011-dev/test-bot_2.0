@@ -113,6 +113,74 @@ test("owner service approves itself and requires explicit approval for new insta
 });
 
 
+test("temporary license override grants pending installations until expiry but never revoked installs", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-override-"));
+  const pair = crypto.generateKeyPairSync("ed25519");
+  const privateKey = pair.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const publicKey = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+  let clock = Date.now();
+  await withEnvironment({
+    ECLIPSE_SECURITY_DATA_DIR: path.join(root, "owner"),
+    ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
+    ECLIPSE_LICENSE_SERVER_MODE: "true",
+    ECLIPSE_LICENSE_PRIVATE_KEY: privateKey,
+    ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
+    ECLIPSE_DASHBOARD_API_KEY: "override-test-key",
+    ECLIPSE_LICENSE_SERVER_URL: null
+  }, async () => {
+    const owner = createLicenseGuard({ now: () => clock });
+    try {
+      assert.equal(await owner.initialize(), true);
+      const pendingId = crypto.randomUUID();
+      assert.equal((await owner.verifyIncomingInstallation({ installation_id: pendingId })).status, "pending");
+      const enabled = await owner.setTemporaryOverride({ enabled: true, duration_minutes: 30 });
+      assert.equal(enabled.active, true);
+      const bypassed = await owner.verifyIncomingInstallation({ installation_id: pendingId });
+      assert.equal(bypassed.status, "approved");
+      assert.equal(bypassed.temporary_override, true);
+      assert.ok(bypassed.token);
+      const clientPath = path.join(root, "client");
+      fs.mkdirSync(clientPath, { recursive: true });
+      fs.writeFileSync(path.join(clientPath, "installation-id"), pendingId);
+      const originalFetch = global.fetch;
+      global.fetch = async () => ({ ok: true, status: 200, json: async () => bypassed });
+      try {
+        await withEnvironment({
+          ECLIPSE_SECURITY_DATA_DIR: clientPath,
+          ECLIPSE_LICENSE_ALLOW_FILE_STORE: "true",
+          ECLIPSE_INSTALLATION_ID_FILE: path.join(clientPath, "installation-id"),
+          ECLIPSE_LICENSE_SERVER_MODE: "false",
+          ECLIPSE_LICENSE_ENFORCEMENT: "true",
+          ECLIPSE_LICENSE_SERVER_URL: "https://owner.example",
+          ECLIPSE_LICENSE_PUBLIC_KEY: publicKey,
+          ECLIPSE_LICENSE_PRIVATE_KEY: null
+        }, async () => {
+          const client = createLicenseGuard({ now: () => clock });
+          assert.equal(await client.initialize(), true);
+          clock += 31 * 60 * 1000;
+          global.fetch = async () => { throw new Error("authority offline"); };
+          assert.equal(await client.initialize(), false, "override-issued lease must not survive override expiry during offline grace");
+          client.stop();
+        });
+      } finally {
+        global.fetch = originalFetch;
+      }
+      const revokedId = crypto.randomUUID();
+      await owner.verifyIncomingInstallation({ installation_id: revokedId });
+      await owner.updateInstallation(revokedId, "revoked");
+      assert.equal((await owner.verifyIncomingInstallation({ installation_id: revokedId })).status, "revoked");
+      clock += 31 * 60 * 1000;
+      assert.equal((await owner.getTemporaryOverride()).active, false);
+      assert.equal((await owner.verifyIncomingInstallation({ installation_id: pendingId })).status, "pending");
+      await owner.setTemporaryOverride({ enabled: false });
+      assert.equal((await owner.getTemporaryOverride()).active, false);
+    } finally {
+      owner.stop();
+    }
+  });
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("client restores a cached signed approval during an authority outage within offline grace", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "eclipse-license-offline-cache-"));
   const id = crypto.randomUUID();
