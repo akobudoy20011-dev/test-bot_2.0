@@ -210,7 +210,7 @@ function createLicenseGuard(options = {}) {
     }
     await store.writeRegistry(registry);
 
-    if (entry.status !== "approved" && temporaryOverride.active) return { status: "approved", temporary_override: true, installation_id: id, token: issueLease(id, "approved", app) };
+    if (entry.status === "pending" && temporaryOverride.active) return { status: "approved", temporary_override: true, installation_id: id, token: issueLease(id, "approved", app) };
     if (entry.status !== "approved") return { status: entry.status, installation_id: id };
     return { status: "approved", installation_id: id, token: issueLease(id, "approved", app) };
   }
