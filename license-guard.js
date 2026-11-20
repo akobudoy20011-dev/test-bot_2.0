@@ -146,6 +146,38 @@ function createLicenseGuard(options = {}) {
     };
   }
 
+
+  function getLicenseOverride(registry) {
+    const settings = registry.settings || {};
+    const expiresAt = settings.temporary_license_override_until || null;
+    const active = Boolean(expiresAt && Date.parse(expiresAt) > now());
+    return { active, expires_at: active ? expiresAt : null, expired_at: expiresAt && !active ? expiresAt : null };
+  }
+
+  async function getTemporaryOverride() {
+    if (!ownerMode) throw new Error("Temporary license override is available only on the license owner service.");
+    const registry = await store.readRegistry();
+    return getLicenseOverride(registry);
+  }
+
+  async function setTemporaryOverride(input = {}) {
+    return serializeMutation(async () => {
+      if (!ownerMode) throw new Error("Temporary license override is available only on the license owner service.");
+      const durationMinutes = Number(input.duration_minutes);
+      if (input.enabled !== false && (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440)) {
+        throw new Error("Override duration must be a whole number from 1 to 1440 minutes.");
+      }
+      const registry = await store.readRegistry();
+      const prior = getLicenseOverride(registry);
+      const until = input.enabled === false ? null : new Date(now() + durationMinutes * 60_000).toISOString();
+      registry.settings = { ...(registry.settings || {}), temporary_license_override_until: until };
+      record(registry, input.enabled === false ? "temporary-license-override-disabled" : "temporary-license-override-enabled", {
+        expires_at: until, duration_minutes: input.enabled === false ? 0 : durationMinutes
+      });
+      await store.writeRegistry(registry);
+      return { active: Boolean(until), expires_at: until, previous_active: prior.active };
+    });
+  }
   async function verifyIncomingInstallation(body) {
     if (!ownerMode) return { status: "unavailable", error: "This installation is not configured as the ECLIPSE license authority." };
     await store.initialize(true);
@@ -155,6 +187,7 @@ function createLicenseGuard(options = {}) {
     if (!ALLOWED_APPS.has(app)) return { status: "invalid", error: "This application is not enabled on the ECLIPSE license authority." };
 
     const registry = await store.readRegistry();
+    const temporaryOverride = getLicenseOverride(registry);
     let entry = registry.installations[id];
     if (!entry) {
       entry = {
@@ -177,6 +210,7 @@ function createLicenseGuard(options = {}) {
     }
     await store.writeRegistry(registry);
 
+    if (entry.status !== "approved" && temporaryOverride.active) return { status: "approved", temporary_override: true, installation_id: id, token: issueLease(id, "approved", app) };
     if (entry.status !== "approved") return { status: entry.status, installation_id: id };
     return { status: "approved", installation_id: id, token: issueLease(id, "approved", app) };
   }
@@ -443,6 +477,8 @@ function createLicenseGuard(options = {}) {
     updateInstallation,
     getLicenseSettings,
     updateLicenseSettings,
+    getTemporaryOverride,
+    setTemporaryOverride,
     listEvents,
     listForks,
     stop() { if (timer) clearInterval(timer); timer = null; store.close().catch(() => {}); }
