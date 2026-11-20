@@ -87,6 +87,7 @@ function createLicenseGuard(options = {}) {
       if (payload.status !== "approved" || !Number.isFinite(payload.exp)) return null;
       const expiresAt = payload.exp * 1000;
       const deadline = expiresAt + (allowOfflineGrace ? offlineGraceMs : 0);
+      if (payload.temporary_override_until && Date.parse(payload.temporary_override_until) <= now()) return null;
       if (deadline <= now() + (allowOfflineGrace ? 0 : LEASE_SAFETY_MS)) return null;
       return payload;
     } catch (_) {
@@ -94,13 +95,16 @@ function createLicenseGuard(options = {}) {
     }
   }
 
-  function issueLease(id, status, app = APP_ID) {
+  function issueLease(id, status, app = APP_ID, temporaryOverrideUntil = null) {
+    const issuedAt = Math.floor(now() / 1000);
+    const expiresAt = temporaryOverrideUntil ? Math.min(issuedAt + 10 * 60, Math.floor(Date.parse(temporaryOverrideUntil) / 1000)) : issuedAt + 10 * 60;
     const payload = {
       app,
       installation_id: id,
       status,
-      iat: Math.floor(now() / 1000),
-      exp: Math.floor(now() / 1000) + 10 * 60
+      iat: issuedAt,
+      exp: expiresAt,
+      ...(temporaryOverrideUntil ? { temporary_override_until: temporaryOverrideUntil } : {})
     };
     return signLease(payload);
   }
@@ -210,7 +214,7 @@ function createLicenseGuard(options = {}) {
     }
     await store.writeRegistry(registry);
 
-    if (entry.status === "pending" && temporaryOverride.active) return { status: "approved", temporary_override: true, installation_id: id, token: issueLease(id, "approved", app) };
+    if (entry.status === "pending" && temporaryOverride.active) return { status: "approved", temporary_override: true, installation_id: id, token: issueLease(id, "approved", app, temporaryOverride.expires_at) };
     if (entry.status !== "approved") return { status: entry.status, installation_id: id };
     return { status: "approved", installation_id: id, token: issueLease(id, "approved", app) };
   }
