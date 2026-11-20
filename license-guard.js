@@ -380,7 +380,7 @@ function createLicenseGuard(options = {}) {
         throw new Error("Maximum approved installations must be a whole number from 0 to 10000. Use 0 for unlimited.");
       }
       const registry = await store.readRegistry();
-      registry.settings = { max_approved_installations: value };
+      registry.settings = { ...(registry.settings || {}), max_approved_installations: value };
       record(registry, "license-settings-updated", { max_approved_installations: value });
       await store.writeRegistry(registry);
       return registry.settings;
